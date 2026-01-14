@@ -1,0 +1,236 @@
+.stats-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+@media (max-width: 768px) {
+  .stats-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.devices-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  gap: 1.5rem;
+}
+
+.device-card {
+  background: var(--bg-card);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border-color);
+  padding: 1.5rem;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.2s;
+  
+  &:hover {
+    box-shadow: var(--shadow-md);
+  }
+  
+  &.warning {
+    border-color: var(--warning);
+    background: rgba(245, 158, 11, 0.02);
+  }
+}
+
+.device-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.device-icon {
+  width: 48px;
+  height: 48px;
+  background: var(--primary-light);
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+}
+
+.device-info {
+  flex: 1;
+  
+  h3 {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 600;
+  }
+  
+  .model {
+    font-size: 0.8125rem;
+    color: var(--text-muted);
+  }
+}
+
+.status-badge {
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: white;
+  text-transform: capitalize;
+}
+
+.device-details {
+  margin-bottom: 1.25rem;
+}
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 0;
+  font-size: 0.875rem;
+  
+  &:not(:last-child) {
+    border-bottom: 1px solid var(--border-color);
+  }
+  
+  .label {
+    color: var(--text-muted);
+  }
+  
+  .value {
+    font-weight: 500;
+  }
+}
+
+.counter-section {
+  background: var(--bg-body);
+  border-radius: var(--radius-lg);
+  padding: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.counter-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.counter-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.counter-value {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.progress-bar {
+  height: 8px;
+  background: var(--border-color);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--primary-color);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+  
+  &.warning {
+    background: var(--warning);
+  }
+  
+  &.danger {
+    background: var(--danger);
+  }
+}
+
+.counter-info {
+  margin-top: 0.75rem;
+  font-size: 0.75rem;
+  color: var(--warning);
+  font-weight: 500;
+}
+
+.device-actions {
+  display: flex;
+  gap: 0.75rem;
+  
+  .btn {
+    flex: 1;
+  }
+}
+
+// Form Styles
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  
+  label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+  }
+  
+  input, select, textarea {
+    padding: 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    font-size: 0.875rem;
+    font-family: inherit;
+    outline: none;
+    
+    &:focus {
+      border-color: var(--primary-color);
+    }
+  }
+}
+
+// Log Form
+.log-form {
+  .current-counter {
+    background: var(--bg-body);
+    border-radius: var(--radius-lg);
+    padding: 1rem;
+    margin-bottom: 1rem;
+    display: flex;
+    justify-content: space-between;
+    
+    .label {
+      color: var(--text-muted);
+    }
+    
+    .value {
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+  }
+  
+  .usage-calculated {
+    background: var(--primary-light);
+    border-radius: var(--radius-lg);
+    padding: 1rem;
+    margin: 1rem 0;
+    display: flex;
+    justify-content: space-between;
+    
+    .label {
+      color: var(--primary-dark);
+    }
+    
+    .value {
+      font-weight: 600;
+      color: var(--primary-dark);
+    }
+  }
+}

@@ -1,0 +1,99 @@
+<app-page-header 
+  title="Doctors" 
+  subtitle="Manage doctor profiles and schedules">
+  <button class="btn btn-primary" (click)="openAddModal()">
+    + Add Doctor
+  </button>
+</app-page-header>
+
+<app-data-table
+  [data]="doctors"
+  [columns]="columns"
+  (edit)="openEditModal($event)"
+  (delete)="deleteDoctor($event)">
+</app-data-table>
+
+<app-modal 
+  [isOpen]="showModal" 
+  [title]="isEditMode ? 'Edit Doctor' : 'Add New Doctor'"
+  (closed)="closeModal()"
+  (confirmed)="saveDoctor()">
+  
+  <div class="modal-content">
+    <div class="form-section">
+      <h4>Basic Information</h4>
+      <div class="form-grid">
+        <div class="form-group full-width">
+          <label>Full Name *</label>
+          <input type="text" [(ngModel)]="doctorForm.name" placeholder="Dr. Full Name">
+        </div>
+        
+        <div class="form-group">
+          <label>Specialty *</label>
+          <select [(ngModel)]="doctorForm.specialty">
+            <option value="">Select specialty</option>
+            <option value="Dermatology">Dermatology</option>
+            <option value="Cosmetic Surgery">Cosmetic Surgery</option>
+            <option value="Laser Specialist">Laser Specialist</option>
+            <option value="Aesthetician">Aesthetician</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label>Phone *</label>
+          <input type="tel" [(ngModel)]="doctorForm.phone" placeholder="+20 xxx xxx xxxx">
+        </div>
+        
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" [(ngModel)]="doctorForm.email" placeholder="doctor@clinic.com">
+        </div>
+        
+        <div class="form-group">
+          <label>Status</label>
+          <select [(ngModel)]="doctorForm.isActive">
+            <option [ngValue]="true">Active</option>
+            <option [ngValue]="false">Inactive</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="form-section">
+      <h4>Schedule Configuration</h4>
+      <p class="hint">Assign shifts to specific days, times, and rooms.</p>
+      
+      <div class="shifts-list">
+        <div class="shift-item" *ngFor="let shift of doctorForm.workingHours; let i = index">
+          <div class="shift-info">
+            <span class="day">{{ getDayName(shift.dayOfWeek) }}</span>
+            <span class="time">{{ shift.startTime }} - {{ shift.endTime }}</span>
+            <span class="room" *ngIf="shift.roomId"><i class="fa-solid fa-door-open"></i> {{ getRoomName(shift.roomId) }}</span>
+            <span class="room-any" *ngIf="!shift.roomId">Any Room</span>
+          </div>
+          <button class="btn-remove" (click)="removeShift(i)"><i class="fa-solid fa-trash"></i></button>
+        </div>
+        <div class="empty-shifts" *ngIf="!doctorForm.workingHours?.length">
+          No shifts configured.
+        </div>
+      </div>
+
+      <div class="add-shift-form">
+        <h5>Add New Shift</h5>
+        <div class="shift-inputs">
+          <select [(ngModel)]="newShift.dayOfWeek">
+            <option *ngFor="let day of days" [value]="day.id">{{ day.name }}</option>
+          </select>
+          <input type="time" [(ngModel)]="newShift.startTime">
+          <span class="separator">to</span>
+          <input type="time" [(ngModel)]="newShift.endTime">
+          <select [(ngModel)]="newShift.roomId">
+            <option value="">Any Room</option>
+            <option *ngFor="let room of rooms" [value]="room.id">{{ room.name }}</option>
+          </select>
+          <button class="btn btn-outline" (click)="addShift()">+ Add</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</app-modal>

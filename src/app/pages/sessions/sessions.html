@@ -1,0 +1,131 @@
+<app-page-header 
+  title="Active Sessions" 
+  subtitle="Monitor and manage ongoing treatment sessions">
+</app-page-header>
+
+<!-- Stats -->
+<div class="stats-row">
+  <app-stat-card 
+    icon="fa-solid fa-play-circle" 
+    iconBg="rgba(139, 92, 246, 0.1)"
+    [value]="activeSessions.length"
+    label="Active Sessions">
+  </app-stat-card>
+  <app-stat-card 
+    icon="fa-solid fa-user-clock" 
+    iconBg="rgba(245, 158, 11, 0.1)"
+    [value]="checkedInAppointments.length"
+    label="Waiting (Checked-In)">
+  </app-stat-card>
+</div>
+
+<!-- Active Sessions Grid -->
+<div class="section-card">
+  <div class="section-header">
+    <h3><i class="fa-solid fa-bolt"></i> Active Sessions</h3>
+  </div>
+  
+  <div class="sessions-grid" *ngIf="activeSessions.length > 0">
+    <div class="session-card" *ngFor="let session of activeSessions">
+      <div class="session-header">
+        <div class="patient-avatar">
+          {{ session.patient.firstName?.charAt(0) }}{{ session.patient.lastName?.charAt(0) }}
+        </div>
+        <div class="patient-info">
+          <span class="name">{{ session.patient.firstName }} {{ session.patient.lastName }}</span>
+          <span class="room">{{ session.room.name }}</span>
+        </div>
+        <div class="elapsed-time" [class.warning]="session.elapsedMinutes > 60">
+          <i class="fa-solid fa-clock"></i>
+          {{ formatElapsed(session.elapsedMinutes) }}
+        </div>
+      </div>
+      
+      <div class="session-services">
+        <span class="service-tag" *ngFor="let svc of session.services">
+          {{ svc.name }}
+        </span>
+      </div>
+      
+      <div class="session-meta">
+        <span><i class="fa-solid fa-user-doctor"></i> {{ session.doctor.name }}</span>
+        <span><i class="fa-solid fa-clock"></i> Started: {{ formatTime(session.startTime) }}</span>
+      </div>
+      
+      <div class="session-actions">
+        <button class="btn btn-outline btn-sm" (click)="openSessionModal(session)">
+          <i class="fa-solid fa-clipboard"></i> Notes
+        </button>
+        <button class="btn btn-primary btn-sm" (click)="quickEndSession(session)">
+          <i class="fa-solid fa-check"></i> End Session
+        </button>
+      </div>
+    </div>
+  </div>
+  
+  <div class="empty-state" *ngIf="activeSessions.length === 0">
+    <i class="fa-solid fa-hourglass-empty"></i>
+    <p>No active sessions</p>
+  </div>
+</div>
+
+<!-- Waiting Queue -->
+<div class="section-card">
+  <div class="section-header">
+    <h3><i class="fa-solid fa-users-clock"></i> Waiting Queue (Checked-In)</h3>
+  </div>
+  
+  <div class="waiting-list" *ngIf="checkedInAppointments.length > 0">
+    <div class="waiting-item" *ngFor="let apt of checkedInAppointments">
+      <div class="waiting-info">
+        <span class="patient-name">{{ getPatientName(apt.patientId) }}</span>
+        <span class="services">{{ getServiceNames(apt).join(', ') }}</span>
+      </div>
+      <div class="waiting-meta">
+        <span class="doctor">{{ getDoctorName(apt.doctorId) }}</span>
+        <span class="room">{{ getRoomName(apt.roomId) }}</span>
+      </div>
+      <button class="btn btn-primary btn-sm" (click)="startSession(apt)">
+        <i class="fa-solid fa-play"></i> Start
+      </button>
+    </div>
+  </div>
+  
+  <div class="empty-state" *ngIf="checkedInAppointments.length === 0">
+    <p>No patients waiting</p>
+  </div>
+</div>
+
+<!-- Session Notes Modal -->
+<app-modal 
+  [isOpen]="showSessionModal" 
+  title="Session Notes"
+  (closed)="closeSessionModal()"
+  (confirmed)="endSession(selectedSession!)"
+  confirmText="End & Save">
+  
+  <div class="session-modal-content" *ngIf="selectedSession">
+    <div class="patient-summary">
+      <strong>{{ selectedSession.patient.firstName }} {{ selectedSession.patient.lastName }}</strong>
+      <span>{{ selectedSession.room.name }} • {{ formatElapsed(selectedSession.elapsedMinutes) }}</span>
+    </div>
+    
+    <div class="form-group">
+      <label>Clinical Notes</label>
+      <textarea 
+        [(ngModel)]="sessionNotes" 
+        rows="4" 
+        placeholder="Enter session notes, observations, recommendations...">
+      </textarea>
+    </div>
+    
+    <div class="consumables-section">
+      <label>Consumables Used</label>
+      <p class="hint">Track materials used during the session</p>
+      <div class="consumables-placeholder">
+        <i class="fa-solid fa-box"></i>
+        <span>Consumables tracking coming soon</span>
+      </div>
+    </div>
+  </div>
+</app-modal>

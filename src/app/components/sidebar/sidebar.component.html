@@ -1,0 +1,24 @@
+<div class="sidebar" [class.collapsed]="collapsed">
+  <div class="logo-area">
+    <div class="logo-icon"><i class="fa-solid fa-heart-pulse"></i></div>
+    <span class="logo-text" *ngIf="!collapsed">Diana System</span>
+  </div>
+
+  <nav class="nav-links">
+    <a *ngFor="let item of navItems" 
+       [routerLink]="item.route" 
+       routerLinkActive="active" 
+       class="nav-item">
+      <i [class]="item.icon"></i>
+      <span class="label" *ngIf="!collapsed">{{ item.label }}</span>
+    </a>
+  </nav>
+
+  <div class="footer">
+    <button class="collapse-btn" (click)="toggleCollapse()">
+      <i *ngIf="collapsed" class="fa-solid fa-angles-right"></i>
+      <span *ngIf="!collapsed"><i class="fa-solid fa-angles-left"></i> Collapse</span>
+    </button>
+  </div>
+</div>
+

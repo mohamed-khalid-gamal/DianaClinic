@@ -1,0 +1,174 @@
+<app-page-header 
+  title="Dashboard" 
+  subtitle="Welcome back! Here's what's happening today.">
+</app-page-header>
+
+<!-- KPI Stats Grid -->
+<div class="stats-grid">
+  <app-stat-card 
+    icon="fa-solid fa-calendar-day" 
+    iconBg="rgba(14, 116, 144, 0.1)"
+    [value]="stats.todayAppointments"
+    label="Today's Appointments"
+    [clickable]="true">
+  </app-stat-card>
+  
+  <app-stat-card 
+    icon="fa-solid fa-users" 
+    iconBg="rgba(139, 92, 246, 0.1)"
+    [value]="stats.totalPatients"
+    label="Total Patients"
+    [clickable]="true">
+  </app-stat-card>
+  
+  <app-stat-card 
+    icon="fa-solid fa-door-open" 
+    iconBg="rgba(16, 185, 129, 0.1)"
+    [value]="stats.roomsInUse + '/' + stats.totalRooms"
+    label="Rooms in Use"
+    [clickable]="true">
+  </app-stat-card>
+  
+  <app-stat-card 
+    icon="fa-solid fa-bell" 
+    iconBg="rgba(245, 158, 11, 0.1)"
+    [value]="stats.pendingAlerts"
+    label="Pending Alerts"
+    [clickable]="true">
+  </app-stat-card>
+</div>
+
+<!-- Main Content Grid -->
+<div class="dashboard-grid">
+  <!-- Today's Schedule -->
+  <div class="card schedule-card">
+    <div class="card-header">
+      <h3>Today's Schedule</h3>
+      <a routerLink="/appointments" class="view-all">View All <i class="fa-solid fa-arrow-right"></i></a>
+    </div>
+    <div class="schedule-list">
+      <div class="schedule-item" *ngFor="let apt of todayAppointments">
+        <div class="time-slot">
+          <span class="time">{{ formatTime(apt.scheduledStart) }}</span>
+        </div>
+        <div class="appointment-info">
+          <div class="patient-row">
+            <span class="patient-id">Patient #{{ apt.patientId }}</span>
+            <span class="status-badge" [style.background]="getStatusColor(apt.status)">
+              {{ apt.status }}
+            </span>
+          </div>
+          <div class="details">
+            <span>{{ getDoctorName(apt.doctorId) }}</span>
+            <span class="separator">•</span>
+            <span>{{ getRoomName(apt.roomId) }}</span>
+          </div>
+        </div>
+        <div class="actions">
+          <button class="action-btn" title="Check In"><i class="fa-solid fa-check"></i></button>
+        </div>
+      </div>
+      <div class="empty-state" *ngIf="todayAppointments.length === 0">
+        <p>No appointments scheduled for today</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Alerts & Notifications -->
+  <div class="card alerts-card">
+    <div class="card-header">
+      <h3>Alerts & Notifications</h3>
+      <span class="badge" *ngIf="alerts.length > 0">{{ alerts.length }}</span>
+    </div>
+    <div class="alerts-list">
+      <div class="alert-item" *ngFor="let alert of alerts" [class]="getSeverityClass(alert.severity)">
+        <div class="alert-icon"><i [class]="getAlertIcon(alert.type)"></i></div>
+        <div class="alert-content">
+          <span class="alert-title">{{ alert.title }}</span>
+          <span class="alert-message">{{ alert.message }}</span>
+        </div>
+      </div>
+      <div class="empty-state" *ngIf="alerts.length === 0">
+        <p>No pending alerts</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Room Utilization -->
+  <div class="card rooms-card">
+    <div class="card-header">
+      <h3>Room Status</h3>
+      <a routerLink="/rooms" class="view-all">Manage <i class="fa-solid fa-arrow-right"></i></a>
+    </div>
+    <div class="rooms-grid">
+      <div class="room-item" *ngFor="let room of rooms" [class.active]="room.isActive">
+        <div class="room-icon"><i class="fa-solid fa-hospital"></i></div>
+        <div class="room-info">
+          <span class="room-name">{{ room.name }}</span>
+          <span class="room-type">{{ room.type }}</span>
+        </div>
+        <div class="room-status" [class.available]="room.isActive">
+          {{ room.isActive ? 'Available' : 'Unavailable' }}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick Actions -->
+  <div class="card quick-actions-card">
+    <div class="card-header">
+      <h3>Quick Actions</h3>
+    </div>
+    <div class="quick-actions-grid">
+      <button class="quick-action" routerLink="/appointments">
+        <span class="action-icon"><i class="fa-solid fa-calendar-plus"></i></span>
+        <span>New Appointment</span>
+      </button>
+      <button class="quick-action" routerLink="/patients">
+        <span class="action-icon"><i class="fa-solid fa-user-plus"></i></span>
+        <span>Add Patient</span>
+      </button>
+      <button class="quick-action" routerLink="/inventory">
+        <span class="action-icon"><i class="fa-solid fa-boxes-stacked"></i></span>
+        <span>Check Inventory</span>
+      </button>
+      <button class="quick-action" routerLink="/billing">
+        <span class="action-icon"><i class="fa-solid fa-file-invoice-dollar"></i></span>
+        <span>Create Invoice</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Device Maintenance Alerts -->
+<div class="card maintenance-card" *ngIf="stats.devicesNearMaintenance > 0">
+  <div class="maintenance-alert">
+    <span class="icon"><i class="fa-solid fa-wrench"></i></span>
+    <div class="content">
+      <strong>Device Maintenance Required</strong>
+      <span>{{ stats.devicesNearMaintenance }} device(s) are nearing their maintenance threshold</span>
+    </div>
+    <button class="btn btn-outline" routerLink="/devices">View Devices</button>
+  </div>
+</div>
+
+<!-- Inventory Alerts Row -->
+<div class="alerts-row" *ngIf="stats.lowStockItems > 0 || stats.expiringItems > 0">
+  <div class="card inventory-alert low-stock" *ngIf="stats.lowStockItems > 0">
+    <span class="icon"><i class="fa-solid fa-box-open"></i></span>
+    <div class="content">
+      <strong>Low Stock Alert</strong>
+      <span>{{ stats.lowStockItems }} item(s) need reordering</span>
+    </div>
+    <button class="btn btn-outline" routerLink="/inventory">View Inventory</button>
+  </div>
+  
+  <div class="card inventory-alert expiry" *ngIf="stats.expiringItems > 0">
+    <span class="icon"><i class="fa-solid fa-triangle-exclamation"></i></span>
+    <div class="content">
+      <strong>Expiry Warning</strong>
+      <span>{{ stats.expiringItems }} item(s) expiring soon</span>
+    </div>
+    <button class="btn btn-outline" routerLink="/inventory">View Items</button>
+  </div>
+</div>

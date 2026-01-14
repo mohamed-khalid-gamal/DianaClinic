@@ -1,0 +1,153 @@
+<app-page-header 
+  title="Inventory & Pharmacy" 
+  subtitle="Track stock levels, expiry dates, and manage products">
+  <button class="btn btn-primary" (click)="openAddModal()">
+    + Add Item
+  </button>
+</app-page-header>
+
+<!-- Stats Row -->
+<div class="stats-row">
+  <app-stat-card 
+    icon="fa-solid fa-boxes-stacked" 
+    iconBg="rgba(14, 116, 144, 0.1)"
+    [value]="getTotalItems()"
+    label="Total Products">
+  </app-stat-card>
+  
+  <app-stat-card 
+    icon="fa-solid fa-triangle-exclamation" 
+    iconBg="rgba(245, 158, 11, 0.1)"
+    [value]="getLowStockCount()"
+    label="Low Stock Items"
+    [clickable]="true"
+    (cardClick)="activeFilter = 'low'">
+  </app-stat-card>
+  
+  <app-stat-card 
+    icon="fa-solid fa-calendar-xmark" 
+    iconBg="rgba(239, 68, 68, 0.1)"
+    [value]="getExpiringCount()"
+    label="Expiring Soon"
+    [clickable]="true"
+    (cardClick)="activeFilter = 'expiring'">
+  </app-stat-card>
+  
+  <app-stat-card 
+    icon="fa-solid fa-coins" 
+    iconBg="rgba(16, 185, 129, 0.1)"
+    [value]="'EGP ' + getTotalValue().toLocaleString()"
+    label="Inventory Value">
+  </app-stat-card>
+</div>
+
+<!-- Filter Tabs -->
+<div class="filter-tabs">
+  <button [class.active]="activeFilter === 'all'" (click)="activeFilter = 'all'">
+    All Items
+  </button>
+  <button [class.active]="activeFilter === 'drug'" (click)="activeFilter = 'drug'">
+    Drugs
+  </button>
+  <button [class.active]="activeFilter === 'consumable'" (click)="activeFilter = 'consumable'">
+    Consumables
+  </button>
+  <button [class.active]="activeFilter === 'retail'" (click)="activeFilter = 'retail'">
+    Retail Products
+  </button>
+  <button [class.active]="activeFilter === 'low'" (click)="activeFilter = 'low'">
+    Low Stock
+  </button>
+  <button [class.active]="activeFilter === 'expiring'" (click)="activeFilter = 'expiring'">
+    Expiring Soon
+  </button>
+</div>
+
+<app-data-table
+  [data]="filteredItems"
+  [columns]="columns"
+  (edit)="openEditModal($event)"
+  (delete)="deleteItem($event)">
+</app-data-table>
+
+<app-modal 
+  [isOpen]="showModal" 
+  [title]="isEditMode ? 'Edit Item' : 'Add New Item'"
+  maxWidth="700px"
+  (closed)="closeModal()"
+  (confirmed)="saveItem()">
+  
+  <div class="form-grid">
+    <div class="form-group">
+      <label>Product Name *</label>
+      <input type="text" [(ngModel)]="itemForm.name" placeholder="Product name">
+    </div>
+    
+    <div class="form-group">
+      <label>SKU *</label>
+      <input type="text" [(ngModel)]="itemForm.sku" placeholder="e.g., HA-001">
+    </div>
+    
+    <div class="form-group">
+      <label>Category *</label>
+      <select [(ngModel)]="itemForm.category">
+        <option value="drug">Drug / Injectable</option>
+        <option value="consumable">Consumable</option>
+        <option value="retail">Retail Product</option>
+        <option value="equipment">Equipment</option>
+      </select>
+    </div>
+    
+    <div class="form-group">
+      <label>Unit</label>
+      <select [(ngModel)]="itemForm.unit">
+        <option value="piece">Piece</option>
+        <option value="vial">Vial</option>
+        <option value="bottle">Bottle</option>
+        <option value="tube">Tube</option>
+        <option value="box">Box</option>
+        <option value="pair">Pair</option>
+      </select>
+    </div>
+    
+    <div class="form-group">
+      <label>Quantity *</label>
+      <input type="number" [(ngModel)]="itemForm.quantity" min="0">
+    </div>
+    
+    <div class="form-group">
+      <label>Reorder Threshold</label>
+      <input type="number" [(ngModel)]="itemForm.reorderThreshold" min="0">
+    </div>
+    
+    <div class="form-group">
+      <label>Cost Price (EGP)</label>
+      <input type="number" [(ngModel)]="itemForm.costPrice" min="0" step="0.01">
+    </div>
+    
+    <div class="form-group">
+      <label>Selling Price (EGP)</label>
+      <input type="number" [(ngModel)]="itemForm.sellingPrice" min="0" step="0.01">
+    </div>
+    
+    <div class="form-group">
+      <label>Expiry Date</label>
+      <input type="date" [(ngModel)]="itemForm.expiryDate">
+    </div>
+    
+    <div class="form-group">
+      <label>Batch Number</label>
+      <input type="text" [(ngModel)]="itemForm.batchNumber" placeholder="e.g., B2024-001">
+    </div>
+    
+    <div class="form-group">
+      <label>Supplier</label>
+      <input type="text" [(ngModel)]="itemForm.supplier" placeholder="Supplier name">
+    </div>
+    
+    <div class="form-group">
+      <label>Storage Location</label>
+      <input type="text" [(ngModel)]="itemForm.location" placeholder="e.g., Cabinet A">
+    </div>
+  </div>
+</app-modal>

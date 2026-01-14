@@ -1,0 +1,236 @@
+<app-page-header 
+  title="Offers & Packages" 
+  subtitle="Manage discounts, bundles, and promotional rules">
+  <button class="btn btn-primary" (click)="openAddModal()">
+    + Create Offer
+  </button>
+</app-page-header>
+
+<div class="filter-tabs">
+  <div class="tab" [class.active]="activeFilter === 'all'" (click)="activeFilter = 'all'">All Offers</div>
+  <div class="tab" [class.active]="activeFilter === 'active'" (click)="activeFilter = 'active'">Active</div>
+  <div class="tab" [class.active]="activeFilter === 'expired'" (click)="activeFilter = 'expired'">Expired</div>
+</div>
+
+<div class="offers-grid">
+  <div class="coupon-card" *ngFor="let offer of filteredOffers" [class.inactive]="!offer.isActive">
+    <!-- Left: Decoration -->
+    <div class="coupon-left">
+      <div class="vertical-text">{{ getTypeLabel(offer.type) }}</div>
+    </div>
+    
+    <!-- Middle: Content -->
+    <div class="coupon-main">
+      <div class="header">
+        <h3>{{ offer.name }}</h3>
+        <span class="status-badge" [ngClass]="getOfferStatus(offer).class">
+          {{ getOfferStatus(offer).label }}
+        </span>
+      </div>
+      
+      <div class="benefit-highlight">
+        {{ getBenefitDescription(offer) }}
+      </div>
+      
+      <div class="conditions-summary">
+        <i class="fa-solid fa-circle-info"></i>
+        <span>{{ getConditionDescription(offer) }}</span>
+      </div>
+      
+      <div class="meta-row">
+        <span class="expiry" *ngIf="offer.validUntil">
+          <i class="fa-regular fa-clock"></i> Expires: {{ formatDate(offer.validUntil) }}
+        </span>
+        <span class="expiry" *ngIf="!offer.validUntil">
+          <i class="fa-regular fa-calendar-check"></i> No Expiry
+        </span>
+        <span class="priority" title="Priority">
+          <i class="fa-solid fa-arrow-up-wide-short"></i> {{ offer.priority }}
+        </span>
+      </div>
+    </div>
+    
+    <!-- Right: Actions -->
+    <div class="coupon-actions">
+      <button class="action-btn edit" (click)="openEditModal(offer)" title="Edit">
+        <i class="fa-solid fa-pencil"></i>
+      </button>
+      <div class="toggle-switch" (click)="toggleOfferStatus(offer, $event)" [class.active]="offer.isActive" title="Toggle Status">
+        <div class="knob"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add/Edit Offer Modal (Wizard) -->
+<app-modal 
+  [isOpen]="showModal" 
+  [title]="(isEditMode ? 'Edit Offer' : 'Create New Offer') + ' - Step ' + currentStep + '/3'"
+  maxWidth="800px"
+  (closed)="closeModal()"
+  (confirmed)="saveOffer()"
+  [showFooter]="currentStep === 3"
+  confirmText="Save Offer">
+  
+  <div class="modal-content wizard-content">
+    
+    <!-- Step 1: Basics -->
+    <div class="wizard-step" *ngIf="currentStep === 1">
+      <h4>Basic Details</h4>
+      <div class="form-grid">
+        <div class="form-group full-width">
+          <label>Offer Name *</label>
+          <input type="text" [(ngModel)]="offerForm.name" placeholder="e.g., Summer Bundle">
+        </div>
+        
+        <div class="form-group full-width">
+          <label>Description</label>
+          <textarea [(ngModel)]="offerForm.description" rows="2" placeholder="Internal or customer-facing description"></textarea>
+        </div>
+
+        <div class="form-group">
+          <label>Offer Type *</label>
+          <select [(ngModel)]="offerForm.type">
+            <option value="percentage">Percentage Discount</option>
+            <option value="fixed_amount">Fixed Amount Off</option>
+            <option value="bundle">Fixed Price Bundle</option>
+            <option value="package">Package Deal (Buy Package)</option>
+            <option value="conditional">Conditional / Rule Based</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Priority (1-100)</label>
+          <input type="number" [(ngModel)]="offerForm.priority" placeholder="10">
+          <span class="hint">Higher priority applies first</span>
+        </div>
+
+        <div class="form-group">
+          <label>Valid From</label>
+          <input type="date" [ngModel]="formatDateInput(offerForm.validFrom)" (ngModelChange)="updateValidFrom($event)">
+        </div>
+
+        <div class="form-group">
+          <label>Valid Until</label>
+          <input type="date" [ngModel]="formatDateInput(offerForm.validUntil)" (ngModelChange)="updateValidUntil($event)">
+        </div>
+        
+        <div class="form-group">
+          <label>Status</label>
+          <div class="toggle-wrapper" (click)="offerForm.isActive = !offerForm.isActive">
+            <div class="toggle" [class.active]="offerForm.isActive"></div>
+            <span>{{ offerForm.isActive ? 'Active' : 'Inactive' }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 2: Conditions (Who/When?) -->
+    <div class="wizard-step" *ngIf="currentStep === 2">
+      <h4>Conditions (When does this apply?)</h4>
+      <p class="hint">Leave empty to apply to everyone/everything depending on type.</p>
+      
+      <div class="conditions-list">
+        <div class="condition-item" *ngFor="let cond of offerForm.conditions; let i = index">
+          <div class="cond-header">
+            <strong>{{ getConditionLabel(cond.type) }}</strong>
+            <button class="btn-remove" (click)="removeCondition(i)"><i class="fa-solid fa-trash"></i></button>
+          </div>
+          
+          <!-- Condition Params -->
+          <div class="cond-params" [ngSwitch]="cond.type">
+            <div *ngSwitchCase="'service_includes'">
+              <label>Services Included:</label>
+              <select (change)="addServiceToCondition(cond, $event)">
+                <option value="">+ Add Service</option>
+                <option *ngFor="let s of services" [value]="s.id">{{ s.name }}</option>
+              </select>
+              <div class="tag-list">
+                <span class="tag" *ngFor="let sid of cond.parameters?.serviceIds || []">
+                  {{ getServiceName(sid) }}
+                  <i class="fa-solid fa-xmark" (click)="removeServiceFromCondition(cond, sid)"></i>
+                </span>
+              </div>
+            </div>
+            
+            <div *ngSwitchCase="'min_spend'">
+              <label>Minimum Cart Amount (EGP)</label>
+              <input type="number" [(ngModel)]="cond.parameters.minAmount">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="add-condition">
+        <label>Add Condition:</label>
+        <div class="add-row">
+          <select #newCondType>
+            <option value="service_includes">Must Include Services</option>
+            <option value="min_spend">Minimum Spend</option>
+            <option value="new_patient">New Patients Only</option>
+          </select>
+          <button class="btn btn-outline" (click)="addCondition(newCondType.value)">+ Add</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 3: Benefits (What do they get?) -->
+    <div class="wizard-step" *ngIf="currentStep === 3">
+      <h4>Benefits (Reward)</h4>
+      
+      <div class="benefits-list">
+        <div class="benefit-item" *ngFor="let ben of offerForm.benefits; let i = index">
+          <div class="ben-header">
+            <strong>Benefit {{ i + 1 }}</strong>
+             <!-- usually 1 benefit per offer but model supports many -->
+          </div>
+          
+          <div class="ben-params">
+            <div class="form-group" *ngIf="offerForm.type === 'percentage' || offerForm.type === 'conditional'">
+              <label>Discount Percentage (%)</label>
+              <input type="number" [(ngModel)]="ben.parameters.percent">
+            </div>
+
+            <div class="form-group" *ngIf="offerForm.type === 'fixed_amount'">
+              <label>Discount Amount (EGP)</label>
+              <input type="number" [(ngModel)]="ben.parameters.fixedAmount">
+            </div>
+
+            <div class="form-group" *ngIf="offerForm.type === 'bundle'">
+              <label>Bundle Fixed Price (EGP)</label>
+              <input type="number" [(ngModel)]="ben.parameters.fixedPrice">
+            </div>
+
+             <div class="params-group" *ngIf="offerForm.type === 'package'">
+              <label>Package Grant Details</label>
+              <div class="form-grid">
+                 <div class="form-group">
+                   <label>Service to Credit</label>
+                   <select [(ngModel)]="ben.parameters.packageServiceId">
+                      <option *ngFor="let s of services" [value]="s.id">{{ s.name }}</option>
+                   </select>
+                 </div>
+                 <div class="form-group">
+                   <label>Sessions Granted</label>
+                   <input type="number" [(ngModel)]="ben.parameters.packageSessions">
+                 </div>
+                 <div class="form-group">
+                   <label>Price Charged (EGP)</label>
+                   <input type="number" [(ngModel)]="ben.parameters.fixedPrice">
+                   <small>Total price for the package</small>
+                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="wizard-footer">
+      <button class="btn btn-outline" *ngIf="currentStep > 1" (click)="currentStep = currentStep - 1">Back</button>
+      <div class="spacer"></div>
+      <button class="btn btn-primary" *ngIf="currentStep < 3" (click)="currentStep = currentStep + 1">Next</button>
+      <!-- Save button is handled by modal footer, but we hide it until step 3 via [showConfirm] -->
+    </div>
+  </div>
+</app-modal>

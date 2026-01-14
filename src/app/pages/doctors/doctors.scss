@@ -1,0 +1,174 @@
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  
+  &.full-width {
+    grid-column: span 2;
+  }
+  
+  label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+    color: var(--text-main);
+  }
+  
+  input, select {
+    padding: 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    font-size: 0.875rem;
+    font-family: inherit;
+    outline: none;
+    
+    &:focus {
+      border-color: var(--primary-color);
+    }
+  }
+}
+
+// Modal Content Scoped Styles
+.modal-content {
+  max-height: 70vh;
+  overflow-y: auto;
+  padding-right: 0.5rem; // Avoid scrollbar overlap
+}
+
+.form-section {
+  margin-bottom: 2rem;
+  padding-bottom: 2rem;
+  border-bottom: 1px solid var(--border-color);
+  
+  &:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+  }
+  
+  h4 {
+    margin: 0 0 1rem;
+    font-size: 1rem;
+    color: var(--text-main);
+  }
+}
+
+.hint {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  margin-bottom: 1rem;
+}
+
+.shifts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.shift-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem;
+  background: var(--bg-body);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  
+  .shift-info {
+    display: flex;
+    gap: 1.5rem;
+    align-items: center;
+    font-size: 0.875rem;
+    
+    .day {
+      font-weight: 600;
+      width: 80px;
+    }
+    
+    .time {
+      font-family: monospace;
+      color: var(--text-main);
+    }
+    
+    .room {
+      color: var(--primary-color);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .room-any {
+      color: var(--text-muted);
+      font-style: italic;
+    }
+  }
+  
+  .btn-remove {
+    background: none;
+    border: none;
+    color: var(--danger);
+    cursor: pointer;
+    padding: 0.25rem;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+    
+    &:hover {
+      opacity: 1;
+    }
+  }
+}
+
+.empty-shifts {
+  text-align: center;
+  padding: 2rem;
+  color: var(--text-muted);
+  background: var(--bg-body);
+  border-radius: var(--radius-md);
+  border: 1px dashed var(--border-color);
+  font-size: 0.875rem;
+}
+
+.add-shift-form {
+  background: var(--bg-body);
+  padding: 1rem;
+  border-radius: var(--radius-lg);
+  
+  h5 {
+    margin: 0 0 1rem;
+    font-size: 0.875rem;
+    color: var(--text-main);
+  }
+  
+  .shift-inputs {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    flex-wrap: wrap;
+    
+    select, input {
+      padding: 0.5rem;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      font-size: 0.875rem;
+    }
+    
+    select {
+      min-width: 100px;
+    }
+    
+    .separator {
+      color: var(--text-muted);
+      font-size: 0.875rem;
+    }
+    
+    button {
+      margin-left: auto;
+    }
+  }
+}

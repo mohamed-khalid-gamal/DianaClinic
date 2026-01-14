@@ -1,0 +1,291 @@
+<app-page-header 
+  title="Billing & Invoices" 
+  subtitle="Manage session payments and generate invoices">
+  <div class="stats-mini">
+    <div class="stat">
+      <label>Today</label>
+      <span>EGP {{ getTodayRevenue() | number }}</span>
+    </div>
+    <div class="stat">
+      <label>Pending</label>
+      <span>{{ getPendingInvoices() }}</span>
+    </div>
+  </div>
+</app-page-header>
+
+<div class="billing-stats">
+  <app-stat-card 
+    label="Today's Revenue" 
+    [value]="'EGP ' + (getTodayRevenue() | number)" 
+    icon="fa-solid fa-cash-register" 
+    [trend]="12"
+    iconBg="rgba(16, 185, 129, 0.1)">
+  </app-stat-card>
+  <app-stat-card 
+    label="Pending Invoices" 
+    [value]="getPendingInvoices()" 
+    icon="fa-solid fa-file-invoice-dollar" 
+    iconBg="rgba(245, 158, 11, 0.1)">
+  </app-stat-card>
+  <app-stat-card 
+    label="Monthly Revenue" 
+    [value]="'EGP ' + (getMonthlyRevenue() | number)" 
+    icon="fa-solid fa-chart-line" 
+    iconBg="rgba(139, 92, 246, 0.1)">
+  </app-stat-card>
+</div>
+
+<div class="billing-section">
+  <div class="tabs-container">
+    <div class="segmented-control">
+      <button class="segment-btn" [class.active]="activeTab === 'pending'" (click)="activeTab = 'pending'">
+        Pending <span class="count-badge" *ngIf="pendingAppointments.length > 0">{{ pendingAppointments.length }}</span>
+      </button>
+      <button class="segment-btn" [class.active]="activeTab === 'completed'" (click)="activeTab = 'completed'">
+        History
+      </button>
+      <div class="segment-indicator" [class.right]="activeTab === 'completed'"></div>
+    </div>
+  </div>
+
+  <!-- Pending List (Card Style) -->
+  <div class="appointments-list" *ngIf="activeTab === 'pending'">
+    <!-- ... (Existing Pending List Logic, kept via code block if I could, but I need to replace the whole block if I change the container) -->
+    <!-- I will re-paste the pending list here for safety, and add the history list below -->
+    <div class="appointment-row" *ngFor="let apt of pendingAppointments">
+        <!-- Date Box -->
+        <div class="date-box">
+            <span class="day">{{ apt.scheduledStart | date:'d' }}</span>
+            <span class="month">{{ apt.scheduledStart | date:'MMM' }}</span>
+            <span class="time">{{ apt.scheduledStart | date:'shortTime' }}</span>
+        </div>
+
+        <!-- Patient Info -->
+        <div class="apt-info">
+            <span class="patient-name">{{ getPatientName(apt.patientId) }}</span>
+            <div class="details">
+                <i class="fa-solid fa-user-doctor"></i> {{ getDoctorName(apt.doctorId) }}
+            </div>
+        </div>
+
+        <!-- Services -->
+        <div class="apt-services">
+            <span *ngFor="let s of apt.services">{{ getServiceName(s.serviceId) }}</span>
+        </div>
+
+        <!-- Status -->
+        <div class="apt-status">
+            <span class="badge status-{{ apt.status }}">{{ apt.status }}</span>
+        </div>
+
+        <!-- Actions -->
+        <div class="apt-actions">
+            <button class="btn btn-primary" (click)="openInvoiceModal(apt)">
+                <i class="fa-solid fa-file-invoice-dollar"></i> Generate Invoice
+            </button>
+        </div>
+    </div>
+
+    <div class="empty-state" *ngIf="pendingAppointments.length === 0">
+        <div class="icon-circle">
+            <i class="fa-solid fa-check-double"></i>
+        </div>
+        <h3>No Pending Invoices</h3>
+        <p>All completed sessions have been billed.</p>
+    </div>
+  </div>
+
+  <!-- History List (New) -->
+  <div class="appointments-list" *ngIf="activeTab === 'completed'">
+    <div class="appointment-row history" *ngFor="let apt of historyAppointments">
+        <div class="date-box faded">
+            <span class="day">{{ apt.scheduledStart | date:'d' }}</span>
+            <span class="month">{{ apt.scheduledStart | date:'MMM' }}</span>
+        </div>
+
+        <div class="apt-info">
+            <span class="patient-name">{{ getPatientName(apt.patientId) }}</span>
+            <div class="details">
+                <span class="text-success"><i class="fa-solid fa-check-circle"></i> Paid</span>
+                <span class="separator">•</span>
+                <span>{{ getDoctorName(apt.doctorId) }}</span>
+            </div>
+        </div>
+
+        <div class="apt-services">
+            <span *ngFor="let s of apt.services">{{ getServiceName(s.serviceId) }}</span>
+        </div>
+
+        <div class="apt-actions">
+            <button class="btn btn-outline btn-sm">
+                <i class="fa-solid fa-eye"></i> View Invoice
+            </button>
+        </div>
+    </div>
+
+    <div class="empty-state" *ngIf="historyAppointments.length === 0">
+        <div class="icon-circle">
+            <i class="fa-solid fa-history"></i>
+        </div>
+        <h3>No History Available</h3>
+        <p>No billed invoices found.</p>
+    </div>
+  </div>
+</div>
+
+<!-- Invoice Generation Modal -->
+<app-modal 
+  [isOpen]="showInvoiceModal" 
+  title="Generate Invoice"
+  maxWidth="900px"
+  (closed)="closeInvoiceModal()"
+  (confirmed)="confirmInvoice()"
+  confirmText="Confirm & Pay">
+
+  <div class="invoice-layout">
+    <!-- Left: Items & Offers -->
+    <div class="invoice-main">
+      <div class="patient-info" *ngIf="selectedAppointment">
+        <strong>Patient:</strong> {{ getPatientName(selectedAppointment.patientId) }} <br>
+        <strong>Date:</strong> {{ formatDateTime(selectedAppointment.scheduledStart) }}
+      </div>
+
+      <table class="invoice-items">
+        <thead>
+          <tr>
+            <th>Description</th>
+            <th>Qty</th>
+            <th>Price</th>
+            <th>Total</th>
+            <th>Credits</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let item of invoiceItems" [class.credit-used]="item.isCreditsUsed">
+            <td>{{ item.description }}</td>
+            <td>{{ item.quantity }}</td>
+            <td>{{ item.unitPrice | number }}</td>
+            <td>
+              <span *ngIf="!item.isCreditsUsed">{{ item.total | number }}</span>
+              <span *ngIf="item.isCreditsUsed" class="credit-badge">CREDIT</span>
+            </td>
+            <td class="credit-actions">
+              <button 
+                *ngIf="item.serviceId && hasCreditsForService(item.serviceId) && !item.isCreditsUsed"
+                class="btn btn-xs btn-outline"
+                (click)="useCredit(item)"
+                title="Use 1 of {{ getCreditsCountForService(item.serviceId!) }} credits">
+                <i class="fa-solid fa-ticket"></i> Use Credit
+              </button>
+              <button 
+                *ngIf="item.isCreditsUsed"
+                class="btn btn-xs btn-danger"
+                (click)="removeCredit(item)">
+                <i class="fa-solid fa-xmark"></i> Remove
+              </button>
+              <span *ngIf="item.serviceId && !hasCreditsForService(item.serviceId) && !item.isCreditsUsed" class="no-credits">
+                —
+              </span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      
+      <!-- Package Granted Message -->
+      <div class="package-granted" *ngIf="packageGrantedMessage">
+        <i class="fa-solid fa-gift"></i>
+        <span>{{ packageGrantedMessage }}</span>
+      </div>
+      
+      <!-- Offers Section -->
+      <div class="offers-section">
+        <h5>Available Offers</h5>
+        <div class="offers-list" *ngIf="availableOffers.length > 0; else noOffers">
+          <div class="offer-chip" 
+               *ngFor="let offerApp of availableOffers" 
+               [class.selected]="selectedAppliedOffer === offerApp"
+               (click)="applyOffer(offerApp)">
+            <i class="fa-solid fa-tag"></i>
+            <div class="app-info">
+              <span class="name">{{ offerApp.offer.name }}</span>
+              <span class="savings">- EGP {{ offerApp.discountAmount | number }}</span>
+            </div>
+          </div>
+        </div>
+        <ng-template #noOffers>
+          <p class="text-muted">No applicable offers for this cart.</p>
+        </ng-template>
+
+        <div class="manual-discount">
+           <label>Manual Discount Adjustment</label>
+           <input type="number" [(ngModel)]="discount" placeholder="0.00">
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: Summary & Payment -->
+    <div class="invoice-sidebar">
+      <div class="summary-card">
+        <h4>Summary</h4>
+        <div class="summary-row">
+          <span>Subtotal</span>
+          <span>EGP {{ subtotal | number }}</span>
+        </div>
+        
+        <div class="summary-row discount" *ngIf="selectedAppliedOffer">
+          <span>Offer: {{ selectedAppliedOffer.offer.name }}</span>
+          <span>- EGP {{ selectedAppliedOffer.discountAmount | number }}</span>
+        </div>
+
+        <div class="summary-row discount" *ngIf="discount > 0">
+           <span>Manual Discount</span>
+           <span>- EGP {{ discount | number }}</span>
+        </div>
+        
+        <div class="summary-row tax">
+          <span>Tax (14%)</span>
+          <span>EGP {{ taxAmount | number }}</span>
+        </div>
+        
+        <div class="summary-row total">
+          <span>Grand Total</span>
+          <span>EGP {{ grandTotal | number }}</span>
+        </div>
+        
+        <div class="summary-row paid">
+          <span>Total Paid</span>
+          <span>EGP {{ totalPaid | number }}</span>
+        </div>
+        
+        <div class="summary-row balance">
+          <span>Remaining</span>
+          <span>EGP {{ remainingBalance | number }}</span>
+        </div>
+      </div>
+
+      <div class="payment-section">
+        <h4>Add Payment</h4>
+        <div class="payment-form">
+          <select [(ngModel)]="newPayment.type">
+            <option value="cash">Cash</option>
+            <option value="card">Card</option>
+            <option value="wallet">Wallet</option>
+          </select>
+          <input type="number" [(ngModel)]="newPayment.amount" placeholder="Amount">
+        </div>
+        <div class="payment-actions">
+           <button class="btn btn-outline" (click)="payFullAmount()">Full</button>
+           <button class="btn btn-secondary" (click)="addPayment()">Add</button>
+        </div>
+
+        <div class="payments-list">
+          <div class="payment-item" *ngFor="let p of payments; let i = index">
+            <span>{{ p.type | titlecase }}</span>
+            <strong>{{ p.amount | number }}</strong>
+            <i class="fa-solid fa-trash" (click)="removePayment(i)"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</app-modal>

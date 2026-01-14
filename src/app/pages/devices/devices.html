@@ -1,0 +1,179 @@
+<app-page-header 
+  title="Devices" 
+  subtitle="Track and manage clinic equipment">
+  <button class="btn btn-primary" (click)="openAddModal()">
+    + Add Device
+  </button>
+</app-page-header>
+
+<!-- Stats Row -->
+<div class="stats-row">
+  <app-stat-card 
+    icon="fa-solid fa-microchip" 
+    iconBg="rgba(14, 116, 144, 0.1)"
+    [value]="getTotalDevices()"
+    label="Total Devices">
+  </app-stat-card>
+  
+  <app-stat-card 
+    icon="fa-solid fa-circle-check" 
+    iconBg="rgba(16, 185, 129, 0.1)"
+    [value]="getActiveDevices()"
+    label="Active Devices">
+  </app-stat-card>
+  
+  <app-stat-card 
+    icon="fa-solid fa-wrench" 
+    iconBg="rgba(245, 158, 11, 0.1)"
+    [value]="getDevicesNearMaintenance()"
+    label="Maintenance Due">
+  </app-stat-card>
+</div>
+
+<!-- Device Cards Grid -->
+<div class="devices-grid">
+  <div class="device-card" *ngFor="let device of devices" [class.warning]="isNearMaintenance(device)">
+    <div class="device-header">
+      <div class="device-icon"><i class="fa-solid fa-microchip"></i></div>
+      <div class="device-info">
+        <h3>{{ device.name }}</h3>
+        <span class="model">{{ device.model }}</span>
+      </div>
+      <span class="status-badge" [style.background]="getStatusColor(device.status)">
+        {{ device.status }}
+      </span>
+    </div>
+    
+    <div class="device-details">
+      <div class="detail-row">
+        <span class="label">Serial Number</span>
+        <span class="value">{{ device.serialNumber }}</span>
+      </div>
+      <div class="detail-row">
+        <span class="label">Location</span>
+        <span class="value">{{ getRoomName(device.roomId) }}</span>
+      </div>
+      <div class="detail-row">
+        <span class="label">Counter Type</span>
+        <span class="value">{{ device.counterType | titlecase }}</span>
+      </div>
+    </div>
+    
+    <div class="counter-section">
+      <div class="counter-header">
+        <span class="counter-label">Usage Counter</span>
+        <span class="counter-value">{{ formatNumber(device.currentCounter) }} / {{ formatNumber(device.maintenanceThreshold) }}</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" 
+             [style.width.%]="getMaintenancePercentage(device)"
+             [class.warning]="getMaintenancePercentage(device) >= 75"
+             [class.danger]="getMaintenancePercentage(device) >= 90">
+        </div>
+      </div>
+      <div class="counter-info" *ngIf="isNearMaintenance(device)">
+        <i class="fa-solid fa-triangle-exclamation"></i> Approaching maintenance threshold
+      </div>
+    </div>
+    
+    <div class="device-actions">
+      <button class="btn btn-outline" (click)="openLogModal(device)">
+        Log Usage
+      </button>
+      <button class="btn btn-outline" (click)="openEditModal(device)">
+        Edit
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Add/Edit Device Modal -->
+<app-modal 
+  [isOpen]="showModal" 
+  [title]="isEditMode ? 'Edit Device' : 'Add New Device'"
+  (closed)="closeModal()"
+  (confirmed)="saveDevice()">
+  
+  <div class="form-grid">
+    <div class="form-group">
+      <label>Device Name *</label>
+      <input type="text" [(ngModel)]="deviceForm.name" placeholder="e.g., Candela GentleMax Pro">
+    </div>
+    
+    <div class="form-group">
+      <label>Model *</label>
+      <input type="text" [(ngModel)]="deviceForm.model" placeholder="Model name">
+    </div>
+    
+    <div class="form-group">
+      <label>Serial Number *</label>
+      <input type="text" [(ngModel)]="deviceForm.serialNumber" placeholder="Device serial number">
+    </div>
+    
+    <div class="form-group">
+      <label>Assigned Room</label>
+      <select [(ngModel)]="deviceForm.roomId">
+        <option value="">Unassigned</option>
+        <option *ngFor="let room of rooms" [value]="room.id">{{ room.name }}</option>
+      </select>
+    </div>
+    
+    <div class="form-group">
+      <label>Counter Type *</label>
+      <select [(ngModel)]="deviceForm.counterType">
+        <option value="pulse">Pulse Counter</option>
+        <option value="session">Session Counter</option>
+        <option value="time">Time-Based</option>
+      </select>
+    </div>
+    
+    <div class="form-group">
+      <label>Current Counter</label>
+      <input type="number" [(ngModel)]="deviceForm.currentCounter" min="0">
+    </div>
+    
+    <div class="form-group">
+      <label>Maintenance Threshold *</label>
+      <input type="number" [(ngModel)]="deviceForm.maintenanceThreshold" min="1">
+    </div>
+    
+    <div class="form-group">
+      <label>Status</label>
+      <select [(ngModel)]="deviceForm.status">
+        <option value="active">Active</option>
+        <option value="maintenance">Under Maintenance</option>
+        <option value="inactive">Inactive</option>
+      </select>
+    </div>
+  </div>
+</app-modal>
+
+<!-- Log Usage Modal -->
+<app-modal 
+  [isOpen]="showLogModal" 
+  [title]="'Log Device Usage - ' + (selectedDevice?.name || '')"
+  (closed)="closeLogModal()"
+  (confirmed)="logUsage()">
+  
+  <div class="log-form">
+    <div class="current-counter">
+      <span class="label">Current Counter</span>
+      <span class="value">{{ formatNumber(usageLog.counterStart) }}</span>
+    </div>
+    
+    <div class="form-group">
+      <label>Counter End (After Session) *</label>
+      <input type="number" [(ngModel)]="usageLog.counterEnd" [min]="usageLog.counterStart">
+    </div>
+    
+    <div class="usage-calculated" *ngIf="usageLog.counterEnd > usageLog.counterStart">
+      <span class="label">Usage This Session</span>
+      <span class="value">{{ formatNumber(usageLog.counterEnd - usageLog.counterStart) }} {{ selectedDevice?.counterType === 'pulse' ? 'pulses' : 'units' }}</span>
+    </div>
+    
+    <div class="form-group">
+      <label>Notes</label>
+      <textarea [(ngModel)]="usageLog.notes" rows="2" placeholder="Optional notes about this session..."></textarea>
+    </div>
+  </div>
+</app-modal>

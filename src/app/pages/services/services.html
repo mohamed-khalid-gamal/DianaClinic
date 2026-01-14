@@ -1,0 +1,214 @@
+<app-page-header 
+  title="Services" 
+  subtitle="Manage service menu and pricing configurations">
+  <button class="btn btn-primary" (click)="openAddModal()">
+    + Add Service
+  </button>
+</app-page-header>
+
+<!-- Category Tabs -->
+<div class="category-tabs">
+  <button [class.active]="selectedCategory === 'all'" (click)="selectedCategory = 'all'">
+    All Services
+  </button>
+  <button *ngFor="let cat of categories" 
+          [class.active]="selectedCategory === cat.id" 
+          (click)="selectedCategory = cat.id">
+    {{ cat.name }}
+  </button>
+</div>
+
+<!-- Services Grid -->
+<div class="services-grid">
+  <div class="service-card" *ngFor="let service of filteredServices">
+    <div class="service-header">
+      <div class="service-icon"><i [class]="getCategoryIcon(service.categoryId)"></i></div>
+      <div class="service-info">
+        <h3>{{ service.name }}</h3>
+        <span class="category">{{ getCategoryName(service.categoryId) }}</span>
+      </div>
+      <span class="status-badge" [class.active]="service.isActive">
+        {{ service.isActive ? 'Active' : 'Inactive' }}
+      </span>
+    </div>
+    
+    <p class="description" *ngIf="service.description">{{ service.description }}</p>
+    
+    <div class="service-meta">
+      <div class="meta-item">
+        <span class="label">Duration</span>
+        <span class="value">{{ service.duration }} min</span>
+      </div>
+      <div class="meta-item">
+        <span class="label">Starting Price</span>
+        <span class="value price">{{ getMainPrice(service) }}</span>
+      </div>
+    </div>
+    
+    <div class="pricing-types">
+      <span class="pricing-tag" *ngFor="let type of getPricingTypes(service)">
+        {{ type | titlecase }}
+      </span>
+    </div>
+    
+    <div class="service-actions">
+      <button class="btn btn-primary" (click)="openEditModal(service)"><i class="fa-solid fa-pen-to-square"></i> Edit</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add/Edit Service Modal -->
+<app-modal 
+  [isOpen]="showModal" 
+  [title]="isEditMode ? 'Edit Service' : 'Add New Service'"
+  maxWidth="750px"
+  (closed)="closeModal()"
+  (confirmed)="saveService()">
+  
+  <div class="modal-content">
+    <!-- Basic Info -->
+    <div class="form-section">
+      <h4>Basic Information</h4>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Service Name *</label>
+          <input type="text" [(ngModel)]="serviceForm.name" placeholder="e.g., Full Body Laser">
+        </div>
+        
+        <div class="form-group">
+          <label>Category *</label>
+          <select [(ngModel)]="serviceForm.categoryId">
+            <option value="">Select category</option>
+            <option *ngFor="let cat of categories" [value]="cat.id">{{ cat.name }}</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label>Duration (minutes) *</label>
+          <input type="number" [(ngModel)]="serviceForm.duration" min="5" step="5">
+        </div>
+        
+        <div class="form-group">
+          <label>Status</label>
+          <select [(ngModel)]="serviceForm.isActive">
+            <option [ngValue]="true">Active</option>
+            <option [ngValue]="false">Inactive</option>
+          </select>
+        </div>
+        
+        <div class="form-group full-width">
+          <label>Description</label>
+          <textarea [(ngModel)]="serviceForm.description" rows="2" placeholder="Brief description..."></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- Resource Requirements -->
+    <div class="form-section">
+      <h4>Resource Requirements</h4>
+      <p class="section-hint">Specify which rooms and doctors differ for this service to enforce booking rules.</p>
+      
+      <div class="resource-group">
+        <label>Required Room Types</label>
+        <div class="tags-selector">
+          <div class="tag-option" 
+               *ngFor="let type of roomTypes"
+               [class.selected]="hasRoomType(type)"
+               (click)="toggleRoomType(type)">
+            {{ type | titlecase }}
+          </div>
+        </div>
+      </div>
+
+      <div class="resource-group">
+        <label>Qualified Doctors (Optional)</label>
+        <p class="small-hint">If selected, only these doctors can perform this service. Leave empty for all.</p>
+        <div class="tags-selector">
+          <div class="tag-option" 
+               *ngFor="let doctor of doctors"
+               [class.selected]="isDoctorAllowed(doctor.id)"
+               (click)="toggleDoctor(doctor.id)">
+            Dr. {{ doctor.name }}
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Pricing Models -->
+    <div class="form-section">
+      <h4>Pricing Models</h4>
+      <p class="section-hint">Select one or more pricing methods for this service</p>
+      
+      <div class="pricing-options">
+        <div class="pricing-option" 
+             *ngFor="let type of pricingTypes"
+             [class.selected]="hasPricingType(type.key)"
+             (click)="togglePricingType(type.key)">
+          <div class="option-check">
+            <span *ngIf="hasPricingType(type.key)"><i class="fa-solid fa-check"></i></span>
+          </div>
+          <div class="option-content">
+            <span class="option-label">{{ type.label }}</span>
+            <span class="option-desc">{{ type.description }}</span>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Pricing Details -->
+      <div class="pricing-details" *ngIf="serviceForm.pricingModels?.length">
+        <!-- Fixed Price -->
+        <div class="price-config" *ngIf="hasPricingType('fixed')">
+          <h5>Fixed Session Price</h5>
+          <div class="form-group">
+            <label>Price (EGP)</label>
+            <input type="number" [(ngModel)]="getPricingModel('fixed')!.basePrice" min="0">
+          </div>
+        </div>
+        
+        <!-- Pulse-Based -->
+        <div class="price-config" *ngIf="hasPricingType('pulse')">
+          <h5>Pulse-Based Pricing</h5>
+          <div class="form-row">
+            <div class="form-group">
+              <label>Base Fee (EGP)</label>
+              <input type="number" [(ngModel)]="getPricingModel('pulse')!.basePrice" min="0">
+            </div>
+            <div class="form-group">
+              <label>Price per Pulse (EGP)</label>
+              <input type="number" [(ngModel)]="getPricingModel('pulse')!.pricePerUnit" min="0" step="0.1">
+            </div>
+          </div>
+          <div class="formula-preview">
+            Formula: Base Fee + (Pulses Used × Price per Pulse)
+          </div>
+        </div>
+        
+        <!-- Area-Based -->
+        <div class="price-config" *ngIf="hasPricingType('area')">
+          <h5>Area/Tier Pricing</h5>
+          <div class="areas-list">
+            <div class="area-item" *ngFor="let area of getPricingModel('area')?.areas; let i = index">
+              <span class="area-name">{{ area.name }}</span>
+              <span class="area-price">EGP {{ area.price.toLocaleString() }}</span>
+              <button class="remove-btn" (click)="removeArea(i)">×</button>
+            </div>
+          </div>
+          <div class="add-area-form">
+            <input type="text" [(ngModel)]="newArea.name" placeholder="Area name (e.g., Full Legs)">
+            <input type="number" [(ngModel)]="newArea.price" placeholder="Price" min="0">
+            <button class="btn btn-outline" (click)="addArea()">Add</button>
+          </div>
+        </div>
+        
+        <!-- Time-Based -->
+        <div class="price-config" *ngIf="hasPricingType('time')">
+          <h5>Time-Based Pricing</h5>
+          <div class="form-group">
+            <label>Price per Minute (EGP)</label>
+            <input type="number" [(ngModel)]="getPricingModel('time')!.pricePerUnit" min="0" step="0.5">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</app-modal>

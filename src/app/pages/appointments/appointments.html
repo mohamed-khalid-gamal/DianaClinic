@@ -1,0 +1,420 @@
+<app-page-header 
+  title="Appointments" 
+  subtitle="Manage scheduling and patient bookings">
+  <button class="btn btn-primary" (click)="openBookingModal()">
+    + New Appointment
+  </button>
+</app-page-header>
+
+<div class="appointments-container">
+  <!-- Calendar Navigation -->
+  <div class="calendar-header">
+    <div class="date-navigation">
+      <button class="nav-btn" (click)="previousDay()"><i class="fa-solid fa-chevron-left"></i></button>
+      <h2>{{ formatDate(currentDate) }}</h2>
+      <button class="nav-btn" (click)="nextDay()"><i class="fa-solid fa-chevron-right"></i></button>
+    </div>
+    <div class="view-controls">
+      <button class="btn btn-outline" (click)="goToToday()">Today</button>
+      <div class="view-toggle">
+        <button [class.active]="viewMode === 'day'" (click)="viewMode = 'day'">Day</button>
+        <button [class.active]="viewMode === 'week'" (click)="viewMode = 'week'">Week</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Day View -->
+  <div class="schedule-grid">
+    <div class="time-column">
+      <div class="time-slot" *ngFor="let slot of timeSlots">
+        <span class="time-label">{{ slot.time }}</span>
+      </div>
+    </div>
+    
+    <div class="appointments-column">
+      <div class="slot-row" *ngFor="let slot of timeSlots">
+        <div class="slot-content">
+          <div class="appointment-card" 
+               *ngFor="let apt of getAppointmentsForSlot(slot)"
+               [style.borderLeftColor]="getStatusColor(apt.status)">
+            <div class="apt-header">
+              <span class="patient-name">{{ getPatientName(apt.patientId) }}</span>
+              <span class="status-badge" [style.background]="getStatusColor(apt.status)">
+                {{ apt.status }}
+              </span>
+            </div>
+            <div class="apt-details">
+              <span>{{ getDoctorName(apt.doctorId) }}</span>
+              <span class="separator">•</span>
+              <span>{{ getRoomName(apt.roomId) }}</span>
+            </div>
+            <div class="apt-actions">
+              <button *ngIf="apt.status === 'scheduled'" 
+                      class="action-btn check-in"
+                      (click)="updateStatus(apt, 'checked-in')">
+                Check In
+              </button>
+              <button *ngIf="apt.status === 'checked-in'" 
+                      class="action-btn start"
+                      (click)="updateStatus(apt, 'in-progress')">
+                Start Session
+              </button>
+              <button *ngIf="apt.status === 'in-progress'" 
+                      class="action-btn complete"
+                      (click)="updateStatus(apt, 'completed')">
+                Complete
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Booking Modal -->
+<app-modal 
+  [isOpen]="showBookingModal" 
+  title="Book Appointment"
+  maxWidth="700px"
+  [showFooter]="false"
+  (closed)="closeBookingModal()">
+  
+  <!-- Updated Progress Steps (6 Steps) -->
+  <div class="booking-steps">
+    <div class="step" [class.active]="bookingStep >= 1" [class.completed]="bookingStep > 1">
+      <span class="step-number">1</span>
+      <span class="step-label">Patient</span>
+    </div>
+    <div class="step-line" [class.active]="bookingStep > 1"></div>
+    <div class="step" [class.active]="bookingStep >= 2" [class.completed]="bookingStep > 2">
+      <span class="step-number">2</span>
+      <span class="step-label">Services</span>
+    </div>
+    <div class="step-line" [class.active]="bookingStep > 2"></div>
+    <div class="step" [class.active]="bookingStep >= 3" [class.completed]="bookingStep > 3">
+      <span class="step-number">3</span>
+      <span class="step-label">Group</span>
+    </div>
+    <div class="step-line" [class.active]="bookingStep > 3"></div>
+    <div class="step" [class.active]="bookingStep >= 4" [class.completed]="bookingStep > 4">
+      <span class="step-number">4</span>
+      <span class="step-label">Schedule</span>
+    </div>
+    <div class="step-line" [class.active]="bookingStep > 4"></div>
+    <div class="step" [class.active]="bookingStep >= 5" [class.completed]="bookingStep > 5">
+      <span class="step-number">5</span>
+      <span class="step-label">Offers</span>
+    </div>
+    <div class="step-line" [class.active]="bookingStep > 5"></div>
+    <div class="step" [class.active]="bookingStep >= 6">
+      <span class="step-number">6</span>
+      <span class="step-label">Confirm</span>
+    </div>
+  </div>
+
+  <!-- Step 1: Patient Selection -->
+  <div class="step-content" *ngIf="bookingStep === 1">
+    <h3>Select or Add Patient</h3>
+    
+    <div class="patient-toggle">
+      <button [class.active]="!booking.isNewPatient" (click)="booking.isNewPatient = false">
+        Existing Patient
+      </button>
+      <button [class.active]="booking.isNewPatient" (click)="booking.isNewPatient = true">
+        New Patient
+      </button>
+    </div>
+
+    <div *ngIf="!booking.isNewPatient" class="search-section">
+      <div class="form-group">
+        <label>Search Patient</label>
+        <input type="text" 
+               [(ngModel)]="booking.patientSearch" 
+               (input)="searchPatients()"
+               placeholder="Search by name or phone...">
+      </div>
+      <div class="search-results" *ngIf="filteredPatients.length > 0">
+        <div class="result-item" 
+             *ngFor="let patient of filteredPatients"
+             [class.selected]="booking.patientId === patient.id"
+             (click)="selectPatient(patient)">
+          <div class="patient-avatar">{{ patient.firstName.charAt(0) }}</div>
+          <div class="patient-info">
+            <span class="name">{{ patient.firstName }} {{ patient.lastName }}</span>
+            <span class="phone">{{ patient.phone }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div *ngIf="booking.isNewPatient" class="new-patient-form">
+      <div class="form-row">
+        <div class="form-group">
+          <label>First Name *</label>
+          <input type="text" [(ngModel)]="booking.newPatient.firstName" placeholder="First name">
+        </div>
+        <div class="form-group">
+          <label>Last Name *</label>
+          <input type="text" [(ngModel)]="booking.newPatient.lastName" placeholder="Last name">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Phone *</label>
+          <input type="tel" [(ngModel)]="booking.newPatient.phone" placeholder="+20 xxx xxx xxxx">
+        </div>
+        <div class="form-group">
+          <label>Email</label>
+          <input type="email" [(ngModel)]="booking.newPatient.email" placeholder="email@example.com">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 2: Service Selection -->
+  <div class="step-content" *ngIf="bookingStep === 2">
+    <h3>Select Services</h3>
+    <div class="services-grid">
+      <div class="service-card" 
+           *ngFor="let service of services"
+           [class.selected]="isServiceSelected(service.id)"
+           (click)="toggleService(service.id)">
+        <div class="service-check">
+          <span *ngIf="isServiceSelected(service.id)"><i class="fa-solid fa-check"></i></span>
+        </div>
+        <div class="service-info">
+          <span class="service-name">{{ service.name }}</span>
+          <span class="service-duration">{{ service.duration }} min</span>
+        </div>
+        <div class="service-price">
+          EGP {{ service.pricingModels[0]?.basePrice || 0 }}
+        </div>
+      </div>
+    </div>
+    <div class="selection-summary" *ngIf="booking.allServiceIds.length > 0">
+      <span>{{ booking.allServiceIds.length }} service(s) selected</span>
+      <span>Total duration: {{ getTotalDuration() }} min</span>
+    </div>
+  </div>
+
+  <!-- Step 3: Structure (Grouping) -->
+  <div class="step-content" *ngIf="bookingStep === 3">
+    <div class="section-header">
+       <h3>Review & Group Appointments</h3>
+       <p class="text-secondary text-sm">Combine compatible services into a single visit, or schedule them separately.</p>
+    </div>
+
+    <div class="segments-list">
+        <!-- List existing segments -->
+        <div class="segment-card" *ngFor="let seg of bookingSegments; let i = index" 
+             [class.selected]="selectedSegmentIndices.includes(i)"
+             [class.merged-bundle]="seg.serviceIds.length > 1">
+             
+            <div class="segment-selection">
+                <input type="checkbox" 
+                       [checked]="selectedSegmentIndices.includes(i)" 
+                       (change)="toggleSegmentSelection(i)"
+                       [disabled]="seg.serviceIds.length > 1"> 
+            </div>
+
+            <div class="segment-info">
+                <div class="segment-label font-bold">{{ seg.label }}</div>
+                <div class="segment-meta text-sm text-muted">
+                    <span *ngIf="seg.serviceIds.length > 1">{{ seg.serviceIds.length }} Services &bull; </span>
+                    {{ seg.duration }} mins
+                </div>
+            </div>
+
+            <div class="segment-actions">
+                <button class="btn btn-outline btn-xs" 
+                        *ngIf="seg.serviceIds.length > 1" 
+                        (click)="splitSegment(i)">
+                    Split
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Grouping Actions -->
+    <div class="grouping-toolbar" *ngIf="selectedSegmentIndices.length > 1">
+        <button class="btn btn-primary btn-sm w-full" 
+                [disabled]="!canMergeSelected()" 
+                (click)="mergeSelectedSegments()">
+            Merge Selected ({{ selectedSegmentIndices.length }})
+        </button>
+        <p class="text-xs text-error mt-1" *ngIf="!canMergeSelected()">
+            Selected services require different doctors or rooms and cannot be merged.
+        </p>
+    </div>
+  </div>
+
+  <!-- Step 4: Schedule -->
+  <div class="step-content" *ngIf="bookingStep === 4">
+    <div class="section-header">
+       <div class="header-row" style="display: flex; justify-content: space-between; align-items: center;">
+          <h3>Choose Date & Time</h3>
+       </div>
+       
+       <p *ngIf="bookingSegments.length > 1" class="text-primary font-bold">
+          Step {{ currentSegmentIndex + 1 }} of {{ bookingSegments.length }}: Scheduling {{ getCurrentSegment().label }}
+       </p>
+    </div>
+
+    <!-- Date Picker -->
+    <div class="date-selector mb-6">
+        <label class="block text-sm font-medium text-gray-700 mb-2">Date</label>
+        <input type="date" 
+               [ngModel]="getCurrentSegment().date" 
+               (ngModelChange)="updateBookingDate($event)"
+               [min]="minDate"
+               class="form-input date-input-premium">
+    </div>
+    
+    <div class="schedule-wizard">
+      <!-- Slots Grid -->
+      <div class="slots-container">
+        <div class="slots-grid" *ngIf="availableSlots.length > 0; else noSlots">
+          <div class="slot-card" 
+               *ngFor="let slot of availableSlots"
+               [class.selected]="getCurrentSegment().time === slot.time"
+               (click)="selectSlot(slot)">
+            <span class="slot-time">{{ slot.time }}</span>
+            <div class="slot-resources">
+              <span class="res-badge doc" *ngIf="slot.doctors.length === 1">Dr. {{ slot.doctors[0].name.split(' ').pop() }}</span>
+              <span class="res-badge doc" *ngIf="slot.doctors.length > 1">{{ slot.doctors.length }} Docs</span>
+              <span class="res-badge room" *ngIf="slot.rooms.length === 1">{{ slot.rooms[0].name }}</span>
+            </div>
+          </div>
+        </div>
+
+        <ng-template #noSlots>
+          <div class="empty-state">
+            <i class="fa-solid fa-calendar-xmark"></i>
+            <p>No available slots found for this date with the required resources.</p>
+            <p class="sub-text">Try selecting a different date.</p>
+          </div>
+        </ng-template>
+      </div>
+
+      <!-- Resource Refinement -->
+      <div class="resource-refinement" *ngIf="getCurrentSegment()?.time && (selectedSlotDoctors.length > 1 || selectedSlotRooms.length > 1)">
+          <div class="form-group" *ngIf="selectedSlotDoctors.length > 1">
+             <label>Select Doctor for {{ getCurrentSegment().time }}</label>
+             <select [(ngModel)]="getCurrentSegment().doctorId">
+                <option *ngFor="let doc of selectedSlotDoctors" [value]="doc.id">Dr. {{ doc.name }}</option>
+             </select>
+          </div>
+
+          <div class="form-group" *ngIf="selectedSlotRooms.length > 1">
+             <label>Select Room</label>
+             <select [(ngModel)]="getCurrentSegment().roomId">
+                <option *ngFor="let room of selectedSlotRooms" [value]="room.id">{{ room.name }}</option>
+             </select>
+          </div>
+      </div>
+
+      <div class="form-group mt-3" *ngIf="currentSegmentIndex === bookingSegments.length - 1">
+        <label>Notes</label>
+        <textarea [(ngModel)]="booking.notes" rows="2" placeholder="Optional notes..."></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 5: Offers -->
+  <div class="step-content" *ngIf="bookingStep === 5">
+    <h3>Exclusive Offers</h3>
+    <p class="text-muted" *ngIf="applicableOffers.length > 0">Select an applicable offer to apply to this booking.</p>
+    
+    <div class="offers-grid" *ngIf="applicableOffers.length > 0; else noOffers">
+      <!-- Offers List -->
+      <div class="offer-card" 
+           *ngFor="let applied of applicableOffers"
+           [class.selected]="booking.offerId === applied.offer.id"
+           (click)="toggleOffer(applied.offer.id)">
+         <div class="offer-icon">
+            <i class="fa-solid fa-tags"></i>
+         </div>
+         <div class="offer-details">
+            <span class="offer-name">{{ applied.offer.name }}</span>
+            <span class="offer-desc">{{ applied.description }}</span>
+         </div>
+         <div class="offer-metrics">
+            <span class="discount-amount">-{{ applied.discountAmount | number }} EGP</span>
+         </div>
+         <div class="selection-indicator">
+            <i class="fa-solid fa-circle-check" *ngIf="booking.offerId === applied.offer.id"></i>
+            <i class="fa-regular fa-circle" *ngIf="booking.offerId !== applied.offer.id"></i>
+         </div>
+      </div>
+    </div>
+
+    <ng-template #noOffers>
+      <div class="empty-state">
+         <div class="icon-circle">
+            <i class="fa-solid fa-tag"></i>
+         </div>
+         <h3>No Offers Available</h3>
+         <p>There are no applicable offers for the selected services or patient.</p>
+      </div>
+    </ng-template>
+  </div>
+
+  <!-- Step 6: Confirmation -->
+  <div class="step-content" *ngIf="bookingStep === 6">
+    <h3>Confirm Booking</h3>
+    
+    <div class="confirmation-card">
+      <div class="confirm-section">
+        <h4>Patient</h4>
+        <p *ngIf="!booking.isNewPatient">
+          {{ getSelectedPatient()?.firstName }} {{ getSelectedPatient()?.lastName }}
+        </p>
+        <p *ngIf="booking.isNewPatient">
+          {{ booking.newPatient.firstName }} {{ booking.newPatient.lastName }} (New)
+        </p>
+      </div>
+      
+      <div class="confirm-section" *ngIf="booking.offerId">
+        <h4>Applied Offer</h4>
+        <p class="text-success">{{ getSelectedOfferName() }}</p>
+      </div>
+      
+      <div class="confirm-section">
+        <h4>Schedule Summary</h4>
+        <div class="segment-summary" *ngFor="let seg of bookingSegments; let i = index">
+           <div class="segment-header" *ngIf="bookingSegments.length > 1">
+              <strong>Appointment {{ i + 1 }}:</strong> {{ seg.label }}
+           </div>
+           <p><i class="fa-regular fa-calendar"></i> {{ seg.date | date:'mediumDate' }} at {{ seg.time }}</p>
+           <p><i class="fa-solid fa-user-doctor"></i> {{ getDoctorName(seg.doctorId) }}</p>
+           <p><i class="fa-solid fa-door-open"></i> {{ getRoomName(seg.roomId) }}</p>
+           <div class="divider" *ngIf="i < bookingSegments.length - 1"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Navigation Buttons -->
+  <div class="modal-navigation">
+    <button class="btn btn-outline" *ngIf="bookingStep > 1" (click)="prevStep()">
+      <i class="fa-solid fa-arrow-left"></i> Back
+    </button>
+    <div class="spacer"></div>
+    <button class="btn btn-outline" (click)="closeBookingModal()">Cancel</button>
+    <button class="btn btn-primary" 
+            *ngIf="bookingStep < 6" 
+            [disabled]="!canProceed()"
+            (click)="nextStep()">
+      <span *ngIf="bookingStep === 4 && currentSegmentIndex < bookingSegments.length - 1">Next Appointment</span>
+      <span *ngIf="bookingStep === 5">Skip / Next</span>
+      <span *ngIf="bookingStep !== 5 && !(bookingStep === 4 && currentSegmentIndex < bookingSegments.length - 1)">Next</span> 
+      <i class="fa-solid fa-arrow-right"></i>
+    </button>
+    <button class="btn btn-primary" 
+            *ngIf="bookingStep === 6"
+            (click)="confirmBooking()">
+      Confirm Booking
+    </button>
+  </div>
+</app-modal>

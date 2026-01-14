@@ -1,0 +1,220 @@
+<app-page-header 
+  title="Patients" 
+  subtitle="Manage patient records and profiles">
+  <button class="btn btn-primary" (click)="openAddModal()">
+    + Add Patient
+  </button>
+</app-page-header>
+
+<div class="patients-container" [class.with-panel]="showDetailPanel">
+  <!-- Patients Table -->
+  <div class="table-section">
+    <app-data-table
+      [data]="patients"
+      [columns]="columns"
+      [rowClickable]="true"
+      (rowClick)="viewPatientDetails($event)"
+      (edit)="openEditModal($event)"
+      (delete)="deletePatient($event)">
+    </app-data-table>
+  </div>
+
+  <!-- Patient Detail Panel -->
+  <div class="detail-panel" *ngIf="showDetailPanel && selectedPatient">
+    <div class="panel-header">
+      <h3>Patient Profile</h3>
+      <button class="close-btn" (click)="closeDetailPanel()">×</button>
+    </div>
+    
+    <div class="panel-content">
+      <div class="patient-header">
+        <div class="avatar">
+          {{ selectedPatient.firstName?.charAt(0) }}{{ selectedPatient.lastName?.charAt(0) }}
+        </div>
+        <div class="patient-info">
+          <h2>{{ selectedPatient.firstName }} {{ selectedPatient.lastName }}</h2>
+          <p>{{ selectedPatient.phone }}</p>
+        </div>
+      </div>
+
+      <div class="info-section">
+        <h4>Personal Information</h4>
+        <div class="info-grid">
+          <div class="info-item">
+            <span class="label">Age</span>
+            <span class="value">{{ calculateAge(selectedPatient.dateOfBirth) }} years</span>
+          </div>
+          <div class="info-item">
+            <span class="label">Gender</span>
+            <span class="value">{{ selectedPatient.gender | titlecase }}</span>
+          </div>
+          <div class="info-item">
+            <span class="label">Email</span>
+            <span class="value">{{ selectedPatient.email || 'N/A' }}</span>
+          </div>
+          <div class="info-item">
+            <span class="label">Skin Type</span>
+            <span class="value">{{ getSkinTypeLabel(selectedPatient.skinType) }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="info-section" *ngIf="selectedPatient.allergies?.length">
+        <h4>Allergies</h4>
+        <div class="tags">
+          <span class="tag danger" *ngFor="let allergy of selectedPatient.allergies">
+            {{ allergy }}
+          </span>
+        </div>
+      </div>
+
+      <div class="info-section" *ngIf="selectedPatient.chronicConditions?.length">
+        <h4>Chronic Conditions</h4>
+        <div class="tags">
+          <span class="tag warning" *ngFor="let condition of selectedPatient.chronicConditions">
+            {{ condition }}
+          </span>
+        </div>
+      </div>
+
+      <!-- Wallet Section - Dynamic Data -->
+      <div class="info-section wallet-section">
+        <div class="section-header">
+          <h4>Wallet & Credits</h4>
+          <button class="btn btn-sm btn-outline" (click)="openTopUpModal()">+ Top Up</button>
+        </div>
+        
+        <div class="wallet-card" *ngIf="selectedWallet">
+          <div class="wallet-balance">
+            <i class="fa-solid fa-wallet"></i>
+            <div class="balance-info">
+              <span class="label">Cash Balance</span>
+              <span class="amount">EGP {{ selectedWallet.cashBalance | number:'1.2-2' }}</span>
+            </div>
+          </div>
+          
+          <div class="wallet-credits">
+            <i class="fa-solid fa-ticket"></i>
+            <div class="credits-info">
+              <span class="label">Active Credits</span>
+              <span class="count">{{ getTotalCredits() }} sessions</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Credits List -->
+        <div class="credits-list" *ngIf="selectedWallet?.credits?.length">
+          <h5>Service Credits</h5>
+          <div class="credit-item" *ngFor="let credit of selectedWallet?.credits">
+            <div class="credit-info">
+              <span class="service-name">{{ credit.serviceName }}</span>
+              <span class="expiry">Expires: {{ formatCreditExpiry(credit) }}</span>
+            </div>
+            <div class="credit-count">
+              <span class="remaining">{{ credit.remaining }}</span>
+              <span class="total">/ {{ credit.total }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="empty-credits" *ngIf="!selectedWallet?.credits?.length">
+          <p>No service credits available</p>
+        </div>
+      </div>
+
+      <div class="info-section">
+        <h4>Before & After Gallery</h4>
+        <div class="gallery-placeholder">
+          <span class="icon"><i class="fa-solid fa-camera"></i></span>
+          <p>No photos uploaded yet</p>
+          <button class="btn btn-outline">Upload Photos</button>
+        </div>
+      </div>
+
+      <div class="panel-actions">
+        <button class="btn btn-outline" (click)="openEditModal(selectedPatient)">Edit Profile</button>
+        <button class="btn btn-primary" routerLink="/appointments">Book Appointment</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Add/Edit Patient Modal -->
+<app-modal 
+  [isOpen]="showModal" 
+  [title]="isEditMode ? 'Edit Patient' : 'Add New Patient'"
+  (closed)="closeModal()"
+  (confirmed)="savePatient()">
+  
+  <div class="form-grid">
+    <div class="form-group">
+      <label>First Name *</label>
+      <input type="text" [(ngModel)]="patientForm.firstName" placeholder="Enter first name">
+    </div>
+    
+    <div class="form-group">
+      <label>Last Name *</label>
+      <input type="text" [(ngModel)]="patientForm.lastName" placeholder="Enter last name">
+    </div>
+    
+    <div class="form-group">
+      <label>Phone *</label>
+      <input type="tel" [(ngModel)]="patientForm.phone" placeholder="+20 xxx xxx xxxx">
+    </div>
+    
+    <div class="form-group">
+      <label>Email</label>
+      <input type="email" [(ngModel)]="patientForm.email" placeholder="email@example.com">
+    </div>
+    
+    <div class="form-group">
+      <label>Date of Birth *</label>
+      <input type="date" [(ngModel)]="patientForm.dateOfBirth">
+    </div>
+    
+    <div class="form-group">
+      <label>Gender *</label>
+      <select [(ngModel)]="patientForm.gender">
+        <option value="female">Female</option>
+        <option value="male">Male</option>
+      </select>
+    </div>
+    
+    <div class="form-group">
+      <label>Skin Type (Fitzpatrick Scale)</label>
+      <select [(ngModel)]="patientForm.skinType">
+        <option [value]="1">Type I - Very Fair</option>
+        <option [value]="2">Type II - Fair</option>
+        <option [value]="3">Type III - Medium</option>
+        <option [value]="4">Type IV - Olive</option>
+        <option [value]="5">Type V - Brown</option>
+        <option [value]="6">Type VI - Dark</option>
+      </select>
+    </div>
+    
+    <div class="form-group full-width">
+      <label>Notes</label>
+      <textarea [(ngModel)]="patientForm.notes" rows="3" placeholder="Additional notes..."></textarea>
+    </div>
+  </div>
+</app-modal>
+
+<!-- Top Up Wallet Modal -->
+<app-modal 
+  [isOpen]="showTopUpModal" 
+  title="Top Up Wallet"
+  (closed)="closeTopUpModal()"
+  (confirmed)="confirmTopUp()"
+  confirmText="Add Balance">
+  
+  <div class="topup-form">
+    <p>Add cash balance to {{ selectedPatient?.firstName }}'s wallet</p>
+    <div class="form-group">
+      <label>Amount (EGP)</label>
+      <input type="number" [(ngModel)]="topUpAmount" placeholder="Enter amount" min="0">
+    </div>
+    <div class="current-balance" *ngIf="selectedWallet">
+      Current Balance: <strong>EGP {{ selectedWallet.cashBalance | number:'1.2-2' }}</strong>
+    </div>
+  </div>
+</app-modal>
