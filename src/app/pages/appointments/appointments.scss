@@ -812,3 +812,170 @@
     }
   }
 }
+
+// ========================================
+// RESPONSIVE STYLES
+// ========================================
+
+// Tablet (1024px and below)
+@media (max-width: 1024px) {
+  .calendar-header {
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+  
+  .option-cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .services-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+// Tablet Portrait (768px and below)
+@media (max-width: 768px) {
+  .appointments-container {
+    border-radius: var(--radius-lg);
+  }
+  
+  .calendar-header {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 1rem;
+  }
+  
+  .date-navigation {
+    justify-content: center;
+    
+    h2 {
+      min-width: auto;
+      font-size: 1rem;
+    }
+  }
+  
+  .view-controls {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  
+  // Schedule grid becomes vertically scrollable
+  .schedule-grid {
+    flex-direction: column;
+    max-height: none;
+  }
+  
+  .time-column {
+    display: none; // Hide time column on mobile
+  }
+  
+  .appointments-column {
+    width: 100%;
+  }
+  
+  .slot-row {
+    height: auto;
+    min-height: 60px;
+    padding: 0.5rem;
+  }
+  
+  .appointment-card {
+    min-width: 100%;
+    margin-bottom: 0.5rem;
+  }
+  
+  // Booking Modal Steps - Vertical on mobile
+  .booking-steps {
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: stretch;
+  }
+  
+  .step {
+    flex-direction: row;
+    gap: 1rem;
+    padding: 0.75rem;
+    background: var(--bg-body);
+    border-radius: var(--radius-md);
+  }
+  
+  .step-line {
+    display: none;
+  }
+  
+  .step-content {
+    min-height: auto;
+    max-height: none;
+    padding-right: 0;
+  }
+  
+  .slots-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+  
+  .option-cards {
+    grid-template-columns: 1fr;
+  }
+  
+  .offers-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .modal-navigation {
+    flex-wrap: wrap;
+    
+    .btn {
+      flex: 1 1 45%;
+    }
+  }
+  
+  .date-input-premium {
+    margin-left: 0;
+    width: 100%;
+  }
+}
+
+// Mobile (640px and below)
+@media (max-width: 640px) {
+  .slots-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .slot-card {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+  
+  .offer-card {
+    flex-direction: column;
+    text-align: center;
+    
+    .offer-details {
+      align-items: center;
+    }
+  }
+  
+  .segment-card {
+    flex-direction: column;
+    gap: 0.75rem;
+    
+    .segment-info {
+      text-align: center;
+    }
+  }
+  
+  .nav-btn {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  
+  .view-toggle button {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8125rem;
+  }
+}

@@ -3,23 +3,21 @@
   min-height: 100vh;
   padding: 2rem;
   transition: margin-left 0.3s ease;
-  
-  /* When sidebar is collapsed (handled via global class or check sidebar state?) 
-     Actually, the specific SidebarComponent handles its own width, but the margin-left here works best 
-     if we can detect collapse state. 
-     Alternatively, we can bind a class to this main container based on sidebar state.
-     
-     For now, let's assume a Service will hold the state or we rely on the user to adjust.
-     Wait, SidebarComponent has 'collapsed' state internal.
-     Better approach: Use a LayoutService or similar to share state.
-     Or, for simplicity in this phase, just set a base margin. 
-     Dynamic margin requires communicating with the sidebar.
-  */
 }
 
+// Tablet - sidebar collapsed by default would be nice
+@media (max-width: 1024px) {
+  .main-content {
+    padding: 1.5rem;
+  }
+}
+
+// Mobile - no sidebar, add mobile header space
 @media (max-width: 768px) {
   .main-content {
     margin-left: 0;
-    padding-bottom: 80px; /* Space for bottom nav if we switch to mobile */
+    padding: 1rem;
+    padding-top: calc(var(--mobile-nav-height) + 1rem);
+    padding-bottom: 2rem;
   }
 }

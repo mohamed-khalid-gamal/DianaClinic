@@ -172,3 +172,51 @@
     }
   }
 }
+
+// ========================================
+// RESPONSIVE STYLES
+// ========================================
+
+@media (max-width: 768px) {
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .form-group.full-width {
+    grid-column: span 1;
+  }
+  
+  .shift-item {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+    
+    .shift-info {
+      flex-direction: column;
+      gap: 0.5rem;
+      align-items: flex-start;
+      
+      .day {
+        width: auto;
+      }
+    }
+    
+    .btn-remove {
+      align-self: flex-end;
+    }
+  }
+  
+  .add-shift-form .shift-inputs {
+    flex-direction: column;
+    align-items: stretch;
+    
+    select, input {
+      width: 100%;
+    }
+    
+    button {
+      margin-left: 0;
+      width: 100%;
+    }
+  }
+}

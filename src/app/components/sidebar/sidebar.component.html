@@ -1,24 +1,45 @@
-<div class="sidebar" [class.collapsed]="collapsed">
+<div class="mobile-header" *ngIf="isMobile">
+  <button class="menu-toggle" (click)="toggleMobileMenu()">
+    <i class="fa-solid fa-bars"></i>
+  </button>
+  <div class="mobile-logo">
+    <i class="fa-solid fa-heart-pulse"></i>
+    <span>Diana System</span>
+  </div>
+</div>
+
+<div class="sidebar-backdrop" 
+     *ngIf="isMobile && mobileMenuOpen" 
+     (click)="closeMobileMenu()">
+</div>
+
+<div class="sidebar" 
+     [class.collapsed]="collapsed" 
+     [class.mobile-open]="mobileMenuOpen"
+     [class.mobile]="isMobile">
   <div class="logo-area">
     <div class="logo-icon"><i class="fa-solid fa-heart-pulse"></i></div>
     <span class="logo-text" *ngIf="!collapsed">Diana System</span>
+    <button class="close-mobile" *ngIf="isMobile" (click)="closeMobileMenu()">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
   </div>
 
   <nav class="nav-links">
     <a *ngFor="let item of navItems" 
        [routerLink]="item.route" 
        routerLinkActive="active" 
-       class="nav-item">
+       class="nav-item"
+       (click)="onNavClick()">
       <i [class]="item.icon"></i>
-      <span class="label" *ngIf="!collapsed">{{ item.label }}</span>
+      <span class="label" *ngIf="!collapsed || isMobile">{{ item.label }}</span>
     </a>
   </nav>
 
-  <div class="footer">
+  <div class="footer" *ngIf="!isMobile">
     <button class="collapse-btn" (click)="toggleCollapse()">
       <i *ngIf="collapsed" class="fa-solid fa-angles-right"></i>
       <span *ngIf="!collapsed"><i class="fa-solid fa-angles-left"></i> Collapse</span>
     </button>
   </div>
 </div>
-

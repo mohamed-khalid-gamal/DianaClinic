@@ -23,7 +23,9 @@
   
   /* Spacing & Sizes */
   --sidebar-width: 260px;
+  --sidebar-collapsed: 64px;
   --topbar-height: 64px;
+  --mobile-nav-height: 56px;
   --radius-md: 8px;
   --radius-lg: 12px;
   --radius-xl: 16px; /* For cards */
@@ -31,6 +33,14 @@
   /* Shadows */
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  
+  /* Breakpoints (for reference - use in media queries) */
+  /* xs: < 640px - Small phones */
+  /* sm: 640px - Large phones */
+  /* md: 768px - Tablets portrait */
+  /* lg: 1024px - Tablets landscape, small laptops */
+  /* xl: 1280px - Desktops */
 }
 
 body {
@@ -93,3 +103,34 @@ h1, h2, h3, h4, h5, h6 {
 
 .flex-center { display: flex; align-items: center; justify-content: center; }
 .flex-between { display: flex; align-items: center; justify-content: space-between; }
+
+/* Responsive Utilities */
+.hide-mobile { display: block; }
+.show-mobile { display: none; }
+.hide-tablet { display: block; }
+.show-tablet { display: none; }
+
+@media (max-width: 768px) {
+  .hide-mobile { display: none !important; }
+  .show-mobile { display: block !important; }
+}
+
+@media (max-width: 1024px) {
+  .hide-tablet { display: none !important; }
+  .show-tablet { display: block !important; }
+}
+
+/* Mobile-friendly touch targets */
+@media (max-width: 768px) {
+  .btn {
+    min-height: 44px;
+    padding: 0.625rem 1.25rem;
+  }
+}
+
+/* Horizontal scroll container for tables on mobile */
+.table-scroll-container {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}

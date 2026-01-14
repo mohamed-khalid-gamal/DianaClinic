@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 
@@ -11,6 +11,8 @@ import { RouterModule } from '@angular/router';
 })
 export class SidebarComponent {
   collapsed = false;
+  mobileMenuOpen = false;
+  isMobile = false;
 
   navItems = [
     { label: 'Dashboard', icon: 'fa-solid fa-chart-pie', route: '/dashboard' },
@@ -26,7 +28,37 @@ export class SidebarComponent {
     { label: 'Billing', icon: 'fa-solid fa-file-invoice-dollar', route: '/billing' },
   ];
 
+  constructor() {
+    this.checkMobile();
+  }
+
+  @HostListener('window:resize')
+  onResize() {
+    this.checkMobile();
+  }
+
+  checkMobile() {
+    this.isMobile = window.innerWidth < 768;
+    if (!this.isMobile) {
+      this.mobileMenuOpen = false;
+    }
+  }
+
   toggleCollapse() {
     this.collapsed = !this.collapsed;
+  }
+
+  toggleMobileMenu() {
+    this.mobileMenuOpen = !this.mobileMenuOpen;
+  }
+
+  closeMobileMenu() {
+    this.mobileMenuOpen = false;
+  }
+
+  onNavClick() {
+    if (this.isMobile) {
+      this.closeMobileMenu();
+    }
   }
 }
