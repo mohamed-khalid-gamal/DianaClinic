@@ -12,6 +12,7 @@ import { Billing } from './pages/billing/billing';
 import { Sessions } from './pages/sessions/sessions';
 import { PatientProfile } from './pages/patient-profile/patient-profile';
 import { CalendarPage } from './pages/calendar/calendar';
+import { ManualPage } from './pages/manual';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
@@ -28,4 +29,5 @@ export const routes: Routes = [
   { path: 'services', component: Services },
   { path: 'offers', component: Offers },
   { path: 'billing', component: Billing },
+  { path: 'manual', component: ManualPage },
 ];

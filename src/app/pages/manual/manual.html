@@ -1,0 +1,18 @@
+<app-page-header
+  title="User Manual"
+  subtitle="Complete guide for Merve Aesthetics workflow">
+</app-page-header>
+
+<div class="manual-container">
+  <div class="state-card" *ngIf="loading">
+    <i class="fa-solid fa-spinner fa-spin"></i>
+    Loading manual...
+  </div>
+
+  <div class="state-card error" *ngIf="error">
+    <i class="fa-solid fa-triangle-exclamation"></i>
+    {{ error }}
+  </div>
+
+  <div class="manual-content" *ngIf="!loading && !error" [innerHTML]="manualHtml"></div>
+</div>

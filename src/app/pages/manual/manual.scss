@@ -1,0 +1,108 @@
+.manual-container {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-xl);
+  padding: 1.5rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.state-card {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  border-radius: var(--radius-lg);
+  background: var(--bg-body);
+  border: 1px dashed var(--border-color);
+  color: var(--text-muted);
+  font-weight: 500;
+
+  &.error {
+    color: var(--danger);
+    border-color: rgba(239, 68, 68, 0.4);
+    background: rgba(239, 68, 68, 0.05);
+  }
+}
+
+.manual-content {
+  line-height: 1.7;
+  color: var(--text-primary);
+
+  h1, h2, h3, h4, h5 {
+    color: var(--text-primary);
+    font-weight: 700;
+    margin: 1.5rem 0 0.75rem;
+  }
+
+  h1 { font-size: 2rem; }
+  h2 { font-size: 1.5rem; }
+  h3 { font-size: 1.25rem; }
+  h4 { font-size: 1.1rem; }
+
+  p {
+    margin: 0.75rem 0;
+  }
+
+  ul, ol {
+    padding-left: 1.5rem;
+    margin: 0.75rem 0;
+  }
+
+  li {
+    margin: 0.4rem 0;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1rem 0;
+    font-size: 0.95rem;
+  }
+
+  table th,
+  table td {
+    border: 1px solid var(--border-color);
+    padding: 0.6rem 0.75rem;
+    text-align: left;
+  }
+
+  table th {
+    background: var(--bg-body);
+    font-weight: 600;
+  }
+
+  code {
+    background: rgba(15, 23, 42, 0.06);
+    padding: 0.15rem 0.35rem;
+    border-radius: var(--radius-sm);
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    font-size: 0.9em;
+  }
+
+  pre {
+    background: #0f172a;
+    color: #e2e8f0;
+    padding: 1rem;
+    border-radius: var(--radius-lg);
+    overflow: auto;
+  }
+
+  pre code {
+    background: transparent;
+    padding: 0;
+    color: inherit;
+  }
+
+  blockquote {
+    border-left: 4px solid var(--primary);
+    padding-left: 1rem;
+    color: var(--text-muted);
+    margin: 1rem 0;
+  }
+
+  hr {
+    border: none;
+    border-top: 1px solid var(--border-color);
+    margin: 1.5rem 0;
+  }
+}

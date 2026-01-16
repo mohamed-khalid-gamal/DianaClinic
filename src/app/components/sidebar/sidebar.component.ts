@@ -27,6 +27,7 @@ export class SidebarComponent {
     { label: 'Services', icon: 'fa-solid fa-spa', route: '/services' },
     { label: 'Offers', icon: 'fa-solid fa-tags', route: '/offers' },
     { label: 'Billing', icon: 'fa-solid fa-file-invoice-dollar', route: '/billing' },
+    { label: 'User Manual', icon: 'fa-solid fa-book-open', route: '/manual' }
   ];
 
   constructor() {
