@@ -10,13 +10,17 @@ import { Services } from './pages/services/services';
 import { Offers } from './pages/offers/offers';
 import { Billing } from './pages/billing/billing';
 import { Sessions } from './pages/sessions/sessions';
+import { PatientProfile } from './pages/patient-profile/patient-profile';
+import { CalendarPage } from './pages/calendar/calendar';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
   { path: 'dashboard', component: Dashboard },
   { path: 'patients', component: Patients },
+  { path: 'patients/:id', component: PatientProfile },
   { path: 'appointments', component: Appointments },
   { path: 'sessions', component: Sessions },
+  { path: 'calendar', component: CalendarPage },
   { path: 'doctors', component: Doctors },
   { path: 'rooms', component: Rooms },
   { path: 'devices', component: Devices },

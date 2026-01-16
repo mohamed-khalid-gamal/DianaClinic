@@ -19,14 +19,14 @@
   align-items: center;
   padding: 1.25rem 1.5rem;
   border-bottom: 1px solid var(--border-color);
-  
+
   h3 {
     margin: 0;
     font-size: 1rem;
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    
+
     i {
       color: var(--primary-color);
     }
@@ -47,7 +47,7 @@
   padding: 1.25rem;
   border: 1px solid var(--border-color);
   transition: all 0.2s;
-  
+
   &:hover {
     box-shadow: var(--shadow-md);
   }
@@ -75,13 +75,13 @@
 
 .patient-info {
   flex: 1;
-  
+
   .name {
     display: block;
     font-weight: 600;
     font-size: 1rem;
   }
-  
+
   .room {
     font-size: 0.8125rem;
     color: var(--text-muted);
@@ -98,7 +98,7 @@
   font-weight: 600;
   font-size: 0.875rem;
   color: var(--primary-dark);
-  
+
   &.warning {
     background: rgba(245, 158, 11, 0.15);
     color: #B45309;
@@ -127,7 +127,7 @@
   font-size: 0.8125rem;
   color: var(--text-muted);
   margin-bottom: 1rem;
-  
+
   span {
     display: flex;
     align-items: center;
@@ -140,7 +140,7 @@
   gap: 0.5rem;
   padding-top: 1rem;
   border-top: 1px solid var(--border-color);
-  
+
   .btn {
     flex: 1;
   }
@@ -158,7 +158,7 @@
   padding: 1rem;
   border-radius: var(--radius-lg);
   transition: background 0.2s;
-  
+
   &:hover {
     background: var(--bg-body);
   }
@@ -166,12 +166,12 @@
 
 .waiting-info {
   flex: 1;
-  
+
   .patient-name {
     display: block;
     font-weight: 600;
   }
-  
+
   .services {
     font-size: 0.8125rem;
     color: var(--text-muted);
@@ -183,7 +183,7 @@
   gap: 1rem;
   font-size: 0.8125rem;
   color: var(--text-muted);
-  
+
   .doctor, .room {
     display: flex;
     align-items: center;
@@ -196,14 +196,14 @@
   text-align: center;
   padding: 3rem;
   color: var(--text-muted);
-  
+
   i {
     font-size: 2.5rem;
     display: block;
     margin-bottom: 0.75rem;
     opacity: 0.5;
   }
-  
+
   p {
     margin: 0;
   }
@@ -218,26 +218,26 @@
     background: var(--bg-body);
     border-radius: var(--radius-md);
     margin-bottom: 1.5rem;
-    
+
     strong {
       font-size: 1.125rem;
     }
-    
+
     span {
       font-size: 0.875rem;
       color: var(--text-muted);
     }
   }
-  
+
   .form-group {
     margin-bottom: 1.5rem;
-    
+
     label {
       display: block;
       font-weight: 500;
       margin-bottom: 0.5rem;
     }
-    
+
     textarea {
       width: 100%;
       padding: 0.75rem;
@@ -246,28 +246,28 @@
       font-family: inherit;
       font-size: 0.875rem;
       resize: vertical;
-      
+
       &:focus {
         outline: none;
         border-color: var(--primary-color);
       }
     }
   }
-  
+
   .consumables-section {
     label {
       display: block;
       font-weight: 500;
       margin-bottom: 0.25rem;
     }
-    
+
     .hint {
       font-size: 0.8125rem;
       color: var(--text-muted);
       margin: 0 0 1rem;
     }
   }
-  
+
   .consumables-placeholder {
     display: flex;
     align-items: center;
@@ -276,7 +276,7 @@
     background: var(--bg-body);
     border-radius: var(--radius-md);
     color: var(--text-muted);
-    
+
     i {
       font-size: 1.25rem;
     }
@@ -292,39 +292,39 @@
     grid-template-columns: 1fr;
     gap: 1rem;
   }
-  
+
   .sessions-grid {
     grid-template-columns: 1fr;
     padding: 1rem;
     gap: 1rem;
   }
-  
+
   .session-header {
     flex-wrap: wrap;
   }
-  
+
   .session-meta {
     flex-wrap: wrap;
     gap: 0.5rem;
   }
-  
+
   .section-header {
     flex-direction: column;
     align-items: stretch;
     gap: 0.75rem;
-    
+
     .btn {
       width: 100%;
       justify-content: center;
     }
   }
-  
+
   .waiting-item {
     flex-direction: column;
     align-items: stretch;
     gap: 0.75rem;
   }
-  
+
   .waiting-meta {
     flex-wrap: wrap;
   }
@@ -334,17 +334,150 @@
   .session-card {
     padding: 1rem;
   }
-  
+
   .session-actions {
     flex-direction: column;
-    
+
     .btn {
       width: 100%;
     }
   }
-  
+
   .elapsed-time {
     font-size: 0.8125rem;
     padding: 0.375rem 0.625rem;
   }
+}
+
+// Resource Tracking Modal Styles
+.credits-table {
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  margin-bottom: 1rem;
+
+  .credits-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    gap: 1rem;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border-color);
+    align-items: center;
+
+    &:last-child {
+      border-bottom: none;
+    }
+
+    &.header {
+      background: var(--bg-tertiary);
+      font-weight: 600;
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+    }
+
+    input {
+      width: 80px;
+      padding: 0.5rem;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+    }
+  }
+}
+
+.overage-warning {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: var(--radius-md);
+  padding: 1rem;
+  margin-top: 1rem;
+
+  strong {
+    color: var(--danger-color);
+  }
+
+  ul {
+    margin: 0.5rem 0 0;
+    padding-left: 1.25rem;
+
+    li {
+      color: var(--danger-color);
+      font-size: 0.875rem;
+    }
+  }
+}
+
+.device-list,
+.consumable-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.device-row,
+.consumable-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-md);
+
+  span {
+    flex: 1;
+    font-weight: 500;
+  }
+
+  input {
+    width: 80px;
+    padding: 0.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    text-align: center;
+  }
+}
+
+.consumable-picker {
+  margin-bottom: 1rem;
+
+  select {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    background: var(--bg-card);
+  }
+}
+
+.extra-charges {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.extra-charge-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+
+  input[type="text"] {
+    flex: 2;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+  }
+
+  input[type="number"] {
+    width: 100px;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+  }
+}
+
+.hint {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  margin-bottom: 0.75rem;
 }

@@ -17,7 +17,7 @@
   display: flex;
   align-items: center;
   gap: 1rem;
-  
+
   h2 {
     margin: 0;
     font-size: 1.125rem;
@@ -36,7 +36,7 @@
   cursor: pointer;
   font-size: 1rem;
   transition: all 0.2s;
-  
+
   &:hover {
     background: var(--primary-light);
     border-color: var(--primary-color);
@@ -53,7 +53,7 @@
   background: var(--bg-body);
   border-radius: var(--radius-md);
   padding: 0.25rem;
-  
+
   button {
     padding: 0.5rem 1rem;
     border: none;
@@ -62,7 +62,7 @@
     border-radius: var(--radius-md);
     font-size: 0.875rem;
     transition: all 0.2s;
-    
+
     &.active {
       background: var(--bg-card);
       box-shadow: var(--shadow-sm);
@@ -105,7 +105,7 @@
   height: 80px;
   border-bottom: 1px solid var(--border-color);
   position: relative;
-  
+
   &:hover {
     background: rgba(14, 116, 144, 0.02);
   }
@@ -153,7 +153,7 @@
   font-size: 0.75rem;
   color: var(--text-muted);
   margin-bottom: 0.5rem;
-  
+
   .separator {
     margin: 0 0.25rem;
   }
@@ -167,22 +167,22 @@
     font-size: 0.75rem;
     cursor: pointer;
     transition: all 0.2s;
-    
+
     &.check-in {
       background: var(--primary-light);
       color: var(--primary-dark);
     }
-    
+
     &.start {
       background: rgba(139, 92, 246, 0.1);
       color: #8B5CF6;
     }
-    
+
     &.complete {
       background: rgba(16, 185, 129, 0.1);
       color: var(--success);
     }
-    
+
     &:hover {
       opacity: 0.8;
     }
@@ -218,13 +218,148 @@
   font-weight: 600;
   font-size: 0.875rem;
   color: var(--text-muted);
-  
+
+
+// Credits Step Styling
+.credits-section {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.credit-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.2s, box-shadow 0.2s;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+  }
+}
+
+.credit-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.credit-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.credit-name {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.credit-type-badge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  padding: 0.2rem 0.5rem;
+  border-radius: 9999px;
+  background: rgba(59, 130, 246, 0.1);
+  color: var(--primary-color);
+  letter-spacing: 0.3px;
+}
+
+.credit-available,
+.credit-expiry {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+}
+
+.credit-input {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--bg-body);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 0.5rem;
+}
+
+.credit-input label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.credit-input input {
+  width: 80px;
+  border: none;
+  background: transparent;
+  font-weight: 600;
+  text-align: center;
+  padding: 0.25rem 0.5rem;
+}
+
+.credit-input input:focus {
+  outline: none;
+}
+
+.unit-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.empty-credits {
+  border: 1px dashed var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  text-align: center;
+  color: var(--text-muted);
+  margin-top: 1rem;
+
+  i {
+    font-size: 1.5rem;
+    color: var(--primary-color);
+    margin-bottom: 0.5rem;
+  }
+
+  .sub {
+    font-size: 0.8125rem;
+  }
+}
+
+.credits-summary {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-md);
+  background: rgba(16, 185, 129, 0.1);
+  color: var(--success);
+  font-weight: 600;
+  margin-top: 1rem;
+}
+
+@media (max-width: 640px) {
+  .credits-section {
+    grid-template-columns: 1fr;
+  }
+
+  .credit-input {
+    justify-content: space-between;
+  }
+}
   .step.active & {
     background: var(--primary-color);
     border-color: var(--primary-color);
     color: white;
   }
-  
+
   .step.completed & {
     background: var(--success);
     border-color: var(--success);
@@ -235,7 +370,7 @@
 .step-label {
   font-size: 0.75rem;
   color: var(--text-muted);
-  
+
   .step.active & {
     color: var(--primary-color);
     font-weight: 500;
@@ -248,7 +383,7 @@
   background: var(--border-color);
   margin: 0 0.5rem;
   margin-bottom: 1.5rem;
-  
+
   &.active {
     background: var(--primary-color);
   }
@@ -259,7 +394,7 @@
   max-height: 60vh;
   overflow-y: auto;
   padding-right: 0.5rem; // space for scrollbar
-  
+
   h3 {
     margin: 0 0 1.5rem;
     font-size: 1.125rem;
@@ -273,7 +408,7 @@
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: 1rem;
   // Removed internal max-height to let the step-content handle scrolling
-  // max-height: 400px; 
+  // max-height: 400px;
   // overflow-y: auto;
 }
 
@@ -281,7 +416,7 @@
   display: flex;
   gap: 0.5rem;
   margin-bottom: 1.5rem;
-  
+
   button {
     flex: 1;
     padding: 0.75rem;
@@ -290,7 +425,7 @@
     border-radius: var(--radius-md);
     cursor: pointer;
     transition: all 0.2s;
-    
+
     &.active {
       background: var(--primary-light);
       border-color: var(--primary-color);
@@ -318,11 +453,11 @@
   padding: 0.75rem 1rem;
   cursor: pointer;
   transition: background 0.2s;
-  
+
   &:hover, &.selected {
     background: var(--primary-light);
   }
-  
+
   &:not(:last-child) {
     border-bottom: 1px solid var(--border-color);
   }
@@ -343,11 +478,11 @@
 .patient-info {
   display: flex;
   flex-direction: column;
-  
+
   .name {
     font-weight: 500;
   }
-  
+
   .phone {
     font-size: 0.75rem;
     color: var(--text-muted);
@@ -364,13 +499,13 @@
 .form-group {
   display: flex;
   flex-direction: column;
-  
+
   label {
     font-size: 0.875rem;
     font-weight: 500;
     margin-bottom: 0.5rem;
   }
-  
+
   input, select, textarea {
     padding: 0.75rem;
     border: 1px solid var(--border-color);
@@ -378,7 +513,7 @@
     font-size: 0.875rem;
     font-family: inherit;
     outline: none;
-    
+
     &:focus {
       border-color: var(--primary-color);
     }
@@ -401,11 +536,11 @@
   border-radius: var(--radius-lg);
   cursor: pointer;
   transition: all 0.2s;
-  
+
   &:hover {
     border-color: var(--primary-color);
   }
-  
+
   &.selected {
     background: var(--primary-light);
     border-color: var(--primary-color);
@@ -421,7 +556,7 @@
   align-items: center;
   justify-content: center;
   font-size: 0.75rem;
-  
+
   .service-card.selected & {
     background: var(--primary-color);
     border-color: var(--primary-color);
@@ -433,12 +568,12 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  
+
   .service-name {
     font-weight: 500;
     font-size: 0.875rem;
   }
-  
+
   .service-duration {
     font-size: 0.75rem;
     color: var(--text-muted);
@@ -473,22 +608,22 @@
   cursor: pointer;
   text-align: center;
   transition: all 0.2s;
-  
+
   &:hover {
     border-color: var(--primary-color);
   }
-  
+
   &.selected {
     background: var(--primary-light);
     border-color: var(--primary-color);
   }
-  
+
   .option-name {
     display: block;
     font-weight: 500;
     font-size: 0.875rem;
   }
-  
+
   .option-detail {
     display: block;
     font-size: 0.75rem;
@@ -505,26 +640,26 @@
 
 .confirm-section {
   margin-bottom: 1.25rem;
-  
+
   &:last-child {
     margin-bottom: 0;
   }
-  
+
   h4 {
     font-size: 0.75rem;
     text-transform: uppercase;
     color: var(--text-muted);
     margin: 0 0 0.5rem;
   }
-  
+
   p {
     margin: 0.25rem 0;
   }
-  
+
   ul {
     margin: 0;
     padding-left: 1.25rem;
-    
+
     li {
       margin: 0.25rem 0;
     }
@@ -537,7 +672,7 @@
   margin-top: 1.5rem;
   padding-top: 1.5rem;
   border-top: 1px solid var(--border-color);
-  
+
   .spacer {
     flex: 1;
   }
@@ -550,7 +685,7 @@
 
 .section-header {
   margin-bottom: 1rem;
-  
+
   h4 {
     margin: 0;
     font-size: 1rem;
@@ -574,24 +709,24 @@
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
-  
+
   &:hover {
     border-color: var(--primary-color);
     background: white;
   }
-  
+
   &.selected {
     background: var(--primary-light);
     border-color: var(--primary-color);
     box-shadow: 0 0 0 1px var(--primary-color);
   }
-  
+
   .slot-time {
     font-size: 1.125rem;
     font-weight: 600;
     color: var(--primary-dark);
   }
-  
+
   .slot-meta {
     font-size: 0.75rem;
     color: var(--text-muted);
@@ -599,7 +734,7 @@
     align-items: center;
     gap: 0.25rem;
   }
-  
+
   .slot-availability {
     font-size: 0.75rem;
     color: var(--success);
@@ -612,18 +747,18 @@
   text-align: center;
   padding: 3rem 1rem;
   color: var(--text-muted);
-  
+
   i {
     font-size: 2rem;
     margin-bottom: 1rem;
     opacity: 0.5;
   }
-  
+
   h3 {
     margin: 0.5rem 0;
     color: var(--text-main);
   }
-  
+
   p {
     margin: 0;
     font-size: 0.875rem;
@@ -636,7 +771,7 @@
   background: var(--bg-body);
   border-radius: var(--radius-md);
   border: 1px solid var(--border-color);
-  
+
   .form-group {
     margin-bottom: 1rem;
     &:last-child { margin-bottom: 0; }
@@ -661,12 +796,12 @@
   border-radius: var(--radius-lg);
   cursor: pointer;
   transition: all 0.2s;
-  
+
   &:hover {
     border-color: var(--primary-color);
     background: white;
   }
-  
+
   &.selected {
     border-color: var(--primary-color);
     background: rgba(14, 116, 144, 0.05); // primary-light equivalent
@@ -690,13 +825,13 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  
+
   .offer-name {
     font-weight: 600;
     font-size: 0.9375rem;
     color: var(--text-main);
   }
-  
+
   .offer-desc {
     font-size: 0.75rem;
     color: var(--text-muted);
@@ -719,7 +854,7 @@
   border-radius: var(--radius-md);
   padding: 1rem;
   margin-bottom: 1rem;
-  
+
   &:last-child {
     margin-bottom: 0;
   }
@@ -796,7 +931,7 @@
   border-radius: var(--radius-md);
   box-shadow: 0 1px 2px rgba(0,0,0,0.05);
   transition: border-color 0.2s, box-shadow 0.2s;
-  
+
   &:focus {
     outline: none;
     border-color: var(--primary-color);
@@ -823,11 +958,11 @@
     flex-wrap: wrap;
     gap: 1rem;
   }
-  
+
   .option-cards {
     grid-template-columns: repeat(2, 1fr);
   }
-  
+
   .services-grid {
     grid-template-columns: 1fr;
   }
@@ -838,59 +973,59 @@
   .appointments-container {
     border-radius: var(--radius-lg);
   }
-  
+
   .calendar-header {
     flex-direction: column;
     align-items: stretch;
     padding: 1rem;
   }
-  
+
   .date-navigation {
     justify-content: center;
-    
+
     h2 {
       min-width: auto;
       font-size: 1rem;
     }
   }
-  
+
   .view-controls {
     justify-content: center;
     flex-wrap: wrap;
   }
-  
+
   // Schedule grid becomes vertically scrollable
   .schedule-grid {
     flex-direction: column;
     max-height: none;
   }
-  
+
   .time-column {
     display: none; // Hide time column on mobile
   }
-  
+
   .appointments-column {
     width: 100%;
   }
-  
+
   .slot-row {
     height: auto;
     min-height: 60px;
     padding: 0.5rem;
   }
-  
+
   .appointment-card {
     min-width: 100%;
     margin-bottom: 0.5rem;
   }
-  
+
   // Booking Modal Steps - Vertical on mobile
   .booking-steps {
     flex-direction: column;
     gap: 0.5rem;
     align-items: stretch;
   }
-  
+
   .step {
     flex-direction: row;
     gap: 1rem;
@@ -898,41 +1033,41 @@
     background: var(--bg-body);
     border-radius: var(--radius-md);
   }
-  
+
   .step-line {
     display: none;
   }
-  
+
   .step-content {
     min-height: auto;
     max-height: none;
     padding-right: 0;
   }
-  
+
   .slots-grid {
     grid-template-columns: repeat(2, 1fr);
   }
-  
+
   .form-row {
     grid-template-columns: 1fr;
   }
-  
+
   .option-cards {
     grid-template-columns: 1fr;
   }
-  
+
   .offers-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .modal-navigation {
     flex-wrap: wrap;
-    
+
     .btn {
       flex: 1 1 45%;
     }
   }
-  
+
   .date-input-premium {
     margin-left: 0;
     width: 100%;
@@ -944,36 +1079,36 @@
   .slots-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .slot-card {
     flex-direction: row;
     align-items: center;
     justify-content: space-between;
   }
-  
+
   .offer-card {
     flex-direction: column;
     text-align: center;
-    
+
     .offer-details {
       align-items: center;
     }
   }
-  
+
   .segment-card {
     flex-direction: column;
     gap: 0.75rem;
-    
+
     .segment-info {
       text-align: center;
     }
   }
-  
+
   .nav-btn {
     min-width: 44px;
     min-height: 44px;
   }
-  
+
   .view-toggle button {
     padding: 0.5rem 0.75rem;
     font-size: 0.8125rem;

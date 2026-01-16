@@ -1,5 +1,5 @@
-<app-page-header 
-  title="Patients" 
+<app-page-header
+  title="Patients"
   subtitle="Manage patient records and profiles">
   <button class="btn btn-primary" (click)="openAddModal()">
     + Add Patient
@@ -25,11 +25,11 @@
       <h3>Patient Profile</h3>
       <button class="close-btn" (click)="closeDetailPanel()">×</button>
     </div>
-    
+
     <div class="panel-content">
       <div class="patient-header">
         <div class="avatar">
-          {{ selectedPatient.firstName?.charAt(0) }}{{ selectedPatient.lastName?.charAt(0) }}
+          {{ (selectedPatient.firstName || '').charAt(0) }}{{ (selectedPatient.lastName || '').charAt(0) }}
         </div>
         <div class="patient-info">
           <h2>{{ selectedPatient.firstName }} {{ selectedPatient.lastName }}</h2>
@@ -83,7 +83,7 @@
           <h4>Wallet & Credits</h4>
           <button class="btn btn-sm btn-outline" (click)="openTopUpModal()">+ Top Up</button>
         </div>
-        
+
         <div class="wallet-card" *ngIf="selectedWallet">
           <div class="wallet-balance">
             <i class="fa-solid fa-wallet"></i>
@@ -92,7 +92,7 @@
               <span class="amount">EGP {{ selectedWallet.cashBalance | number:'1.2-2' }}</span>
             </div>
           </div>
-          
+
           <div class="wallet-credits">
             <i class="fa-solid fa-ticket"></i>
             <div class="credits-info">
@@ -133,6 +133,7 @@
 
       <div class="panel-actions">
         <button class="btn btn-outline" (click)="openEditModal(selectedPatient)">Edit Profile</button>
+        <button class="btn btn-outline" [routerLink]="['/patients', selectedPatient.id]">View Full Profile</button>
         <button class="btn btn-primary" routerLink="/appointments">Book Appointment</button>
       </div>
     </div>
@@ -140,38 +141,38 @@
 </div>
 
 <!-- Add/Edit Patient Modal -->
-<app-modal 
-  [isOpen]="showModal" 
+<app-modal
+  [isOpen]="showModal"
   [title]="isEditMode ? 'Edit Patient' : 'Add New Patient'"
   (closed)="closeModal()"
   (confirmed)="savePatient()">
-  
+
   <div class="form-grid">
     <div class="form-group">
       <label>First Name *</label>
       <input type="text" [(ngModel)]="patientForm.firstName" placeholder="Enter first name">
     </div>
-    
+
     <div class="form-group">
       <label>Last Name *</label>
       <input type="text" [(ngModel)]="patientForm.lastName" placeholder="Enter last name">
     </div>
-    
+
     <div class="form-group">
       <label>Phone *</label>
       <input type="tel" [(ngModel)]="patientForm.phone" placeholder="+20 xxx xxx xxxx">
     </div>
-    
+
     <div class="form-group">
       <label>Email</label>
       <input type="email" [(ngModel)]="patientForm.email" placeholder="email@example.com">
     </div>
-    
+
     <div class="form-group">
       <label>Date of Birth *</label>
       <input type="date" [(ngModel)]="patientForm.dateOfBirth">
     </div>
-    
+
     <div class="form-group">
       <label>Gender *</label>
       <select [(ngModel)]="patientForm.gender">
@@ -179,7 +180,7 @@
         <option value="male">Male</option>
       </select>
     </div>
-    
+
     <div class="form-group">
       <label>Skin Type (Fitzpatrick Scale)</label>
       <select [(ngModel)]="patientForm.skinType">
@@ -191,7 +192,7 @@
         <option [value]="6">Type VI - Dark</option>
       </select>
     </div>
-    
+
     <div class="form-group full-width">
       <label>Notes</label>
       <textarea [(ngModel)]="patientForm.notes" rows="3" placeholder="Additional notes..."></textarea>
@@ -200,13 +201,13 @@
 </app-modal>
 
 <!-- Top Up Wallet Modal -->
-<app-modal 
-  [isOpen]="showTopUpModal" 
+<app-modal
+  [isOpen]="showTopUpModal"
   title="Top Up Wallet"
   (closed)="closeTopUpModal()"
   (confirmed)="confirmTopUp()"
   confirmText="Add Balance">
-  
+
   <div class="topup-form">
     <p>Add cash balance to {{ selectedPatient?.firstName }}'s wallet</p>
     <div class="form-group">

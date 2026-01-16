@@ -19,7 +19,7 @@ export class Patients implements OnInit {
   patients: Patient[] = [];
   selectedPatient: Patient | null = null;
   selectedWallet: PatientWallet | null = null;
-  
+
   showModal = false;
   showDetailPanel = false;
   isEditMode = false;
@@ -148,6 +148,14 @@ export class Patients implements OnInit {
     if (this.selectedPatient && this.topUpAmount > 0) {
       const patientName = `${this.selectedPatient.firstName} ${this.selectedPatient.lastName}`;
       this.walletService.addCashBalance(this.selectedPatient.id, this.topUpAmount);
+      this.dataService.addPatientTransaction({
+        patientId: this.selectedPatient.id,
+        date: new Date(),
+        type: 'wallet_topup',
+        description: 'Wallet top-up',
+        amount: this.topUpAmount,
+        method: 'cash'
+      });
       this.loadWallet(this.selectedPatient.id);
       this.alertService.walletTopUp(this.topUpAmount, patientName);
       this.closeTopUpModal();

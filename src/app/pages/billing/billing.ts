@@ -6,7 +6,7 @@ import { DataService } from '../../services/data.service';
 import { OfferService, AppliedOffer, CartItem } from '../../services/offer.service';
 import { WalletService } from '../../services/wallet.service';
 import { SweetAlertService } from '../../services/sweet-alert.service';
-import { Appointment, Patient, Service, Offer, ServiceCredit } from '../../models';
+import { Appointment, Patient, Service, Offer, ServiceCredit, Session, SessionExtraCharge } from '../../models';
 
 interface InvoiceItem {
   description: string;
@@ -35,7 +35,7 @@ export class Billing implements OnInit {
   patients: Patient[] = [];
   services: Service[] = [];
   offers: Offer[] = [];
-  
+
   activeTab: 'pending' | 'completed' = 'pending';
   showInvoiceModal = false;
   selectedAppointment: Appointment | null = null;
@@ -43,17 +43,17 @@ export class Billing implements OnInit {
 
   // Invoice Builder
   invoiceItems: InvoiceItem[] = [];
-  
+
   // Offers
   availableOffers: AppliedOffer[] = [];
   selectedAppliedOffer: AppliedOffer | null = null;
-  
+
   // Available Credits
   availableCredits: ServiceCredit[] = [];
-  
+
   discount = 0;
-  taxRate = 14; 
-  
+  taxRate = 14;
+
   // Payment
   payments: PaymentMethod[] = [];
   newPayment: PaymentMethod = { type: 'cash', amount: 0 };
@@ -79,7 +79,7 @@ export class Billing implements OnInit {
     this.dataService.getDoctors().subscribe(d => this.doctors = d); // Load doctors
     this.dataService.getOffers().subscribe(o => this.offers = o);
   }
-  
+
   doctors: import('../../models').Doctor[] = []; // Explicit type if needed or rely on inference
 
   getDoctorName(doctorId: string): string {
@@ -121,29 +121,47 @@ export class Billing implements OnInit {
     this.availableOffers = [];
     this.availableCredits = [];
     this.packageGrantedMessage = '';
-    
+
     // Populate from appointment services
     for (const service of appointment.services) {
       const svc = this.services.find(s => s.id === service.serviceId);
       if (svc) {
+        // Check if this service was paid from credits at booking
+        const isFromCredits = service.fromCredits || false;
         this.invoiceItems.push({
           description: svc.name,
           quantity: 1,
           unitPrice: service.price || svc.pricingModels[0]?.basePrice || 0,
-          total: service.price || svc.pricingModels[0]?.basePrice || 0,
+          total: isFromCredits ? 0 : (service.price || svc.pricingModels[0]?.basePrice || 0),
           serviceId: svc.id,
-          isCreditsUsed: false
+          isCreditsUsed: isFromCredits
         });
       }
     }
-    
+
+    // Load session extra charges (overage, consumables, etc.)
+    this.dataService.getSessionByAppointment(appointment.id).subscribe(session => {
+      if (session && session.extraCharges) {
+        for (const charge of session.extraCharges) {
+          this.invoiceItems.push({
+            description: charge.description,
+            quantity: 1,
+            unitPrice: charge.amount,
+            total: charge.amount,
+            serviceId: charge.serviceId,
+            isCreditsUsed: false
+          });
+        }
+      }
+    });
+
     // Load available credits for this patient
     if (this.selectedPatient) {
       this.walletService.getAvailableCredits(this.selectedPatient.id).subscribe(credits => {
         this.availableCredits = credits;
       });
     }
-    
+
     this.recalculateOffers();
     this.showInvoiceModal = true;
   }
@@ -250,6 +268,16 @@ export class Billing implements OnInit {
     for (const item of this.invoiceItems) {
       if (item.isCreditsUsed && item.serviceId && this.selectedPatient) {
         this.walletService.redeemCredit(this.selectedPatient.id, item.serviceId);
+        this.dataService.addPatientTransaction({
+          patientId: this.selectedPatient.id,
+          date: new Date(),
+          type: 'credit_usage',
+          description: `Used 1 credit for ${item.description}`,
+          amount: 0,
+          method: 'credits',
+          serviceId: item.serviceId,
+          relatedAppointmentId: this.selectedAppointment?.id
+        });
       }
     }
 
@@ -257,28 +285,40 @@ export class Billing implements OnInit {
     if (this.selectedAppliedOffer && this.selectedPatient) {
       const offer = this.selectedAppliedOffer.offer;
       const benefit = offer.benefits[0];
-      
+
       if (benefit && benefit.type === 'grant_package') {
         const serviceId = benefit.parameters.packageServiceId;
         const sessions = benefit.parameters.packageSessions || 1;
         const validityDays = benefit.parameters.packageValidityDays || 365;
-        
+
         if (serviceId) {
           const serviceName = this.getServiceName(serviceId);
           const expiresAt = new Date();
           expiresAt.setDate(expiresAt.getDate() + validityDays);
-          
+
           const credit: ServiceCredit = {
             serviceId: serviceId,
             serviceName: serviceName,
             remaining: sessions,
             total: sessions,
             expiresAt: expiresAt,
-            packageId: offer.id
+            packageId: offer.id,
+            unitType: 'session'
           };
-          
+
           this.walletService.addCredit(this.selectedPatient.id, credit);
           this.packageGrantedMessage = `✓ Package granted: ${sessions} sessions of ${serviceName}`;
+          this.dataService.addPatientTransaction({
+            patientId: this.selectedPatient.id,
+            date: new Date(),
+            type: 'credit_purchase',
+            description: `Granted package: ${sessions} sessions of ${serviceName}`,
+            amount: benefit.parameters.fixedPrice || 0,
+            method: 'card',
+            serviceId: serviceId,
+            packageId: offer.id,
+            relatedAppointmentId: this.selectedAppointment?.id
+          });
         }
       }
     }
@@ -292,6 +332,20 @@ export class Billing implements OnInit {
 
     if (this.selectedAppointment) {
       this.dataService.updateAppointmentStatus(this.selectedAppointment.id, 'billed');
+    }
+
+    if (this.selectedPatient) {
+      for (const payment of this.payments) {
+        this.dataService.addPatientTransaction({
+          patientId: this.selectedPatient.id,
+          date: new Date(),
+          type: 'payment',
+          description: `Payment via ${payment.type}`,
+          amount: payment.amount,
+          method: payment.type,
+          relatedAppointmentId: this.selectedAppointment?.id
+        });
+      }
     }
 
     this.alertService.invoicePaid(this.totalPaid, this.packageGrantedMessage || undefined)

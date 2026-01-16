@@ -1,0 +1,309 @@
+<app-page-header
+  title="Patient Profile"
+  subtitle="History, credits, and upcoming appointments">
+  <div class="header-actions">
+    <button class="btn btn-outline" routerLink="/patients">Back to Patients</button>
+    <button class="btn btn-secondary" (click)="openBuyPackageModal()">
+      <i class="fa-solid fa-gift"></i> Buy Package
+    </button>
+    <button class="btn btn-primary" routerLink="/appointments">Book Appointment</button>
+  </div>
+</app-page-header>
+
+<div class="profile-container" *ngIf="patient">
+  <div class="profile-header">
+    <div class="avatar">
+      {{ (patient.firstName || '').charAt(0) }}{{ (patient.lastName || '').charAt(0) }}
+    </div>
+    <div class="patient-meta">
+      <h2>{{ fullName }}</h2>
+      <div class="meta-row">
+        <span><i class="fa-solid fa-phone"></i> {{ patient.phone }}</span>
+        <span *ngIf="patient.email"><i class="fa-solid fa-envelope"></i> {{ patient.email }}</span>
+      </div>
+      <div class="meta-row">
+        <span><i class="fa-solid fa-cake-candles"></i> {{ formatDate(patient.dateOfBirth) }}</span>
+        <span><i class="fa-solid fa-venus-mars"></i> {{ patient.gender | titlecase }}</span>
+      </div>
+    </div>
+    <div class="wallet-summary" *ngIf="wallet">
+      <div class="wallet-item">
+        <span class="label">Cash Balance</span>
+        <span class="value">EGP {{ wallet.cashBalance | number:'1.2-2' }}</span>
+      </div>
+      <div class="wallet-item">
+        <span class="label">Credits Remaining</span>
+        <span class="value">{{ totalCredits }} sessions</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="stat-grid">
+    <app-stat-card
+      title="Next Appointment"
+      [value]="nextAppointment ? formatDateTime(nextAppointment.scheduledStart) : 'No upcoming appointments'"
+      icon="fa-solid fa-calendar-check">
+    </app-stat-card>
+    <app-stat-card
+      title="Last Visit"
+      [value]="lastVisit ? formatDateTime(lastVisit.scheduledStart) : 'No previous visits'"
+      icon="fa-solid fa-clock-rotate-left">
+    </app-stat-card>
+    <app-stat-card
+      title="Active Credits"
+      [value]="totalCredits + ' units'"
+      icon="fa-solid fa-ticket">
+    </app-stat-card>
+    <app-stat-card
+      *ngIf="pendingPurchases.length > 0"
+      title="Pending Bills"
+      [value]="pendingPurchases.length + ' packages'"
+      icon="fa-solid fa-file-invoice-dollar">
+    </app-stat-card>
+  </div>
+
+  <!-- Pending Purchases Alert -->
+  <div class="pending-alert" *ngIf="pendingPurchases.length > 0">
+    <div class="alert-header">
+      <i class="fa-solid fa-clock"></i>
+      <span>Pending Package Payments</span>
+    </div>
+    <div class="pending-list">
+      <div class="pending-item" *ngFor="let purchase of pendingPurchases">
+        <div class="pending-info">
+          <span class="name">{{ purchase.offerName }}</span>
+          <span class="price">EGP {{ purchase.price | number:'1.2-2' }}</span>
+        </div>
+        <button class="btn btn-primary btn-sm" (click)="openPayModal(purchase)">
+          <i class="fa-solid fa-credit-card"></i> Pay Now
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab" [class.active]="activeTab === 'overview'" (click)="setTab('overview')">Overview</button>
+    <button class="tab" [class.active]="activeTab === 'credits'" (click)="setTab('credits')">Packages & Credits</button>
+    <button class="tab" [class.active]="activeTab === 'appointments'" (click)="setTab('appointments')">Appointments</button>
+    <button class="tab" [class.active]="activeTab === 'calendar'" (click)="setTab('calendar')">Calendar</button>
+    <button class="tab" [class.active]="activeTab === 'transactions'" (click)="setTab('transactions')">Transactions</button>
+  </div>
+
+  <div class="tab-content" *ngIf="activeTab === 'overview'">
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-header">
+          <h4>Upcoming Appointments</h4>
+        </div>
+        <div class="card-body" *ngIf="upcomingAppointments.length; else noUpcoming">
+          <div class="list-item" *ngFor="let appt of upcomingAppointments">
+            <div>
+              <div class="title">{{ getServiceNames(appt) }}</div>
+              <div class="sub">{{ formatDateTime(appt.scheduledStart) }}</div>
+            </div>
+            <span class="status" [class]="'status-' + appt.status">{{ appt.status }}</span>
+          </div>
+        </div>
+        <ng-template #noUpcoming>
+          <div class="empty">No upcoming appointments</div>
+        </ng-template>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h4>Recent Activity</h4>
+        </div>
+        <div class="card-body" *ngIf="transactions.length; else noTx">
+          <div class="list-item" *ngFor="let tx of transactions | slice:0:5">
+            <div>
+              <div class="title">{{ tx.description }}</div>
+              <div class="sub">{{ formatDateTime(tx.date) }}</div>
+            </div>
+            <span class="badge" [ngClass]="getTransactionClass(tx.type)">{{ getTransactionBadge(tx.type) }}</span>
+          </div>
+        </div>
+        <ng-template #noTx>
+          <div class="empty">No transactions yet</div>
+        </ng-template>
+      </div>
+    </div>
+  </div>
+
+  <div class="tab-content" *ngIf="activeTab === 'credits'">
+    <div class="card">
+      <div class="card-header">
+        <h4>Service Credits</h4>
+        <button class="btn btn-outline btn-sm" (click)="openBuyPackageModal()">+ Buy Package</button>
+      </div>
+      <div class="card-body" *ngIf="wallet?.credits?.length; else noCredits">
+        <div class="credit-row" *ngFor="let credit of wallet?.credits">
+          <div>
+            <div class="title">{{ credit.serviceName }}</div>
+            <div class="sub">
+              <span class="unit-type">{{ credit.unitType | titlecase }}s</span>
+              <span *ngIf="credit.expiresAt"> • Expires: {{ formatDate(credit.expiresAt) }}</span>
+            </div>
+          </div>
+          <div class="credit-progress">
+            <div class="progress">
+              <div class="progress-fill" [style.width.%]="(credit.remaining / credit.total) * 100"></div>
+            </div>
+            <span class="count">{{ credit.remaining }} / {{ credit.total }}</span>
+          </div>
+        </div>
+      </div>
+      <ng-template #noCredits>
+        <div class="empty">No active credits</div>
+      </ng-template>
+    </div>
+  </div>
+
+  <div class="tab-content" *ngIf="activeTab === 'appointments'">
+    <div class="card">
+      <div class="card-header">
+        <h4>Appointments History</h4>
+      </div>
+      <div class="card-body" *ngIf="appointments.length; else noAppointments">
+        <table class="simple-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Services</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let appt of appointments">
+              <td>{{ formatDateTime(appt.scheduledStart) }}</td>
+              <td>{{ getServiceNames(appt) }}</td>
+              <td><span class="status" [class]="'status-' + appt.status">{{ appt.status }}</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <ng-template #noAppointments>
+        <div class="empty">No appointments found</div>
+      </ng-template>
+    </div>
+  </div>
+
+  <div class="tab-content" *ngIf="activeTab === 'calendar'">
+    <app-calendar
+      [events]="patientEvents"
+      [title]="fullName || 'Patient Calendar'"
+      [subtitle]="patientEvents.length + ' appointments'"
+      [initialView]="calendarView"
+      [showLegend]="true"
+      (viewChange)="onCalendarViewChange($event)">
+    </app-calendar>
+  </div>
+
+  <div class="tab-content" *ngIf="activeTab === 'transactions'">
+    <div class="card">
+      <div class="card-header">
+        <h4>Transaction History</h4>
+      </div>
+      <div class="card-body" *ngIf="transactions.length; else noTransactions">
+        <table class="simple-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Description</th>
+              <th>Type</th>
+              <th>Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let tx of transactions">
+              <td>{{ formatDateTime(tx.date) }}</td>
+              <td>{{ tx.description }}</td>
+              <td><span class="badge" [ngClass]="getTransactionClass(tx.type)">{{ getTransactionBadge(tx.type) }}</span></td>
+              <td>
+                <span *ngIf="tx.amount > 0">EGP {{ tx.amount | number:'1.2-2' }}</span>
+                <span *ngIf="tx.amount === 0">—</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <ng-template #noTransactions>
+        <div class="empty">No transactions found</div>
+      </ng-template>
+    </div>
+  </div>
+</div>
+
+<div class="empty" *ngIf="!patient">Patient not found.</div>
+
+<!-- Buy Package Modal -->
+<app-modal
+  [isOpen]="showBuyPackageModal"
+  title="Buy Package"
+  maxWidth="700px"
+  (closed)="closeBuyPackageModal()"
+  (confirmed)="confirmPurchasePackage()"
+  [showFooter]="!!selectedOffer"
+  confirmText="Add to Pending Bills">
+
+  <div class="packages-grid">
+    <div
+      class="package-card"
+      *ngFor="let offer of availablePackages"
+      [class.selected]="selectedOffer?.id === offer.id"
+      (click)="selectPackage(offer)">
+      <div class="package-header">
+        <h4>{{ offer.name }}</h4>
+        <span class="price">EGP {{ getPackagePrice(offer) | number:'1.0-0' }}</span>
+      </div>
+      <p class="description" *ngIf="offer.description">{{ offer.description }}</p>
+      <div class="package-credits">
+        <div class="credit-item" *ngFor="let credit of getPackageCredits(offer)">
+          <i class="fa-solid fa-check"></i>
+          <span>{{ credit.quantity }} {{ credit.unitType }}s of {{ credit.serviceName }}</span>
+        </div>
+      </div>
+      <div class="select-indicator" *ngIf="selectedOffer?.id === offer.id">
+        <i class="fa-solid fa-circle-check"></i> Selected
+      </div>
+    </div>
+  </div>
+
+  <div class="empty" *ngIf="availablePackages.length === 0">
+    No packages available. Create packages in the Offers section.
+  </div>
+</app-modal>
+
+<!-- Pay Pending Modal -->
+<app-modal
+  [isOpen]="showPayModal"
+  title="Complete Payment"
+  (closed)="closePayModal()"
+  (confirmed)="confirmPayment()"
+  confirmText="Confirm Payment">
+
+  <div class="pay-modal-content" *ngIf="selectedPurchase">
+    <div class="purchase-summary">
+      <h4>{{ selectedPurchase.offerName }}</h4>
+      <div class="amount">EGP {{ selectedPurchase.price | number:'1.2-2' }}</div>
+    </div>
+
+    <div class="credits-preview">
+      <label>Credits to be granted:</label>
+      <div class="credit-item" *ngFor="let credit of selectedPurchase.credits">
+        <i class="fa-solid fa-ticket"></i>
+        <span>{{ credit.quantity }} {{ credit.unitType }}s - {{ credit.serviceName }}</span>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Payment Method</label>
+      <select [(ngModel)]="paymentMethod">
+        <option value="cash">Cash</option>
+        <option value="card">Card</option>
+        <option value="wallet" *ngIf="wallet && wallet.cashBalance >= selectedPurchase.price">
+          Wallet (Balance: EGP {{ wallet.cashBalance | number:'1.2-2' }})
+        </option>
+      </select>
+    </div>
+  </div>
+</app-modal>

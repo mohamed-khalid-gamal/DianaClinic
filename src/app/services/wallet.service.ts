@@ -7,7 +7,7 @@ import { PatientWallet, ServiceCredit } from '../models';
   providedIn: 'root'
 })
 export class WalletService {
-  
+
   private wallets$ = new BehaviorSubject<PatientWallet[]>(this.generateMockWallets());
 
   /**
@@ -40,13 +40,13 @@ export class WalletService {
   addCashBalance(patientId: string, amount: number): void {
     const wallets = this.wallets$.value;
     const walletIndex = wallets.findIndex(w => w.patientId === patientId);
-    
+
     if (walletIndex > -1) {
       wallets[walletIndex].cashBalance += amount;
     } else {
       wallets.push({ patientId, cashBalance: amount, credits: [] });
     }
-    
+
     this.wallets$.next([...wallets]);
   }
 
@@ -56,11 +56,11 @@ export class WalletService {
   deductCashBalance(patientId: string, amount: number): boolean {
     const wallets = this.wallets$.value;
     const wallet = wallets.find(w => w.patientId === patientId);
-    
+
     if (!wallet || wallet.cashBalance < amount) {
       return false; // Insufficient balance
     }
-    
+
     wallet.cashBalance -= amount;
     this.wallets$.next([...wallets]);
     return true;
@@ -72,7 +72,7 @@ export class WalletService {
   addCredit(patientId: string, credit: ServiceCredit): void {
     const wallets = this.wallets$.value;
     let walletIndex = wallets.findIndex(w => w.patientId === patientId);
-    
+
     if (walletIndex === -1) {
       // Create wallet if doesn't exist
       wallets.push({ patientId, cashBalance: 0, credits: [credit] });
@@ -81,7 +81,7 @@ export class WalletService {
       const existingCreditIndex = wallets[walletIndex].credits.findIndex(
         c => c.serviceId === credit.serviceId && c.packageId === credit.packageId
       );
-      
+
       if (existingCreditIndex > -1) {
         // Add to existing credit
         wallets[walletIndex].credits[existingCreditIndex].remaining += credit.remaining;
@@ -90,34 +90,71 @@ export class WalletService {
         wallets[walletIndex].credits.push(credit);
       }
     }
-    
+
     this.wallets$.next([...wallets]);
   }
 
   /**
    * Redeem a service credit (use one session)
    */
-  redeemCredit(patientId: string, serviceId: string): boolean {
+  redeemCredit(patientId: string, serviceId: string, units: number = 1): boolean {
     const wallets = this.wallets$.value;
     const wallet = wallets.find(w => w.patientId === patientId);
-    
+
     if (!wallet) return false;
-    
+
     const creditIndex = wallet.credits.findIndex(
       c => c.serviceId === serviceId && c.remaining > 0
     );
-    
+
     if (creditIndex === -1) return false; // No credits available
-    
-    wallet.credits[creditIndex].remaining--;
-    
+
+    const credit = wallet.credits[creditIndex];
+    const actualUnits = Math.min(units, credit.remaining);
+    credit.remaining -= actualUnits;
+
     // Remove credit if fully used
-    if (wallet.credits[creditIndex].remaining <= 0) {
+    if (credit.remaining <= 0) {
       wallet.credits.splice(creditIndex, 1);
     }
-    
+
     this.wallets$.next([...wallets]);
     return true;
+  }
+
+  /**
+   * Reserve credits for appointment (temporarily reduce but can be adjusted at session end)
+   */
+  reserveCredits(patientId: string, serviceId: string, units: number): boolean {
+    return this.redeemCredit(patientId, serviceId, units);
+  }
+
+  /**
+   * Adjust credits after session (if actual usage differs from reserved)
+   * positive adjustment = return credits, negative = deduct more
+   */
+  adjustCredits(patientId: string, serviceId: string, adjustment: number): void {
+    if (adjustment === 0) return;
+
+    const wallets = this.wallets$.value;
+    const wallet = wallets.find(w => w.patientId === patientId);
+    if (!wallet) return;
+
+    const creditIndex = wallet.credits.findIndex(c => c.serviceId === serviceId);
+
+    if (adjustment > 0) {
+      // Return credits
+      if (creditIndex > -1) {
+        wallet.credits[creditIndex].remaining += adjustment;
+      }
+    } else {
+      // Deduct more credits
+      if (creditIndex > -1 && wallet.credits[creditIndex].remaining >= Math.abs(adjustment)) {
+        wallet.credits[creditIndex].remaining += adjustment; // adjustment is negative
+      }
+    }
+
+    this.wallets$.next([...wallets]);
   }
 
   /**
@@ -152,19 +189,30 @@ export class WalletService {
         credits: [
           {
             serviceId: 's1',
-            serviceName: 'Laser Hair Removal',
+            serviceName: 'Full Body Laser Hair Removal',
             remaining: 4,
             total: 6,
-            expiresAt: new Date(2025, 5, 30),
-            packageId: 'pkg1'
+            expiresAt: new Date(2026, 5, 30),
+            packageId: 'pkg1',
+            unitType: 'session'
+          },
+          {
+            serviceId: 's2',
+            serviceName: 'Face Laser',
+            remaining: 500,
+            total: 1000,
+            expiresAt: new Date(2026, 11, 31),
+            packageId: 'pkg2',
+            unitType: 'pulse'
           },
           {
             serviceId: 's4',
             serviceName: 'HydraFacial',
             remaining: 2,
             total: 3,
-            expiresAt: new Date(2025, 11, 31),
-            packageId: 'pkg2'
+            expiresAt: new Date(2026, 11, 31),
+            packageId: 'pkg3',
+            unitType: 'session'
           }
         ]
       },
@@ -178,11 +226,12 @@ export class WalletService {
         cashBalance: 0,
         credits: [
           {
-            serviceId: 's2',
-            serviceName: 'Botox',
+            serviceId: 's6',
+            serviceName: 'Botox Full Face',
             remaining: 1,
             total: 2,
-            packageId: 'pkg3'
+            packageId: 'pkg4',
+            unitType: 'session'
           }
         ]
       }

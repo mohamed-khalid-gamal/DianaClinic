@@ -1,9 +1,9 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable, of } from 'rxjs';
-import { delay } from 'rxjs/operators';
+import { delay, map } from 'rxjs/operators';
 import {
   Patient, Doctor, Room, Device, InventoryItem,
-  ServiceCategory, Service, Offer, Appointment, Alert, PatientWallet
+  ServiceCategory, Service, Offer, Appointment, Alert, PatientWallet, PatientTransaction, PackagePurchase, Session
 } from '../models';
 
 @Injectable({
@@ -21,6 +21,8 @@ export class DataService {
   private offers$ = new BehaviorSubject<Offer[]>(this.generateMockOffers());
   private appointments$ = new BehaviorSubject<Appointment[]>(this.generateMockAppointments());
   private alerts$ = new BehaviorSubject<Alert[]>(this.generateMockAlerts());
+  private transactions$ = new BehaviorSubject<PatientTransaction[]>(this.generateMockTransactions());
+  private packagePurchases$ = new BehaviorSubject<PackagePurchase[]>([]);
 
   // Patients
   getPatients(): Observable<Patient[]> {
@@ -161,6 +163,12 @@ export class DataService {
     return this.appointments$.asObservable();
   }
 
+  getPatientAppointments(patientId: string): Observable<Appointment[]> {
+    return this.appointments$.pipe(
+      map(appointments => appointments.filter(a => a.patientId === patientId))
+    );
+  }
+
   addAppointment(appointment: Appointment): void {
     const current = this.appointments$.value;
     this.appointments$.next([...current, { ...appointment, id: this.generateId() }]);
@@ -175,6 +183,91 @@ export class DataService {
     }
   }
 
+  // Patient Transactions
+  getPatientTransactions(patientId: string): Observable<PatientTransaction[]> {
+    return this.transactions$.pipe(
+      map(transactions => transactions.filter(t => t.patientId === patientId))
+    );
+  }
+
+  addPatientTransaction(transaction: Omit<PatientTransaction, 'id'>): void {
+    const current = this.transactions$.value;
+    const newTransaction: PatientTransaction = {
+      ...transaction,
+      id: this.generateId()
+    };
+    this.transactions$.next([newTransaction, ...current]);
+  }
+
+  // Package Purchases
+  getPatientPackagePurchases(patientId: string): Observable<PackagePurchase[]> {
+    return this.packagePurchases$.pipe(
+      map(purchases => purchases.filter(p => p.patientId === patientId))
+    );
+  }
+
+  getPendingPackagePurchases(patientId: string): Observable<PackagePurchase[]> {
+    return this.packagePurchases$.pipe(
+      map(purchases => purchases.filter(p => p.patientId === patientId && p.status === 'pending'))
+    );
+  }
+
+  addPackagePurchase(purchase: Omit<PackagePurchase, 'id'>): string {
+    const current = this.packagePurchases$.value;
+    const id = this.generateId();
+    const newPurchase: PackagePurchase = { ...purchase, id };
+    this.packagePurchases$.next([newPurchase, ...current]);
+    return id;
+  }
+
+  updatePackagePurchaseStatus(purchaseId: string, status: PackagePurchase['status']): void {
+    const current = this.packagePurchases$.value;
+    const purchase = current.find(p => p.id === purchaseId);
+    if (purchase) {
+      purchase.status = status;
+      if (status === 'paid') {
+        purchase.paidAt = new Date();
+      }
+      this.packagePurchases$.next([...current]);
+    }
+  }
+
+  getPackagePurchase(purchaseId: string): Observable<PackagePurchase | undefined> {
+    return this.packagePurchases$.pipe(
+      map(purchases => purchases.find(p => p.id === purchaseId))
+    );
+  }
+
+  // Sessions
+  private sessions$ = new BehaviorSubject<Session[]>([]);
+
+  getSessions(): Observable<Session[]> {
+    return this.sessions$.asObservable();
+  }
+
+  getSessionByAppointment(appointmentId: string): Observable<Session | undefined> {
+    return this.sessions$.pipe(
+      map(sessions => sessions.find(s => s.appointmentId === appointmentId))
+    );
+  }
+
+  addSession(session: Omit<Session, 'id'>): string {
+    const current = this.sessions$.value;
+    const id = this.generateId();
+    const newSession: Session = { ...session, id };
+    this.sessions$.next([newSession, ...current]);
+    return id;
+  }
+
+  updateSession(sessionId: string, updates: Partial<Session>): void {
+    const current = this.sessions$.value;
+    const index = current.findIndex(s => s.id === sessionId);
+    if (index > -1) {
+      current[index] = { ...current[index], ...updates };
+      this.sessions$.next([...current]);
+    }
+  }
+
   // Alerts
   getAlerts(): Observable<Alert[]> {
     return this.alerts$.asObservable();
@@ -184,12 +277,12 @@ export class DataService {
   getDashboardStats(): Observable<any> {
     const today = new Date();
     const appointments = this.appointments$.value;
-    const todayAppointments = appointments.filter(a => 
+    const todayAppointments = appointments.filter(a =>
       new Date(a.scheduledStart).toDateString() === today.toDateString()
     );
-    
+
     const devices = this.devices$.value;
-    const devicesNearMaintenance = devices.filter(d => 
+    const devicesNearMaintenance = devices.filter(d =>
       d.currentCounter >= d.maintenanceThreshold * 0.9
     );
 
@@ -231,49 +324,49 @@ export class DataService {
 
   private generateMockDoctors(): Doctor[] {
     return [
-      { 
-        id: 'd1', 
-        name: 'Dr. Amira Khalil', 
-        specialty: 'Dermatology', 
-        phone: '+20 100 111 2222', 
-        email: 'amira@clinic.com', 
+      {
+        id: 'd1',
+        name: 'Dr. Amira Khalil',
+        specialty: 'Dermatology',
+        phone: '+20 100 111 2222',
+        email: 'amira@clinic.com',
         workingHours: [
-          { dayOfWeek: 0, startTime: '09:00', endTime: '13:00', roomId: 'r1' }, 
-          { dayOfWeek: 0, startTime: '13:00', endTime: '17:00', roomId: 'r2' }, 
-          { dayOfWeek: 1, startTime: '09:00', endTime: '17:00', roomId: 'r1' }, 
+          { dayOfWeek: 0, startTime: '09:00', endTime: '13:00', roomId: 'r1' },
+          { dayOfWeek: 0, startTime: '13:00', endTime: '17:00', roomId: 'r2' },
+          { dayOfWeek: 1, startTime: '09:00', endTime: '17:00', roomId: 'r1' },
           { dayOfWeek: 2, startTime: '09:00', endTime: '17:00', roomId: 'r2' }
-        ], 
-        assignedRooms: ['r1', 'r2'], 
-        isActive: true 
+        ],
+        assignedRooms: ['r1', 'r2'],
+        isActive: true
       },
-      { 
-        id: 'd2', 
-        name: 'Dr. Karim Mansour', 
-        specialty: 'Cosmetic Surgery', 
-        phone: '+20 101 222 3333', 
-        email: 'karim@clinic.com', 
+      {
+        id: 'd2',
+        name: 'Dr. Karim Mansour',
+        specialty: 'Cosmetic Surgery',
+        phone: '+20 101 222 3333',
+        email: 'karim@clinic.com',
         workingHours: [
-          { dayOfWeek: 1, startTime: '10:00', endTime: '14:00', roomId: 'r3' }, 
+          { dayOfWeek: 1, startTime: '10:00', endTime: '14:00', roomId: 'r3' },
           { dayOfWeek: 1, startTime: '14:00', endTime: '18:00', roomId: 'r3' },
           { dayOfWeek: 3, startTime: '10:00', endTime: '18:00', roomId: 'r3' }
-        ], 
-        assignedRooms: ['r3'], 
-        isActive: true 
+        ],
+        assignedRooms: ['r3'],
+        isActive: true
       },
-      { 
-        id: 'd3', 
-        name: 'Dr. Layla Farouk', 
-        specialty: 'Laser Specialist', 
-        phone: '+20 102 333 4444', 
-        email: 'layla@clinic.com', 
+      {
+        id: 'd3',
+        name: 'Dr. Layla Farouk',
+        specialty: 'Laser Specialist',
+        phone: '+20 102 333 4444',
+        email: 'layla@clinic.com',
         workingHours: [
-          { dayOfWeek: 0, startTime: '08:00', endTime: '12:00', roomId: 'r1' }, 
+          { dayOfWeek: 0, startTime: '08:00', endTime: '12:00', roomId: 'r1' },
           { dayOfWeek: 0, startTime: '12:00', endTime: '16:00', roomId: 'r1' },
-          { dayOfWeek: 2, startTime: '08:00', endTime: '16:00', roomId: 'r1' }, 
+          { dayOfWeek: 2, startTime: '08:00', endTime: '16:00', roomId: 'r1' },
           { dayOfWeek: 4, startTime: '08:00', endTime: '16:00', roomId: 'r1' }
-        ], 
-        assignedRooms: ['r1'], 
-        isActive: true 
+        ],
+        assignedRooms: ['r1'],
+        isActive: true
       },
     ];
   }
@@ -331,36 +424,36 @@ export class DataService {
 
   private generateMockOffers(): Offer[] {
     return [
-      { 
-        id: 'o1', 
-        name: 'Summer Glow Bundle', 
-        description: 'HydraFacial + Chemical Peel for fixed price', 
-        type: 'bundle', 
-        isActive: true, 
-        validFrom: new Date(2024, 0, 1), 
+      {
+        id: 'o1',
+        name: 'Summer Glow Bundle',
+        description: 'HydraFacial + Chemical Peel for fixed price',
+        type: 'bundle',
+        isActive: true,
+        validFrom: new Date(2024, 0, 1),
         validUntil: new Date(2024, 11, 31),
         conditions: [
-          { 
-            id: 'c1', 
-            type: 'service_includes', 
+          {
+            id: 'c1',
+            type: 'service_includes',
             parameters: { serviceIds: ['s4', 's5'] } // Requires HydraFacial (s4) and Peel (s5)
           }
         ],
         benefits: [
-          { 
-            id: 'b1', 
-            type: 'fixed_price', 
+          {
+            id: 'b1',
+            type: 'fixed_price',
             parameters: { fixedPrice: 1200 } // Normal price ~1400
           }
         ],
         priority: 10,
         createdAt: new Date()
       },
-      { 
-        id: 'o2', 
-        name: 'New Patient Welcome', 
-        description: '20% off first visit for new patients', 
-        type: 'conditional', 
+      {
+        id: 'o2',
+        name: 'New Patient Welcome',
+        description: '20% off first visit for new patients',
+        type: 'conditional',
         isActive: true,
         usageLimitPerPatient: 1,
         conditions: [
@@ -372,23 +465,23 @@ export class DataService {
         priority: 5,
         createdAt: new Date()
       },
-      { 
-        id: 'o3', 
-        name: 'Buy 5 Get 1 Free - Laser', 
-        description: 'Purchase 5 sessions package, get 6 credits', 
-        type: 'package', 
+      {
+        id: 'o3',
+        name: 'Buy 5 Get 1 Free - Laser',
+        description: 'Purchase 5 sessions package, get 6 credits',
+        type: 'package',
         isActive: true,
         validFrom: new Date(2024, 0, 1),
         benefits: [
-          { 
-            id: 'b3', 
-            type: 'grant_package', 
-            parameters: { 
+          {
+            id: 'b3',
+            type: 'grant_package',
+            parameters: {
               packageServiceId: 's1', // Full Body Laser
               packageSessions: 6,
               packageValidityDays: 365,
               fixedPrice: 12500 // 5 * 2500
-            } 
+            }
           }
         ],
         priority: 8,
@@ -412,6 +505,44 @@ export class DataService {
       { id: 'al1', type: 'low_stock', title: 'Low Stock Alert', message: 'Sunscreen SPF50 is running low (8 units remaining)', relatedId: 'inv6', severity: 'warning', isRead: false, createdAt: new Date() },
       { id: 'al2', type: 'maintenance', title: 'Device Maintenance Due', message: 'Candela GentleMax Pro is at 90% of maintenance threshold', relatedId: 'dev1', severity: 'warning', isRead: false, createdAt: new Date() },
       { id: 'al3', type: 'expiry', title: 'Expiry Warning', message: 'Botox 100 Units batch B2024-002 expires in 60 days', relatedId: 'inv2', severity: 'info', isRead: false, createdAt: new Date() },
+    ];
+  }
+
+  private generateMockTransactions(): PatientTransaction[] {
+    const today = new Date();
+    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000);
+    const lastWeek = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+    return [
+      {
+        id: 'tx1',
+        patientId: 'p1',
+        date: today,
+        type: 'credit_usage',
+        description: 'Used 1 session from Laser package',
+        amount: 0,
+        method: 'credits',
+        serviceId: 's1',
+        packageId: 'o3'
+      },
+      {
+        id: 'tx2',
+        patientId: 'p1',
+        date: yesterday,
+        type: 'payment',
+        description: 'Payment for HydraFacial Session',
+        amount: 800,
+        method: 'card'
+      },
+      {
+        id: 'tx3',
+        patientId: 'p2',
+        date: lastWeek,
+        type: 'wallet_topup',
+        description: 'Wallet top-up',
+        amount: 500,
+        method: 'cash'
+      }
     ];
   }
 }

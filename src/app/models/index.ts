@@ -31,6 +31,42 @@ export interface ServiceCredit {
   total: number;
   expiresAt?: Date;
   packageId?: string;
+  unitType: 'session' | 'pulse' | 'unit'; // Type of credit unit
+}
+
+// Package/Offer purchase that creates pending bill
+export interface PackagePurchase {
+  id: string;
+  patientId: string;
+  offerId: string;
+  offerName: string;
+  price: number;
+  status: 'pending' | 'paid' | 'cancelled';
+  credits: PackageCreditItem[]; // What credits will be granted on payment
+  createdAt: Date;
+  paidAt?: Date;
+}
+
+export interface PackageCreditItem {
+  serviceId: string;
+  serviceName: string;
+  quantity: number;
+  unitType: 'session' | 'pulse' | 'unit';
+}
+
+export interface PatientTransaction {
+  id: string;
+  patientId: string;
+  date: Date;
+  type: 'payment' | 'refund' | 'credit_purchase' | 'credit_usage' | 'wallet_topup';
+  description: string;
+  amount: number;
+  method?: 'cash' | 'card' | 'wallet' | 'credits';
+  relatedAppointmentId?: string;
+  relatedInvoiceId?: string;
+  serviceId?: string;
+  packageId?: string;
+  balanceAfter?: number;
 }
 
 // Doctor
@@ -195,10 +231,12 @@ export interface OfferBenefit {
     percent?: number;
     fixedPrice?: number;
     fixedAmount?: number;
-    // For package grants
+    // For package grants - supports multiple service credits
     packageServiceId?: string;
     packageSessions?: number;
     packageValidityDays?: number;
+    // For multi-service packages
+    packageCredits?: PackageCreditItem[];
     // For free session (Buy X Get Y)
     buyQuantity?: number;
     freeQuantity?: number;
@@ -237,6 +275,8 @@ export interface AppointmentService {
   price: number;
   area?: string;
   pulses?: number;
+  fromCredits?: boolean; // Whether this service is paid from patient credits
+  creditsUsed?: number; // How many credits/units were allocated from wallet
 }
 
 // Session & Billing
@@ -249,10 +289,25 @@ export interface Session {
   endTime?: Date;
   consumablesUsed: SessionConsumable[];
   deviceUsage?: DeviceUsageLog;
+  creditsUsed: SessionCreditUsage[]; // Track actual credit consumption
+  extraCharges: SessionExtraCharge[]; // Extra charges from overage, etc.
   clinicalNotes?: string;
   beforePhotos?: string[];
   afterPhotos?: string[];
   status: 'active' | 'completed';
+}
+
+export interface SessionExtraCharge {
+  description: string;
+  amount: number;
+  serviceId?: string;
+}
+
+export interface SessionCreditUsage {
+  serviceId: string;
+  serviceName: string;
+  unitsUsed: number;
+  unitType: 'session' | 'pulse' | 'unit';
 }
 
 export interface SessionConsumable {

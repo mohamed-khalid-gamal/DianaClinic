@@ -1,36 +1,36 @@
-<app-page-header 
-  title="Dashboard" 
+<app-page-header
+  title="Dashboard"
   subtitle="Welcome back! Here's what's happening today.">
 </app-page-header>
 
 <!-- KPI Stats Grid -->
 <div class="stats-grid">
-  <app-stat-card 
-    icon="fa-solid fa-calendar-day" 
+  <app-stat-card
+    icon="fa-solid fa-calendar-day"
     iconBg="rgba(14, 116, 144, 0.1)"
     [value]="stats.todayAppointments"
     label="Today's Appointments"
     [clickable]="true">
   </app-stat-card>
-  
-  <app-stat-card 
-    icon="fa-solid fa-users" 
+
+  <app-stat-card
+    icon="fa-solid fa-users"
     iconBg="rgba(139, 92, 246, 0.1)"
     [value]="stats.totalPatients"
     label="Total Patients"
     [clickable]="true">
   </app-stat-card>
-  
-  <app-stat-card 
-    icon="fa-solid fa-door-open" 
+
+  <app-stat-card
+    icon="fa-solid fa-door-open"
     iconBg="rgba(16, 185, 129, 0.1)"
     [value]="stats.roomsInUse + '/' + stats.totalRooms"
     label="Rooms in Use"
     [clickable]="true">
   </app-stat-card>
-  
-  <app-stat-card 
-    icon="fa-solid fa-bell" 
+
+  <app-stat-card
+    icon="fa-solid fa-bell"
     iconBg="rgba(245, 158, 11, 0.1)"
     [value]="stats.pendingAlerts"
     label="Pending Alerts"
@@ -124,6 +124,10 @@
         <span class="action-icon"><i class="fa-solid fa-calendar-plus"></i></span>
         <span>New Appointment</span>
       </button>
+      <button class="quick-action" routerLink="/calendar">
+        <span class="action-icon"><i class="fa-solid fa-calendar-days"></i></span>
+        <span>Open Calendar</span>
+      </button>
       <button class="quick-action" routerLink="/patients">
         <span class="action-icon"><i class="fa-solid fa-user-plus"></i></span>
         <span>Add Patient</span>
@@ -162,7 +166,7 @@
     </div>
     <button class="btn btn-outline" routerLink="/inventory">View Inventory</button>
   </div>
-  
+
   <div class="card inventory-alert expiry" *ngIf="stats.expiringItems > 0">
     <span class="icon"><i class="fa-solid fa-triangle-exclamation"></i></span>
     <div class="content">

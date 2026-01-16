@@ -19,6 +19,7 @@ export class SidebarComponent {
     { label: 'Patients', icon: 'fa-solid fa-users', route: '/patients' },
     { label: 'Appointments', icon: 'fa-solid fa-calendar-check', route: '/appointments' },
     { label: 'Sessions', icon: 'fa-solid fa-play-circle', route: '/sessions' },
+    { label: 'Calendar', icon: 'fa-solid fa-calendar-days', route: '/calendar' },
     { label: 'Doctors', icon: 'fa-solid fa-user-doctor', route: '/doctors' },
     { label: 'Rooms', icon: 'fa-solid fa-door-open', route: '/rooms' },
     { label: 'Devices', icon: 'fa-solid fa-microchip', route: '/devices' },

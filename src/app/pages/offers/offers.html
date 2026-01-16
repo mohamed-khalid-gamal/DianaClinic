@@ -1,5 +1,5 @@
-<app-page-header 
-  title="Offers & Packages" 
+<app-page-header
+  title="Offers & Packages"
   subtitle="Manage discounts, bundles, and promotional rules">
   <button class="btn btn-primary" (click)="openAddModal()">
     + Create Offer
@@ -18,7 +18,7 @@
     <div class="coupon-left">
       <div class="vertical-text">{{ getTypeLabel(offer.type) }}</div>
     </div>
-    
+
     <!-- Middle: Content -->
     <div class="coupon-main">
       <div class="header">
@@ -27,16 +27,16 @@
           {{ getOfferStatus(offer).label }}
         </span>
       </div>
-      
+
       <div class="benefit-highlight">
         {{ getBenefitDescription(offer) }}
       </div>
-      
+
       <div class="conditions-summary">
         <i class="fa-solid fa-circle-info"></i>
         <span>{{ getConditionDescription(offer) }}</span>
       </div>
-      
+
       <div class="meta-row">
         <span class="expiry" *ngIf="offer.validUntil">
           <i class="fa-regular fa-clock"></i> Expires: {{ formatDate(offer.validUntil) }}
@@ -49,7 +49,7 @@
         </span>
       </div>
     </div>
-    
+
     <!-- Right: Actions -->
     <div class="coupon-actions">
       <button class="action-btn edit" (click)="openEditModal(offer)" title="Edit">
@@ -63,17 +63,17 @@
 </div>
 
 <!-- Add/Edit Offer Modal (Wizard) -->
-<app-modal 
-  [isOpen]="showModal" 
+<app-modal
+  [isOpen]="showModal"
   [title]="(isEditMode ? 'Edit Offer' : 'Create New Offer') + ' - Step ' + currentStep + '/3'"
   maxWidth="800px"
   (closed)="closeModal()"
   (confirmed)="saveOffer()"
   [showFooter]="currentStep === 3"
   confirmText="Save Offer">
-  
+
   <div class="modal-content wizard-content">
-    
+
     <!-- Step 1: Basics -->
     <div class="wizard-step" *ngIf="currentStep === 1">
       <h4>Basic Details</h4>
@@ -82,7 +82,7 @@
           <label>Offer Name *</label>
           <input type="text" [(ngModel)]="offerForm.name" placeholder="e.g., Summer Bundle">
         </div>
-        
+
         <div class="form-group full-width">
           <label>Description</label>
           <textarea [(ngModel)]="offerForm.description" rows="2" placeholder="Internal or customer-facing description"></textarea>
@@ -114,7 +114,7 @@
           <label>Valid Until</label>
           <input type="date" [ngModel]="formatDateInput(offerForm.validUntil)" (ngModelChange)="updateValidUntil($event)">
         </div>
-        
+
         <div class="form-group">
           <label>Status</label>
           <div class="toggle-wrapper" (click)="offerForm.isActive = !offerForm.isActive">
@@ -129,14 +129,14 @@
     <div class="wizard-step" *ngIf="currentStep === 2">
       <h4>Conditions (When does this apply?)</h4>
       <p class="hint">Leave empty to apply to everyone/everything depending on type.</p>
-      
+
       <div class="conditions-list">
         <div class="condition-item" *ngFor="let cond of offerForm.conditions; let i = index">
           <div class="cond-header">
             <strong>{{ getConditionLabel(cond.type) }}</strong>
             <button class="btn-remove" (click)="removeCondition(i)"><i class="fa-solid fa-trash"></i></button>
           </div>
-          
+
           <!-- Condition Params -->
           <div class="cond-params" [ngSwitch]="cond.type">
             <div *ngSwitchCase="'service_includes'">
@@ -146,13 +146,13 @@
                 <option *ngFor="let s of services" [value]="s.id">{{ s.name }}</option>
               </select>
               <div class="tag-list">
-                <span class="tag" *ngFor="let sid of cond.parameters?.serviceIds || []">
+                <span class="tag" *ngFor="let sid of (cond.parameters.serviceIds || [])">
                   {{ getServiceName(sid) }}
                   <i class="fa-solid fa-xmark" (click)="removeServiceFromCondition(cond, sid)"></i>
                 </span>
               </div>
             </div>
-            
+
             <div *ngSwitchCase="'min_spend'">
               <label>Minimum Cart Amount (EGP)</label>
               <input type="number" [(ngModel)]="cond.parameters.minAmount">
@@ -177,14 +177,14 @@
     <!-- Step 3: Benefits (What do they get?) -->
     <div class="wizard-step" *ngIf="currentStep === 3">
       <h4>Benefits (Reward)</h4>
-      
+
       <div class="benefits-list">
         <div class="benefit-item" *ngFor="let ben of offerForm.benefits; let i = index">
           <div class="ben-header">
             <strong>Benefit {{ i + 1 }}</strong>
              <!-- usually 1 benefit per offer but model supports many -->
           </div>
-          
+
           <div class="ben-params">
             <div class="form-group" *ngIf="offerForm.type === 'percentage' || offerForm.type === 'conditional'">
               <label>Discount Percentage (%)</label>
@@ -202,24 +202,37 @@
             </div>
 
              <div class="params-group" *ngIf="offerForm.type === 'package'">
-              <label>Package Grant Details</label>
-              <div class="form-grid">
-                 <div class="form-group">
-                   <label>Service to Credit</label>
-                   <select [(ngModel)]="ben.parameters.packageServiceId">
-                      <option *ngFor="let s of services" [value]="s.id">{{ s.name }}</option>
-                   </select>
-                 </div>
-                 <div class="form-group">
-                   <label>Sessions Granted</label>
-                   <input type="number" [(ngModel)]="ben.parameters.packageSessions">
-                 </div>
-                 <div class="form-group">
-                   <label>Price Charged (EGP)</label>
-                   <input type="number" [(ngModel)]="ben.parameters.fixedPrice">
-                   <small>Total price for the package</small>
-                 </div>
+              <label>Package Credits</label>
+              <p class="hint">Add multiple services with different unit types (sessions, pulses, etc.)</p>
+
+              <div class="form-group">
+                <label>Total Package Price (EGP)</label>
+                <input type="number" [(ngModel)]="ben.parameters.fixedPrice" placeholder="e.g., 5000">
               </div>
+
+              <div class="package-credits-list">
+                <div class="package-credit-item" *ngFor="let credit of ben.parameters.packageCredits || []; let ci = index">
+                  <div class="credit-row-inputs">
+                    <select [(ngModel)]="credit.serviceId" (change)="updateCreditServiceName(credit)">
+                      <option value="">Select Service</option>
+                      <option *ngFor="let s of services" [value]="s.id">{{ s.name }}</option>
+                    </select>
+                    <input type="number" [(ngModel)]="credit.quantity" placeholder="Qty" min="1">
+                    <select [(ngModel)]="credit.unitType">
+                      <option value="session">Sessions</option>
+                      <option value="pulse">Pulses</option>
+                      <option value="unit">Units</option>
+                    </select>
+                    <button class="btn-icon danger" (click)="removePackageCredit(ben, ci)">
+                      <i class="fa-solid fa-trash"></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <button class="btn btn-outline btn-sm" (click)="addPackageCredit(ben)">
+                <i class="fa-solid fa-plus"></i> Add Service Credit
+              </button>
             </div>
           </div>
         </div>

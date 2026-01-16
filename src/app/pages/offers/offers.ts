@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { PageHeaderComponent, ModalComponent } from '../../components/shared';
 import { DataService } from '../../services/data.service';
 import { SweetAlertService } from '../../services/sweet-alert.service';
-import { Offer, Service, OfferCondition } from '../../models';
+import { Offer, Service, OfferCondition, OfferBenefit, PackageCreditItem } from '../../models';
 
 @Component({
   selector: 'app-offers',
@@ -74,10 +74,10 @@ export class Offers implements OnInit {
 
     // Default benefits if missing
     if (!this.offerForm.benefits || this.offerForm.benefits.length === 0) {
-       this.offerForm.benefits = [{ 
-         id: 'b_' + Date.now(), 
-         type: 'percent_off', 
-         parameters: { percent: 10 } 
+       this.offerForm.benefits = [{
+         id: 'b_' + Date.now(),
+         type: 'percent_off',
+         parameters: { percent: 10 }
        }];
     }
 
@@ -89,7 +89,7 @@ export class Offers implements OnInit {
       this.dataService.addOffer(this.offerForm as Offer);
       this.alertService.created('Offer', offerName);
     }
-    
+
     this.loadData();
     this.closeModal();
   }
@@ -186,7 +186,7 @@ export class Offers implements OnInit {
      switch (cond.type) {
         case 'new_patient': return 'New Patients Only';
         case 'min_spend': return `Spend > EGP ${cond.parameters.minAmount}`;
-        case 'service_includes': return `Requires specific services`; 
+        case 'service_includes': return `Requires specific services`;
         default: return `${offer.conditions.length} condition(s)`;
      }
   }
@@ -195,7 +195,7 @@ export class Offers implements OnInit {
     const today = new Date();
     const nextMonth = new Date();
     nextMonth.setMonth(nextMonth.getMonth() + 1);
-    
+
     return {
       name: '',
       type: 'percentage',
@@ -203,13 +203,35 @@ export class Offers implements OnInit {
       validFrom: today,
       validUntil: nextMonth,
       conditions: [],
-      benefits: [{ 
-        id: 'b_init', 
-        type: 'percent_off', 
-        parameters: { percent: 10 } 
+      benefits: [{
+        id: 'b_init',
+        type: 'percent_off',
+        parameters: { percent: 10, packageCredits: [] }
       }],
       priority: 10
     };
+  }
+
+  // Package Credits Methods
+  addPackageCredit(benefit: OfferBenefit): void {
+    if (!benefit.parameters.packageCredits) {
+      benefit.parameters.packageCredits = [];
+    }
+    benefit.parameters.packageCredits.push({
+      serviceId: '',
+      serviceName: '',
+      quantity: 1,
+      unitType: 'session'
+    });
+  }
+
+  removePackageCredit(benefit: OfferBenefit, index: number): void {
+    benefit.parameters.packageCredits?.splice(index, 1);
+  }
+
+  updateCreditServiceName(credit: PackageCreditItem): void {
+    const service = this.services.find(s => s.id === credit.serviceId);
+    credit.serviceName = service?.name || '';
   }
 
   getOfferStatus(offer: Offer): { label: string; class: string } {

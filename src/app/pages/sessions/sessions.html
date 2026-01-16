@@ -1,18 +1,18 @@
-<app-page-header 
-  title="Active Sessions" 
+<app-page-header
+  title="Active Sessions"
   subtitle="Monitor and manage ongoing treatment sessions">
 </app-page-header>
 
 <!-- Stats -->
 <div class="stats-row">
-  <app-stat-card 
-    icon="fa-solid fa-play-circle" 
+  <app-stat-card
+    icon="fa-solid fa-play-circle"
     iconBg="rgba(139, 92, 246, 0.1)"
     [value]="activeSessions.length"
     label="Active Sessions">
   </app-stat-card>
-  <app-stat-card 
-    icon="fa-solid fa-user-clock" 
+  <app-stat-card
+    icon="fa-solid fa-user-clock"
     iconBg="rgba(245, 158, 11, 0.1)"
     [value]="checkedInAppointments.length"
     label="Waiting (Checked-In)">
@@ -24,12 +24,12 @@
   <div class="section-header">
     <h3><i class="fa-solid fa-bolt"></i> Active Sessions</h3>
   </div>
-  
+
   <div class="sessions-grid" *ngIf="activeSessions.length > 0">
     <div class="session-card" *ngFor="let session of activeSessions">
       <div class="session-header">
         <div class="patient-avatar">
-          {{ session.patient.firstName?.charAt(0) }}{{ session.patient.lastName?.charAt(0) }}
+          {{ (session.patient.firstName || '').charAt(0) }}{{ (session.patient.lastName || '').charAt(0) }}
         </div>
         <div class="patient-info">
           <span class="name">{{ session.patient.firstName }} {{ session.patient.lastName }}</span>
@@ -40,18 +40,18 @@
           {{ formatElapsed(session.elapsedMinutes) }}
         </div>
       </div>
-      
+
       <div class="session-services">
         <span class="service-tag" *ngFor="let svc of session.services">
           {{ svc.name }}
         </span>
       </div>
-      
+
       <div class="session-meta">
         <span><i class="fa-solid fa-user-doctor"></i> {{ session.doctor.name }}</span>
         <span><i class="fa-solid fa-clock"></i> Started: {{ formatTime(session.startTime) }}</span>
       </div>
-      
+
       <div class="session-actions">
         <button class="btn btn-outline btn-sm" (click)="openSessionModal(session)">
           <i class="fa-solid fa-clipboard"></i> Notes
@@ -62,7 +62,7 @@
       </div>
     </div>
   </div>
-  
+
   <div class="empty-state" *ngIf="activeSessions.length === 0">
     <i class="fa-solid fa-hourglass-empty"></i>
     <p>No active sessions</p>
@@ -74,7 +74,7 @@
   <div class="section-header">
     <h3><i class="fa-solid fa-users-clock"></i> Waiting Queue (Checked-In)</h3>
   </div>
-  
+
   <div class="waiting-list" *ngIf="checkedInAppointments.length > 0">
     <div class="waiting-item" *ngFor="let apt of checkedInAppointments">
       <div class="waiting-info">
@@ -90,42 +90,164 @@
       </button>
     </div>
   </div>
-  
+
   <div class="empty-state" *ngIf="checkedInAppointments.length === 0">
     <p>No patients waiting</p>
   </div>
 </div>
 
 <!-- Session Notes Modal -->
-<app-modal 
-  [isOpen]="showSessionModal" 
+<app-modal
+  [isOpen]="showSessionModal"
   title="Session Notes"
   (closed)="closeSessionModal()"
-  (confirmed)="endSession(selectedSession!)"
-  confirmText="End & Save">
-  
+  (confirmed)="saveNotesAndEndSession(selectedSession!)"
+  confirmText="Continue to End Session">
+
   <div class="session-modal-content" *ngIf="selectedSession">
     <div class="patient-summary">
       <strong>{{ selectedSession.patient.firstName }} {{ selectedSession.patient.lastName }}</strong>
       <span>{{ selectedSession.room.name }} • {{ formatElapsed(selectedSession.elapsedMinutes) }}</span>
     </div>
-    
+
     <div class="form-group">
       <label>Clinical Notes</label>
-      <textarea 
-        [(ngModel)]="sessionNotes" 
-        rows="4" 
+      <textarea
+        [(ngModel)]="sessionNotes"
+        rows="4"
         placeholder="Enter session notes, observations, recommendations...">
       </textarea>
     </div>
-    
-    <div class="consumables-section">
-      <label>Consumables Used</label>
-      <p class="hint">Track materials used during the session</p>
-      <div class="consumables-placeholder">
-        <i class="fa-solid fa-box"></i>
-        <span>Consumables tracking coming soon</span>
+
+    <p class="hint" style="margin-top: 1rem;">
+      <i class="fa-solid fa-info-circle"></i>
+      Click "Continue to End Session" to track resources, credits, and consumables used.
+    </p>
+  </div>
+</app-modal>
+
+<!-- End Session Resource Tracking Modal -->
+<app-modal
+  [isOpen]="showEndSessionModal"
+  title="End Session"
+  (closed)="closeEndSessionModal()"
+  (confirmed)="confirmEndSession()"
+  confirmText="Finish & Bill">
+
+  <div class="session-modal-content" *ngIf="selectedSession">
+    <div class="patient-summary">
+      <strong>{{ selectedSession.patient.firstName }} {{ selectedSession.patient.lastName }}</strong>
+      <span>{{ selectedSession.room.name }} • {{ formatElapsed(selectedSession.elapsedMinutes) }}</span>
+    </div>
+
+    <!-- Credits Used -->
+    <div class="form-group">
+      <label>Credits Used</label>
+      <p class="hint">Adjust actual usage vs reserved credits</p>
+      <div class="credits-table" *ngIf="endSessionCredits.length > 0">
+        <div class="credits-row header">
+          <span>Service</span>
+          <span>Allocated</span>
+          <span>Actual Used</span>
+        </div>
+        <div class="credits-row" *ngFor="let credit of endSessionCredits">
+          <span>{{ credit.serviceName }}</span>
+          <span>{{ credit.allocated }} {{ credit.unitType }}</span>
+          <span>
+            <input
+              type="number"
+              min="0"
+              [(ngModel)]="credit.actual" />
+          </span>
+        </div>
       </div>
+      <div class="empty-state" *ngIf="endSessionCredits.length === 0">
+        <p>No credits were reserved for this session.</p>
+      </div>
+
+      <div class="overage-warning" *ngIf="getCreditsOverage().length > 0">
+        <strong>Overage detected:</strong>
+        <ul>
+          <li *ngFor="let over of getCreditsOverage()">
+            {{ over.serviceName }}: +{{ over.overage }} units
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Device Usage -->
+    <div class="form-group">
+      <label>Device Usage</label>
+      <p class="hint">Record device counters used during the session</p>
+      <div class="device-list" *ngIf="endSessionDeviceUsage.length > 0">
+        <div class="device-row" *ngFor="let device of endSessionDeviceUsage">
+          <span>{{ device.name }}</span>
+          <input type="number" min="0" [(ngModel)]="device.unitsUsed" />
+        </div>
+      </div>
+      <div class="empty-state" *ngIf="endSessionDeviceUsage.length === 0">
+        <p>No devices assigned to this room.</p>
+      </div>
+    </div>
+
+    <!-- Consumables -->
+    <div class="form-group">
+      <label>Consumables</label>
+      <p class="hint">Add consumables used during the session</p>
+
+      <div class="consumable-picker">
+        <select #consumableSelect (change)="addConsumable(consumableSelect.value); consumableSelect.value=''">
+          <option value="">Select item</option>
+          <option *ngFor="let item of inventory" [value]="item.id">
+            {{ item.name }} (Available: {{ item.quantity }})
+          </option>
+        </select>
+      </div>
+
+      <div class="consumable-list" *ngIf="endSessionConsumables.length > 0">
+        <div class="consumable-row" *ngFor="let item of endSessionConsumables; let i = index">
+          <span>{{ item.name }}</span>
+          <input type="number" min="1" [(ngModel)]="item.quantity" />
+          <button class="btn btn-outline btn-sm" (click)="removeConsumable(i)">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Extra Charges -->
+    <div class="form-group">
+      <label>Extra Charges</label>
+      <p class="hint">Add any additional charges (overage, materials, etc.)</p>
+      <div class="extra-charges" *ngIf="extraCharges.length > 0">
+        <div class="extra-charge-row" *ngFor="let charge of extraCharges; let i = index">
+          <input
+            type="text"
+            placeholder="Description"
+            [(ngModel)]="charge.description" />
+          <input
+            type="number"
+            min="0"
+            placeholder="Amount"
+            [(ngModel)]="charge.amount" />
+          <button class="btn btn-outline btn-sm" (click)="removeExtraCharge(i)">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+      </div>
+      <button class="btn btn-outline btn-sm" (click)="addExtraCharge()">
+        <i class="fa-solid fa-plus"></i> Add Charge
+      </button>
+    </div>
+
+    <!-- Notes -->
+    <div class="form-group">
+      <label>Clinical Notes</label>
+      <textarea
+        [(ngModel)]="sessionNotes"
+        rows="4"
+        placeholder="Enter session notes, observations, recommendations...">
+      </textarea>
     </div>
   </div>
 </app-modal>

@@ -1,0 +1,191 @@
+<app-page-header
+  title="Calendar"
+  subtitle="View and manage schedules across rooms, doctors, and patients">
+</app-page-header>
+
+<!-- Tab Navigation -->
+<div class="calendar-tabs">
+  <button
+    class="tab-btn"
+    [class.active]="activeTab === 'all'"
+    (click)="setTab('all')">
+    <i class="fa-solid fa-calendar-days"></i>
+    All Appointments
+  </button>
+  <button
+    class="tab-btn"
+    [class.active]="activeTab === 'room'"
+    (click)="setTab('room')">
+    <i class="fa-solid fa-door-open"></i>
+    By Room
+  </button>
+  <button
+    class="tab-btn"
+    [class.active]="activeTab === 'doctor'"
+    (click)="setTab('doctor')">
+    <i class="fa-solid fa-user-doctor"></i>
+    By Doctor
+  </button>
+  <button
+    class="tab-btn"
+    [class.active]="activeTab === 'patient'"
+    (click)="setTab('patient')">
+    <i class="fa-solid fa-user"></i>
+    By Patient
+  </button>
+</div>
+
+<!-- Filter Section -->
+<div class="filter-section" *ngIf="activeTab !== 'all'">
+
+  <!-- Room Filter -->
+  <div class="filter-grid" *ngIf="activeTab === 'room'">
+    <div
+      class="filter-card"
+      *ngFor="let room of rooms"
+      [class.selected]="selectedRoomId === room.id"
+      (click)="selectRoom(room.id)">
+      <div class="filter-icon">
+        <i class="fa-solid fa-door-open"></i>
+      </div>
+      <div class="filter-info">
+        <span class="filter-name">{{ room.name }}</span>
+        <span class="filter-meta">{{ room.type | titlecase }}</span>
+      </div>
+      <div class="filter-check" *ngIf="selectedRoomId === room.id">
+        <i class="fa-solid fa-check-circle"></i>
+      </div>
+    </div>
+  </div>
+
+  <!-- Doctor Filter -->
+  <div class="filter-grid" *ngIf="activeTab === 'doctor'">
+    <div
+      class="filter-card"
+      *ngFor="let doctor of doctors"
+      [class.selected]="selectedDoctorId === doctor.id"
+      (click)="selectDoctor(doctor.id)">
+      <div class="filter-avatar">
+        {{ doctor.name.charAt(0) }}
+      </div>
+      <div class="filter-info">
+        <span class="filter-name">{{ doctor.name }}</span>
+        <span class="filter-meta">{{ doctor.specialty }}</span>
+      </div>
+      <div class="filter-check" *ngIf="selectedDoctorId === doctor.id">
+        <i class="fa-solid fa-check-circle"></i>
+      </div>
+    </div>
+  </div>
+
+  <!-- Patient Search -->
+  <div class="patient-search" *ngIf="activeTab === 'patient'">
+    <div class="search-box">
+      <i class="fa-solid fa-search"></i>
+      <input
+        type="text"
+        [(ngModel)]="patientSearch"
+        (input)="searchPatients()"
+        placeholder="Search patient by name or phone...">
+    </div>
+
+    <div class="search-results" *ngIf="filteredPatients.length > 0">
+      <div
+        class="result-item"
+        *ngFor="let patient of filteredPatients"
+        (click)="selectPatient(patient.id)">
+        <div class="result-avatar">
+          {{ patient.firstName.charAt(0) }}{{ patient.lastName.charAt(0) }}
+        </div>
+        <div class="result-info">
+          <span class="result-name">{{ patient.firstName }} {{ patient.lastName }}</span>
+          <span class="result-phone">{{ patient.phone }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="selected-patient" *ngIf="selectedPatientId">
+      <div class="patient-badge">
+        <span class="patient-avatar">
+          {{ getSelectedPatient()?.firstName?.charAt(0) }}{{ getSelectedPatient()?.lastName?.charAt(0) }}
+        </span>
+        <span class="patient-name">
+          {{ getSelectedPatient()?.firstName }} {{ getSelectedPatient()?.lastName }}
+        </span>
+        <button class="clear-btn" (click)="selectedPatientId = ''; applyFilter()">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Calendar -->
+<div class="calendar-container">
+  <app-calendar
+    [events]="filteredEvents"
+    [title]="getCalendarTitle()"
+    [subtitle]="getCalendarSubtitle()"
+    [initialView]="currentView"
+    [showLegend]="true"
+    (eventClick)="onEventClick($event)"
+    (dateSelect)="onDateSelect($event)"
+    (viewChange)="onViewChange($event)">
+  </app-calendar>
+</div>
+
+<!-- Event Detail Modal -->
+<app-modal
+  [isOpen]="showEventModal"
+  title="Appointment Details"
+  (closed)="closeEventModal()"
+  [showFooter]="false">
+
+  <div class="event-detail" *ngIf="selectedEvent">
+    <div class="detail-header">
+      <span class="status-badge" [ngClass]="getStatusClass(selectedEvent.extendedProps.status)">
+        {{ getStatusLabel(selectedEvent.extendedProps.status) }}
+      </span>
+    </div>
+
+    <div class="detail-grid">
+      <div class="detail-item">
+        <label>Patient</label>
+        <span>{{ selectedEvent.extendedProps.patientName }}</span>
+      </div>
+      <div class="detail-item">
+        <label>Doctor</label>
+        <span>{{ selectedEvent.extendedProps.doctorName }}</span>
+      </div>
+      <div class="detail-item">
+        <label>Room</label>
+        <span>{{ selectedEvent.extendedProps.roomName }}</span>
+      </div>
+      <div class="detail-item">
+        <label>Start Time</label>
+        <span>{{ formatDateTime(selectedEvent.start) }}</span>
+      </div>
+      <div class="detail-item">
+        <label>End Time</label>
+        <span>{{ formatDateTime(selectedEvent.end) }}</span>
+      </div>
+      <div class="detail-item full-width">
+        <label>Services</label>
+        <div class="service-tags">
+          <span class="service-tag" *ngFor="let service of selectedEvent.extendedProps.services">
+            {{ service }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div class="detail-actions">
+      <button class="btn btn-outline" routerLink="/appointments">
+        <i class="fa-solid fa-calendar"></i> View in Appointments
+      </button>
+      <button class="btn btn-primary" routerLink="/billing">
+        <i class="fa-solid fa-file-invoice"></i> Go to Billing
+      </button>
+    </div>
+  </div>
+</app-modal>
