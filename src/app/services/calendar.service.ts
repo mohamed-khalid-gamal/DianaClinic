@@ -31,15 +31,15 @@ export type CalendarView = 'dayGridMonth' | 'timeGridWeek' | 'timeGridDay' | 'li
 })
 export class CalendarService {
 
-  // Status colors - Aligned with Merve Aesthetics professional palette
+  // Status colors - Aligned with user requested palette
   private statusColors: Record<string, { bg: string; border: string; text: string }> = {
-    'scheduled': { bg: '#0E7490', border: '#155E75', text: '#FFFFFF' },      // Primary Cyan
-    'checked-in': { bg: '#F59E0B', border: '#D97706', text: '#FFFFFF' },     // Warning Amber
-    'in-progress': { bg: '#6366F1', border: '#4F46E5', text: '#FFFFFF' },    // Indigo (for distinction)
-    'completed': { bg: '#10B981', border: '#059669', text: '#FFFFFF' },      // Success Emerald
-    'billed': { bg: '#64748B', border: '#475569', text: '#FFFFFF' },         // Muted Slate
-    'cancelled': { bg: '#EF4444', border: '#DC2626', text: '#FFFFFF' },      // Danger Red
-    'no-show': { bg: '#94A3B8', border: '#64748B', text: '#FFFFFF' }         // Slate Grey
+    'scheduled': { bg: '#3B82F6', border: '#2563EB', text: '#FFFFFF' },      // Blue
+    'checked-in': { bg: '#F59E0B', border: '#D97706', text: '#FFFFFF' },     // Amber
+    'in-progress': { bg: '#8B5CF6', border: '#7C3AED', text: '#FFFFFF' },    // Purple
+    'completed': { bg: '#10B981', border: '#059669', text: '#FFFFFF' },      // Green
+    'billed': { bg: '#9CA3AF', border: '#6B7280', text: '#FFFFFF' },         // Gray
+    'cancelled': { bg: '#EF4444', border: '#DC2626', text: '#FFFFFF' },      // Red
+    'no-show': { bg: '#F97316', border: '#EA580C', text: '#FFFFFF' }         // Orange
   };
 
   constructor(private dataService: DataService) {}

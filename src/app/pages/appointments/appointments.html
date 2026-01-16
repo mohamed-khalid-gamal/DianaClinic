@@ -49,21 +49,47 @@
               <span>{{ getRoomName(apt.roomId) }}</span>
             </div>
             <div class="apt-actions">
-              <button *ngIf="apt.status === 'scheduled'"
-                      class="action-btn check-in"
-                      (click)="updateStatus(apt, 'checked-in')">
-                Check In
-              </button>
-              <button *ngIf="apt.status === 'checked-in'"
-                      class="action-btn start"
-                      (click)="updateStatus(apt, 'in-progress')">
-                Start Session
-              </button>
-              <button *ngIf="apt.status === 'in-progress'"
-                      class="action-btn complete"
-                      (click)="updateStatus(apt, 'completed')">
-                Complete
-              </button>
+              <ng-container [ngSwitch]="apt.status">
+                <!-- Scheduled -->
+                <div *ngSwitchCase="'scheduled'" class="action-group">
+                  <button class="action-btn check-in" title="Check In" (click)="updateStatus(apt, 'checked-in')">
+                    <i class="fa-solid fa-user-check"></i> Check In
+                  </button>
+                  <button class="action-btn no-show" title="No Show" (click)="updateStatus(apt, 'no-show')">
+                    <i class="fa-solid fa-user-slash"></i>
+                  </button>
+                  <button class="action-btn cancel" title="Cancel" (click)="updateStatus(apt, 'cancelled')">
+                    <i class="fa-solid fa-xmark"></i>
+                  </button>
+                </div>
+
+                <!-- Checked In -->
+                <div *ngSwitchCase="'checked-in'" class="action-group">
+                  <button class="action-btn start" title="Start Session" (click)="updateStatus(apt, 'in-progress')">
+                    <i class="fa-solid fa-play"></i> Start Session
+                  </button>
+                  <button class="action-btn cancel" title="Cancel" (click)="updateStatus(apt, 'cancelled')">
+                    <i class="fa-solid fa-xmark"></i>
+                  </button>
+                </div>
+
+                <!-- In Progress -->
+                <div *ngSwitchCase="'in-progress'" class="action-group">
+                  <button class="action-btn complete" title="Complete Treatment" (click)="updateStatus(apt, 'completed')">
+                    <i class="fa-solid fa-check-double"></i> Complete
+                  </button>
+                </div>
+
+                <!-- Completed -->
+                <div *ngSwitchCase="'completed'" class="action-group">
+                  <span class="status-done"><i class="fa-solid fa-circle-check"></i> Ready for Billing</span>
+                </div>
+
+                <!-- Billed -->
+                <div *ngSwitchCase="'billed'" class="action-group">
+                  <span class="status-done gray"><i class="fa-solid fa-file-invoice-dollar"></i> Billed</span>
+                </div>
+              </ng-container>
             </div>
           </div>
         </div>
@@ -468,5 +494,86 @@
             (click)="confirmBooking()">
       Confirm Booking
     </button>
+  </div>
+</app-modal>
+
+<!-- Reschedule Modal -->
+<app-modal
+  [isOpen]="showRescheduleModal"
+  title="Reschedule Appointment"
+  maxWidth="550px"
+  [showFooter]="false"
+  (closed)="closeRescheduleModal()">
+
+  <div class="reschedule-content">
+    <!-- Appointment Summary -->
+    <div class="reschedule-summary">
+      <div class="summary-row">
+        <span class="label"><i class="fa-solid fa-user"></i> Patient:</span>
+        <span class="value">{{ getReschedulePatientName() }}</span>
+      </div>
+      <div class="summary-row">
+        <span class="label"><i class="fa-solid fa-syringe"></i> Services:</span>
+        <span class="value">{{ getRescheduleServices() }}</span>
+      </div>
+    </div>
+
+    <!-- Date Selection -->
+    <div class="form-group">
+      <label>Select New Date</label>
+      <input type="date"
+             [(ngModel)]="rescheduleDate"
+             [min]="minDate"
+             (change)="onRescheduleDateChange()">
+    </div>
+
+    <!-- Time Slots -->
+    <div class="form-group" *ngIf="rescheduleDate">
+      <label>Available Time Slots</label>
+      <div class="time-slots-grid" *ngIf="rescheduleAvailableSlots.length > 0">
+        <button *ngFor="let slot of rescheduleAvailableSlots"
+                class="slot-btn"
+                [class.selected]="rescheduleTime === slot.time"
+                (click)="selectRescheduleSlot(slot)">
+          {{ slot.time }}
+        </button>
+      </div>
+      <div class="no-slots" *ngIf="rescheduleAvailableSlots.length === 0">
+        <i class="fa-solid fa-calendar-xmark"></i>
+        No available slots for this date
+      </div>
+    </div>
+
+    <!-- Doctor & Room Selection -->
+    <div class="form-row" *ngIf="rescheduleTime">
+      <div class="form-group">
+        <label>Doctor</label>
+        <select [(ngModel)]="rescheduleDoctorId">
+          <option value="">Select Doctor</option>
+          <option *ngFor="let doc of rescheduleSelectedDoctors" [value]="doc.id">
+            {{ doc.name }}
+          </option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Room</label>
+        <select [(ngModel)]="rescheduleRoomId">
+          <option value="">Select Room</option>
+          <option *ngFor="let room of rescheduleSelectedRooms" [value]="room.id">
+            {{ room.name }}
+          </option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="modal-actions">
+      <button class="btn btn-outline" (click)="closeRescheduleModal()">Cancel</button>
+      <button class="btn btn-primary"
+              [disabled]="!canConfirmReschedule()"
+              (click)="confirmReschedule()">
+        <i class="fa-solid fa-calendar-check"></i> Confirm Reschedule
+      </button>
+    </div>
   </div>
 </app-modal>

@@ -200,66 +200,54 @@ The Appointments page displays a daily/weekly schedule with:
 - Day/Week view toggle
 - Date navigation
 
-### Appointment Statuses
+### Appointment Statuses & Workflow
 
-| Status | Color | Description |
-|--------|-------|-------------|
-| Scheduled | Blue | Confirmed future appointment |
-| Checked-In | Amber | Patient has arrived |
-| In Progress | Purple | Session is active |
-| Completed | Green | Treatment finished |
-| Billed | Gray | Invoice generated |
-| Cancelled | Red | Appointment cancelled |
-| No-Show | Orange | Patient didn't attend |
+| Status | Color | Description | Actions / Controls |
+|--------|-------|-------------|----------|
+| **Scheduled** | Blue | Confirmed future appointment | Switch to **Checked-In**, **Cancelled**, or **No-Show** |
+| **Checked-In** | Amber | Patient has arrived | Switch to **In Progress** or **Cancelled** |
+| **In Progress** | Purple | Session is active | Switch to **Completed** |
+| **Completed** | Green | Treatment finished | Ready for **Billing** |
+| **Billed** | Gray | Invoice generated | (Final State) |
+| **Cancelled** | Red | Appointment cancelled | (Final State) |
+| **No-Show** | Orange | Patient didn't attend | (Final State) |
+
+#### How to Switch Statuses
+
+The status is controlled via action buttons on the **Appointments** and **Sessions** pages:
+
+1. **Check-In**: On the Appointments page, click the **Check-In** button on the appointment card when the patient arrives.
+2. **Start Session**: Once the patient is ready for treatment, click **Start Session**. This activates the session timer and clinical tracking.
+3. **Complete**: When treatment is finished, click **Complete**. This stops the session and marks it ready for payment.
+4. **Billing**: Go to the **Billing** module. Completed appointments will appear in the "Pending Billing" list. Generate and pay the invoice to move the status to **Billed**.
+5. **Cancel**: Use the (X) icon on the appointment card for patients who cancel.
+6. **No-Show**: Use the (User-Slash) icon when a patient doesn't attend. The system will prompt you to reschedule.
+
+### Rescheduling No-Show Appointments
+
+When you mark an appointment as **No-Show**, the system automatically offers to reschedule:
+
+1. Click the **No-Show** icon on the appointment card
+2. A confirmation dialog appears asking "Would you like to schedule a new appointment?"
+3. Click **"Yes, Reschedule"** to open the Reschedule Modal
+4. The modal shows:
+   - **Patient Name** and **Services** from the original appointment
+   - **Date Picker** to select a new date
+   - **Available Time Slots** grid filtered by doctor/room availability
+   - **Doctor** and **Room** dropdowns for the selected slot
+5. Select your preferred date, time, doctor, and room
+6. Click **"Confirm Reschedule"**
+7. A new appointment is created with the same patient and services, marked as "Rescheduled from no-show"
 
 ### Booking an Appointment (7-Step Wizard)
 
-#### Step 1: Select Patient
-- Search existing patients by name or phone
-- Or create a new patient inline
-- Select the patient to continue
-
-#### Step 2: Select Services
-- Browse available services by category
-- Click to add services to the appointment
-- View pricing information
-- Multiple services can be selected
-
-#### Step 3: Check Offers
-- System automatically evaluates applicable offers
-- View discount amounts and descriptions
-- Select an offer to apply (optional)
-
-#### Step 4: Review Segments
-- For multiple services, system suggests scheduling strategy
-- Merge services into one session or split across time slots
-- Adjust segment configuration as needed
-
-#### Step 5: Schedule Each Segment
-- Select date for the appointment
-- Choose available time slot
-- Assign doctor from available staff
-- Select room from available rooms
-- Set duration if needed
-
-#### Step 6: Use Credits (if available)
-- If patient has matching credits, they appear here
-- Select which services to pay with credits
-- Choose number of units to apply
-- Remaining cost calculated automatically
-
-#### Step 7: Confirm Booking
-- Review complete appointment details
-- Patient, services, doctor, room, date/time
-- Applied offers and credit usage
-- Click **"Confirm Booking"**
-
-### Quick Actions on Appointments
-
-- **Check In**: Mark patient as arrived
-- **Start Session**: Begin the treatment (moves to Sessions)
-- **Cancel**: Cancel the appointment
-- **Reschedule**: Change date/time
+1. **Patient**: Select existing or create new.
+2. **Credits**: Use available session credits from the wallet.
+3. **Services**: Choose treatments.
+4. **Group**: Organize into sessions.
+5. **Schedule**: Set date, time, doctor, and room.
+6. **Offers**: Apply discounts or promotions.
+7. **Confirm**: Review and finalize.
 
 ---
 
@@ -928,6 +916,9 @@ Currently, the system is fully mouse/touch operated.
 
 #### Device Maintenance
 1. Dashboard Alert → Devices → Update Status → Log Maintenance
+
+#### Handling No-Shows
+1. Mark as No-Show → Click "Yes, Reschedule" → Select new date/time → Confirm
 
 ### Support
 

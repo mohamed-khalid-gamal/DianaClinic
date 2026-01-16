@@ -379,11 +379,13 @@ export class CalendarComponent implements OnChanges {
   calendarOptions: CalendarOptions = {};
 
   legendItems = [
-    { label: 'Scheduled', color: '#0E7490' },
-    { label: 'Checked In', color: '#F59E0B' },
-    { label: 'In Progress', color: '#6366F1' },
+    { label: 'Scheduled', color: '#3B82F6' },
+    { label: 'Checked-In', color: '#F59E0B' },
+    { label: 'In Progress', color: '#8B5CF6' },
     { label: 'Completed', color: '#10B981' },
-    { label: 'Billed', color: '#64748B' }
+    { label: 'Billed', color: '#9CA3AF' },
+    { label: 'Cancelled', color: '#EF4444' },
+    { label: 'No-Show', color: '#F97316' }
   ];
 
   ngOnInit() {

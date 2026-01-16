@@ -62,12 +62,13 @@ export class Dashboard implements OnInit {
 
   getStatusColor(status: string): string {
     const colors: { [key: string]: string } = {
-      'scheduled': '#0E7490',
+      'scheduled': '#3B82F6',
       'checked-in': '#F59E0B',
       'in-progress': '#8B5CF6',
       'completed': '#10B981',
+      'billed': '#9CA3AF',
       'cancelled': '#EF4444',
-      'no-show': '#6B7280'
+      'no-show': '#F97316'
     };
     return colors[status] || '#6B7280';
   }

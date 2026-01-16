@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { PageHeaderComponent, ModalComponent } from '../../components/shared';
@@ -46,6 +46,17 @@ export class Appointments implements OnInit {
   showBookingModal = false;
   bookingStep = 1;
 
+  // Reschedule Modal
+  showRescheduleModal = false;
+  rescheduleAppointment: Appointment | null = null;
+  rescheduleDate = '';
+  rescheduleTime = '';
+  rescheduleDoctorId = '';
+  rescheduleRoomId = '';
+  rescheduleAvailableSlots: { time: string; date: Date; doctors: Doctor[]; rooms: Room[] }[] = [];
+  rescheduleSelectedDoctors: Doctor[] = [];
+  rescheduleSelectedRooms: Room[] = [];
+
   // Refactored Booking State
   booking = {
     patientId: '',
@@ -83,7 +94,8 @@ export class Appointments implements OnInit {
     private dataService: DataService,
     private walletService: WalletService,
     private offerService: OfferService,
-    private alertService: SweetAlertService
+    private alertService: SweetAlertService,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit() {
@@ -656,11 +668,179 @@ export class Appointments implements OnInit {
   }
   formatDateInput(date: Date): string { return date.toISOString().split('T')[0]; }
   getStatusColor(status: string): string {
-    const colors: { [key: string]: string } = { 'scheduled': '#0E7490', 'checked-in': '#F59E0B', 'in-progress': '#8B5CF6', 'completed': '#10B981', 'cancelled': '#EF4444' };
+    const colors: { [key: string]: string } = {
+      'scheduled': '#3B82F6',
+      'checked-in': '#F59E0B',
+      'in-progress': '#8B5CF6',
+      'completed': '#10B981',
+      'billed': '#9CA3AF',
+      'cancelled': '#EF4444',
+      'no-show': '#F97316'
+    };
     return colors[status] || '#6B7280';
   }
+
   updateStatus(apt: Appointment, status: Appointment['status']) {
     this.dataService.updateAppointmentStatus(apt.id, status);
     this.loadData();
+
+    // If marked as no-show, offer to reschedule
+    if (status === 'no-show') {
+      this.offerReschedule(apt);
+    }
+  }
+
+  private async offerReschedule(apt: Appointment) {
+    const patient = this.patients.find(p => p.id === apt.patientId);
+    const patientName = patient ? `${patient.firstName} ${patient.lastName}` : 'the patient';
+
+    const confirmed = await this.alertService.confirm(
+      'Reschedule Appointment?',
+      `${patientName} did not show up. Would you like to schedule a new appointment?`,
+      'Yes, Reschedule',
+      'No, Close'
+    );
+
+    if (confirmed) {
+      this.openRescheduleModal(apt);
+      this.cdr.detectChanges();
+    }
+  }
+
+  // --- Reschedule Modal Methods ---
+
+  openRescheduleModal(apt: Appointment) {
+    this.rescheduleAppointment = apt;
+    this.rescheduleDate = new Date().toISOString().split('T')[0];
+    this.rescheduleTime = '';
+    this.rescheduleDoctorId = apt.doctorId;
+    this.rescheduleRoomId = apt.roomId;
+    this.rescheduleAvailableSlots = [];
+    this.rescheduleSelectedDoctors = [];
+    this.rescheduleSelectedRooms = [];
+    this.showRescheduleModal = true;
+    this.generateRescheduleSlots();
+  }
+
+  closeRescheduleModal() {
+    this.showRescheduleModal = false;
+    this.rescheduleAppointment = null;
+  }
+
+  generateRescheduleSlots() {
+    if (!this.rescheduleAppointment) return;
+    this.rescheduleAvailableSlots = [];
+
+    const apt = this.rescheduleAppointment;
+    const duration = apt.services?.reduce((sum, s) => {
+      const svc = this.services.find(sv => sv.id === s.serviceId);
+      return sum + (svc?.duration || 30);
+    }, 0) || 60;
+
+    const eligibleDoctors = this.doctors.filter(d => d.isActive);
+    const eligibleRooms = this.rooms.filter(r => r.isActive);
+
+    const startHour = 8;
+    const endHour = 20;
+    const date = new Date(this.rescheduleDate);
+    const dayOfWeek = date.getDay();
+
+    for (let hour = startHour; hour < endHour; hour++) {
+      for (let minute = 0; minute < 60; minute += 30) {
+        const slotStart = new Date(date);
+        slotStart.setHours(hour, minute, 0, 0);
+
+        const slotEnd = new Date(slotStart);
+        slotEnd.setMinutes(slotStart.getMinutes() + duration);
+
+        if (slotEnd.getHours() >= 20 && slotEnd.getMinutes() > 0) continue;
+
+        const availableDoctors = eligibleDoctors.filter(doc =>
+          this.isDoctorAvailable(doc, slotStart, slotEnd, dayOfWeek)
+        );
+
+        const availableRooms = eligibleRooms.filter(room =>
+          this.isRoomAvailable(room, slotStart, slotEnd)
+        );
+
+        if (availableDoctors.length > 0 && availableRooms.length > 0) {
+          this.rescheduleAvailableSlots.push({
+            time: slotStart.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
+            date: slotStart,
+            doctors: availableDoctors,
+            rooms: availableRooms
+          });
+        }
+      }
+    }
+  }
+
+  onRescheduleDateChange() {
+    this.rescheduleTime = '';
+    this.generateRescheduleSlots();
+  }
+
+  selectRescheduleSlot(slot: any) {
+    this.rescheduleTime = slot.time;
+    this.rescheduleSelectedDoctors = slot.doctors;
+    this.rescheduleSelectedRooms = slot.rooms;
+
+    // Auto-select if only one option
+    this.rescheduleDoctorId = slot.doctors.length === 1 ? slot.doctors[0].id : (this.rescheduleDoctorId || '');
+    this.rescheduleRoomId = slot.rooms.length === 1 ? slot.rooms[0].id : (this.rescheduleRoomId || '');
+  }
+
+  canConfirmReschedule(): boolean {
+    return !!(this.rescheduleDate && this.rescheduleTime && this.rescheduleDoctorId && this.rescheduleRoomId);
+  }
+
+  confirmReschedule() {
+    if (!this.rescheduleAppointment || !this.canConfirmReschedule()) return;
+
+    const apt = this.rescheduleAppointment;
+    const slot = this.rescheduleAvailableSlots.find(s => s.time === this.rescheduleTime);
+    if (!slot) return;
+
+    const duration = apt.services?.reduce((sum, s) => {
+      const svc = this.services.find(sv => sv.id === s.serviceId);
+      return sum + (svc?.duration || 30);
+    }, 0) || 60;
+
+    const scheduledStart = slot.date;
+    const scheduledEnd = new Date(scheduledStart);
+    scheduledEnd.setMinutes(scheduledStart.getMinutes() + duration);
+
+    // Create a new appointment with same details
+    const newAppointment: Appointment = {
+      id: 'apt-' + Date.now(),
+      patientId: apt.patientId,
+      doctorId: this.rescheduleDoctorId,
+      roomId: this.rescheduleRoomId,
+      services: apt.services,
+      scheduledStart,
+      scheduledEnd,
+      status: 'scheduled',
+      notes: apt.notes ? `(Rescheduled) ${apt.notes}` : 'Rescheduled from no-show',
+      offerId: apt.offerId,
+      createdAt: new Date()
+    };
+
+    this.dataService.addAppointment(newAppointment);
+    this.alertService.success('Appointment Rescheduled', 'The new appointment has been created.');
+    this.closeRescheduleModal();
+    this.loadData();
+  }
+
+  getReschedulePatientName(): string {
+    if (!this.rescheduleAppointment) return '';
+    const patient = this.patients.find(p => p.id === this.rescheduleAppointment!.patientId);
+    return patient ? `${patient.firstName} ${patient.lastName}` : 'Unknown';
+  }
+
+  getRescheduleServices(): string {
+    if (!this.rescheduleAppointment) return '';
+    return this.rescheduleAppointment.services
+      .map(s => this.services.find(svc => svc.id === s.serviceId)?.name || 'Unknown')
+      .join(', ');
   }
 }
