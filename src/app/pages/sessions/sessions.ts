@@ -370,7 +370,7 @@ export class Sessions implements OnInit, OnDestroy {
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await fetch('http://localhost:5275/api/files/upload', {
+      const response = await fetch('http://merve.runasp.net/api/files/upload', {
         method: 'POST',
         body: formData
       });
@@ -380,7 +380,7 @@ export class Sessions implements OnInit, OnDestroy {
       }
 
       const data = await response.json();
-      const photoUrl = `http://localhost:5275${data.url}`;
+      const photoUrl = `http://merve.runasp.net${data.url}`;
 
       if (photoType === 'before') {
         this.beforePhotos.push(photoUrl);
