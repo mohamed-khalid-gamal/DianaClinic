@@ -1,7 +1,10 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, DestroyRef, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { forkJoin } from 'rxjs';
+import { switchMap } from 'rxjs/operators';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { PageHeaderComponent, StatCardComponent, ModalComponent, CalendarComponent } from '../../components/shared';
 import { CalendarService, CalendarEvent, CalendarView } from '../../services/calendar.service';
 import { DataService } from '../../services/data.service';
@@ -17,6 +20,7 @@ import { Appointment, Patient, PatientTransaction, PatientWallet, Service, Offer
   styleUrl: './patient-profile.scss'
 })
 export class PatientProfile implements OnInit {
+  private destroyRef = inject(DestroyRef);
   patient: Patient | null = null;
   wallet: PatientWallet | null = null;
   appointments: Appointment[] = [];
@@ -47,7 +51,9 @@ export class PatientProfile implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.route.paramMap.subscribe(params => {
+    this.route.paramMap.pipe(
+      takeUntilDestroyed(this.destroyRef)
+    ).subscribe(params => {
       const patientId = params.get('id');
       if (!patientId) return;
       this.loadPatient(patientId);
@@ -55,38 +61,29 @@ export class PatientProfile implements OnInit {
   }
 
   loadPatient(patientId: string): void {
-    this.dataService.getPatient(patientId).subscribe(patient => {
-      this.patient = patient || null;
-    });
-
-    this.walletService.getWallet(patientId).subscribe(wallet => {
-      this.wallet = wallet;
-    });
-
-    this.dataService.getPatientAppointments(patientId).subscribe(appointments => {
-      this.appointments = appointments;
-    });
-
-    this.dataService.getServices().subscribe(services => {
-      this.services = services;
-    });
-
-    this.dataService.getPatientTransactions(patientId).subscribe(transactions => {
-      this.transactions = transactions.sort((a, b) =>
-        new Date(b.date).getTime() - new Date(a.date).getTime()
-      );
-    });
-
-    this.dataService.getOffers().subscribe(offers => {
-      this.offers = offers.filter(o => o.isActive && o.type === 'package');
-    });
-
-    this.dataService.getPendingPackagePurchases(patientId).subscribe(purchases => {
-      this.pendingPurchases = purchases;
-    });
-
-    this.calendarService.getPatientEvents(patientId).subscribe(events => {
-      this.patientEvents = events;
+    forkJoin({
+      patient: this.dataService.getPatient(patientId),
+      wallet: this.walletService.getWallet(patientId),
+      appointments: this.dataService.getPatientAppointments(patientId),
+      services: this.dataService.getServices(),
+      transactions: this.dataService.getPatientTransactions(patientId),
+      offers: this.dataService.getOffers(),
+      purchases: this.dataService.getPendingPackagePurchases(patientId),
+      events: this.calendarService.getPatientEvents(patientId)
+    }).subscribe({
+      next: ({ patient, wallet, appointments, services, transactions, offers, purchases, events }) => {
+        this.patient = patient || null;
+        this.wallet = wallet;
+        this.appointments = appointments;
+        this.services = services;
+        this.transactions = transactions.sort((a, b) =>
+          new Date(b.date).getTime() - new Date(a.date).getTime()
+        );
+        this.offers = offers.filter(o => o.isActive && o.type === 'package');
+        this.pendingPurchases = purchases;
+        this.patientEvents = events;
+      },
+      error: () => this.alertService.error('Failed to load patient data. Please refresh.')
     });
   }
 
@@ -102,6 +99,22 @@ export class PatientProfile implements OnInit {
   get totalCredits(): number {
     if (!this.wallet) return 0;
     return this.wallet.credits.reduce((sum, c) => sum + c.remaining, 0);
+  }
+
+  get creditBreakdown(): { unitType: string; count: number }[] {
+    if (!this.wallet?.credits?.length) return [];
+    const map = new Map<string, number>();
+    for (const c of this.wallet.credits) {
+      const key = c.unitType || 'session';
+      map.set(key, (map.get(key) || 0) + c.remaining);
+    }
+    return Array.from(map.entries()).map(([unitType, count]) => ({ unitType, count }));
+  }
+
+  get creditSummary(): string {
+    const bd = this.creditBreakdown;
+    if (!bd.length) return '0 credits';
+    return bd.map(b => `${b.count} ${b.unitType}s`).join(', ');
   }
 
   get upcomingAppointments(): Appointment[] {
@@ -236,7 +249,7 @@ export class PatientProfile implements OnInit {
     const credits = this.getPackageCredits(this.selectedOffer);
     const price = this.getPackagePrice(this.selectedOffer);
 
-    const purchaseId = this.dataService.addPackagePurchase({
+    this.dataService.addPackagePurchase({
       patientId: this.patient.id,
       offerId: this.selectedOffer.id,
       offerName: this.selectedOffer.name,
@@ -244,20 +257,23 @@ export class PatientProfile implements OnInit {
       status: 'pending',
       credits: credits,
       createdAt: new Date()
+    }).pipe(
+      switchMap(() => this.dataService.addPatientTransaction({
+        patientId: this.patient!.id,
+        date: new Date(),
+        type: 'credit_purchase',
+        description: `Package pending: ${this.selectedOffer!.name}`,
+        amount: price,
+        packageId: this.selectedOffer!.id
+      }))
+    ).subscribe({
+      next: () => {
+        this.alertService.toast(`Package "${this.selectedOffer!.name}" added as pending bill`, 'success');
+        this.closeBuyPackageModal();
+        this.loadPatient(this.patient!.id);
+      },
+      error: () => this.alertService.error('Failed to purchase package. Please try again.')
     });
-
-    this.dataService.addPatientTransaction({
-      patientId: this.patient.id,
-      date: new Date(),
-      type: 'credit_purchase',
-      description: `Package pending: ${this.selectedOffer.name}`,
-      amount: price,
-      packageId: this.selectedOffer.id
-    });
-
-    this.alertService.toast(`Package "${this.selectedOffer.name}" added as pending bill`, 'success');
-    this.closeBuyPackageModal();
-    this.loadPatient(this.patient.id);
   }
 
   // Pay Pending Purchase
@@ -276,16 +292,14 @@ export class PatientProfile implements OnInit {
     if (!this.patient || !this.selectedPurchase) return;
 
     const purchase = this.selectedPurchase;
+    const patientId = this.patient.id;
 
-    // Mark as paid
-    this.dataService.updatePackagePurchaseStatus(purchase.id, 'paid');
-
-    // Grant credits to wallet
+    // Build all credit observables
     const validityDays = 365;
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + validityDays);
 
-    for (const creditItem of purchase.credits) {
+    const creditOps = purchase.credits.map(creditItem => {
       const credit: ServiceCredit = {
         serviceId: creditItem.serviceId,
         serviceName: creditItem.serviceName,
@@ -295,23 +309,30 @@ export class PatientProfile implements OnInit {
         packageId: purchase.offerId,
         unitType: creditItem.unitType
       };
-      this.walletService.addCredit(this.patient.id, credit);
-    }
-
-    // Record payment transaction
-    this.dataService.addPatientTransaction({
-      patientId: this.patient.id,
-      date: new Date(),
-      type: 'payment',
-      description: `Paid for package: ${purchase.offerName}`,
-      amount: purchase.price,
-      method: this.paymentMethod,
-      packageId: purchase.offerId
+      return this.walletService.addCredit(patientId, credit);
     });
 
-    this.alertService.toast(`Payment received! Credits added to wallet.`, 'success');
-    this.closePayModal();
-    this.loadPatient(this.patient.id);
+    // Execute all mutations in parallel, then reload
+    forkJoin([
+      this.dataService.updatePackagePurchaseStatus(purchase.id, 'paid'),
+      ...creditOps,
+      this.dataService.addPatientTransaction({
+        patientId: patientId,
+        date: new Date(),
+        type: 'payment',
+        description: `Paid for package: ${purchase.offerName}`,
+        amount: purchase.price,
+        method: this.paymentMethod,
+        packageId: purchase.offerId
+      })
+    ]).subscribe({
+      next: () => {
+        this.alertService.toast(`Payment received! Credits added to wallet.`, 'success');
+        this.closePayModal();
+        this.loadPatient(patientId);
+      },
+      error: () => this.alertService.error('Failed to process payment. Please try again.')
+    });
   }
 
   getServiceName(serviceId: string): string {

@@ -1,39 +1,24 @@
-<app-page-header 
-  title="Billing & Invoices" 
+<app-page-header
+  title="Billing & Invoices"
   subtitle="Manage session payments and generate invoices">
-  <div class="stats-mini">
-    <div class="stat">
-      <label>Today</label>
-      <span>EGP {{ getTodayRevenue() | number }}</span>
+  <div class="header-pills">
+    <div class="pill pill-success">
+      <i class="fa-solid fa-coins"></i>
+      <span class="pill-label">Today</span>
+      <span class="pill-value">EGP {{ getTodayRevenue() | number }}</span>
     </div>
-    <div class="stat">
-      <label>Pending</label>
-      <span>{{ getPendingInvoices() }}</span>
+    <div class="pill pill-warn">
+      <i class="fa-solid fa-clock"></i>
+      <span class="pill-label">Pending</span>
+      <span class="pill-value">{{ getPendingInvoices() }}</span>
+    </div>
+    <div class="pill pill-purple">
+      <i class="fa-solid fa-chart-line"></i>
+      <span class="pill-label">Monthly</span>
+      <span class="pill-value">EGP {{ getMonthlyRevenue() | number }}</span>
     </div>
   </div>
 </app-page-header>
-
-<div class="billing-stats">
-  <app-stat-card 
-    label="Today's Revenue" 
-    [value]="'EGP ' + (getTodayRevenue() | number)" 
-    icon="fa-solid fa-cash-register" 
-    [trend]="12"
-    iconBg="rgba(16, 185, 129, 0.1)">
-  </app-stat-card>
-  <app-stat-card 
-    label="Pending Invoices" 
-    [value]="getPendingInvoices()" 
-    icon="fa-solid fa-file-invoice-dollar" 
-    iconBg="rgba(245, 158, 11, 0.1)">
-  </app-stat-card>
-  <app-stat-card 
-    label="Monthly Revenue" 
-    [value]="'EGP ' + (getMonthlyRevenue() | number)" 
-    icon="fa-solid fa-chart-line" 
-    iconBg="rgba(139, 92, 246, 0.1)">
-  </app-stat-card>
-</div>
 
 <div class="billing-section">
   <div class="tabs-container">
@@ -97,7 +82,19 @@
 
   <!-- History List (New) -->
   <div class="appointments-list" *ngIf="activeTab === 'completed'">
-    <div class="appointment-row history" *ngFor="let apt of historyAppointments">
+    <div class="history-filters">
+      <div class="filter-group">
+        <label>From</label>
+        <input type="date" [(ngModel)]="historyDateFrom" (change)="onHistoryFilterChange()">
+      </div>
+      <div class="filter-group">
+        <label>To</label>
+        <input type="date" [(ngModel)]="historyDateTo" (change)="onHistoryFilterChange()">
+      </div>
+      <button class="btn btn-outline btn-sm" (click)="clearHistoryFilter()">Clear</button>
+    </div>
+
+    <div class="appointment-row history" *ngFor="let apt of filteredHistoryAppointments">
         <div class="date-box faded">
             <span class="day">{{ apt.scheduledStart | date:'d' }}</span>
             <span class="month">{{ apt.scheduledStart | date:'MMM' }}</span>
@@ -117,13 +114,13 @@
         </div>
 
         <div class="apt-actions">
-            <button class="btn btn-outline btn-sm">
+          <button class="btn btn-outline btn-sm" (click)="openInvoiceModal(apt, true)">
                 <i class="fa-solid fa-eye"></i> View Invoice
             </button>
         </div>
     </div>
 
-    <div class="empty-state" *ngIf="historyAppointments.length === 0">
+    <div class="empty-state" *ngIf="filteredHistoryAppointments.length === 0">
         <div class="icon-circle">
             <i class="fa-solid fa-history"></i>
         </div>
@@ -134,13 +131,14 @@
 </div>
 
 <!-- Invoice Generation Modal -->
-<app-modal 
-  [isOpen]="showInvoiceModal" 
-  title="Generate Invoice"
+<app-modal
+  [isOpen]="showInvoiceModal"
+  [title]="isViewingInvoice ? 'View Invoice' : 'Generate Invoice'"
   maxWidth="900px"
   (closed)="closeInvoiceModal()"
   (confirmed)="confirmInvoice()"
-  confirmText="Confirm & Pay">
+  confirmText="Confirm & Pay"
+  [showFooter]="!isViewingInvoice">
 
   <div class="invoice-layout">
     <!-- Left: Items & Offers -->
@@ -170,15 +168,15 @@
               <span *ngIf="item.isCreditsUsed" class="credit-badge">CREDIT</span>
             </td>
             <td class="credit-actions">
-              <button 
-                *ngIf="item.serviceId && hasCreditsForService(item.serviceId) && !item.isCreditsUsed"
+              <button
+                *ngIf="!isViewingInvoice && item.serviceId && hasCreditsForService(item.serviceId) && !item.isCreditsUsed"
                 class="btn btn-xs btn-outline"
                 (click)="useCredit(item)"
                 title="Use 1 of {{ getCreditsCountForService(item.serviceId!) }} credits">
                 <i class="fa-solid fa-ticket"></i> Use Credit
               </button>
-              <button 
-                *ngIf="item.isCreditsUsed"
+              <button
+                *ngIf="!isViewingInvoice && item.isCreditsUsed"
                 class="btn btn-xs btn-danger"
                 (click)="removeCredit(item)">
                 <i class="fa-solid fa-xmark"></i> Remove
@@ -190,19 +188,19 @@
           </tr>
         </tbody>
       </table>
-      
+
       <!-- Package Granted Message -->
       <div class="package-granted" *ngIf="packageGrantedMessage">
         <i class="fa-solid fa-gift"></i>
         <span>{{ packageGrantedMessage }}</span>
       </div>
-      
+
       <!-- Offers Section -->
-      <div class="offers-section">
+      <div class="offers-section" *ngIf="!isViewingInvoice">
         <h5>Available Offers</h5>
         <div class="offers-list" *ngIf="availableOffers.length > 0; else noOffers">
-          <div class="offer-chip" 
-               *ngFor="let offerApp of availableOffers" 
+          <div class="offer-chip"
+               *ngFor="let offerApp of availableOffers"
                [class.selected]="selectedAppliedOffer === offerApp"
                (click)="applyOffer(offerApp)">
             <i class="fa-solid fa-tag"></i>
@@ -218,7 +216,8 @@
 
         <div class="manual-discount">
            <label>Manual Discount Adjustment</label>
-           <input type="number" [(ngModel)]="discount" placeholder="0.00">
+            <input type="number" name="discount" [(ngModel)]="discount" placeholder="0.00">
+            <span class="error-text" *ngIf="invoiceAttempted && discount < 0">Discount cannot be negative</span>
         </div>
       </div>
     </div>
@@ -231,7 +230,7 @@
           <span>Subtotal</span>
           <span>EGP {{ subtotal | number }}</span>
         </div>
-        
+
         <div class="summary-row discount" *ngIf="selectedAppliedOffer">
           <span>Offer: {{ selectedAppliedOffer.offer.name }}</span>
           <span>- EGP {{ selectedAppliedOffer.discountAmount | number }}</span>
@@ -241,22 +240,25 @@
            <span>Manual Discount</span>
            <span>- EGP {{ discount | number }}</span>
         </div>
-        
+
         <div class="summary-row tax">
-          <span>Tax (14%)</span>
+          <span *ngIf="isViewingInvoice">Tax ({{ taxRate }}%)</span>
+          <span *ngIf="!isViewingInvoice" class="tax-edit">
+            Tax (<input type="number" name="taxRate" [(ngModel)]="taxRate" min="0" max="100" class="tax-input">&nbsp;%)
+          </span>
           <span>EGP {{ taxAmount | number }}</span>
         </div>
-        
+
         <div class="summary-row total">
           <span>Grand Total</span>
           <span>EGP {{ grandTotal | number }}</span>
         </div>
-        
+
         <div class="summary-row paid">
           <span>Total Paid</span>
           <span>EGP {{ totalPaid | number }}</span>
         </div>
-        
+
         <div class="summary-row balance">
           <span>Remaining</span>
           <span>EGP {{ remainingBalance | number }}</span>
@@ -265,15 +267,17 @@
 
       <div class="payment-section">
         <h4>Add Payment</h4>
-        <div class="payment-form">
-          <select [(ngModel)]="newPayment.type">
+        <div class="payment-form" *ngIf="!isViewingInvoice">
+          <select name="paymentType" [(ngModel)]="newPayment.type">
             <option value="cash">Cash</option>
             <option value="card">Card</option>
             <option value="wallet">Wallet</option>
           </select>
-          <input type="number" [(ngModel)]="newPayment.amount" placeholder="Amount">
+          <input type="number" name="paymentAmount" [(ngModel)]="newPayment.amount" placeholder="Amount">
         </div>
-        <div class="payment-actions">
+        <span class="error-text" *ngIf="!isViewingInvoice && paymentAttempted && (!newPayment.type || newPayment.amount <= 0)">Enter a valid payment method and amount</span>
+        <span class="error-text" *ngIf="!isViewingInvoice && paymentAttempted && remainingBalance > 0 && newPayment.amount > remainingBalance">Payment exceeds remaining balance</span>
+        <div class="payment-actions" *ngIf="!isViewingInvoice">
            <button class="btn btn-outline" (click)="payFullAmount()">Full</button>
            <button class="btn btn-secondary" (click)="addPayment()">Add</button>
         </div>
@@ -282,7 +286,7 @@
           <div class="payment-item" *ngFor="let p of payments; let i = index">
             <span>{{ p.type | titlecase }}</span>
             <strong>{{ p.amount | number }}</strong>
-            <i class="fa-solid fa-trash" (click)="removePayment(i)"></i>
+            <i class="fa-solid fa-trash" (click)="removePayment(i)" *ngIf="!isViewingInvoice"></i>
           </div>
         </div>
       </div>

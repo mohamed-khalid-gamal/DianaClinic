@@ -55,6 +55,9 @@
       <button class="action-btn edit" (click)="openEditModal(offer)" title="Edit">
         <i class="fa-solid fa-pencil"></i>
       </button>
+      <button class="action-btn delete" (click)="deleteOffer(offer)" title="Delete">
+        <i class="fa-solid fa-trash"></i>
+      </button>
       <div class="toggle-switch" (click)="toggleOfferStatus(offer, $event)" [class.active]="offer.isActive" title="Toggle Status">
         <div class="knob"></div>
       </div>
@@ -68,11 +71,11 @@
   [title]="(isEditMode ? 'Edit Offer' : 'Create New Offer') + ' - Step ' + currentStep + '/3'"
   maxWidth="800px"
   (closed)="closeModal()"
-  (confirmed)="saveOffer()"
+  (confirmed)="saveOffer(offerFormRef)"
   [showFooter]="currentStep === 3"
   confirmText="Save Offer">
 
-  <div class="modal-content wizard-content">
+  <form #offerFormRef="ngForm" class="modal-content wizard-content">
 
     <!-- Step 1: Basics -->
     <div class="wizard-step" *ngIf="currentStep === 1">
@@ -80,39 +83,42 @@
       <div class="form-grid">
         <div class="form-group full-width">
           <label>Offer Name *</label>
-          <input type="text" [(ngModel)]="offerForm.name" placeholder="e.g., Summer Bundle">
+          <input type="text" name="offerName" required [(ngModel)]="offerForm.name" placeholder="e.g., Summer Bundle" #offerName="ngModel">
+          <span class="error-text" *ngIf="offerName.invalid && (offerName.touched || offerName.dirty)">Offer name is required</span>
         </div>
 
         <div class="form-group full-width">
           <label>Description</label>
-          <textarea [(ngModel)]="offerForm.description" rows="2" placeholder="Internal or customer-facing description"></textarea>
+          <textarea name="description" [(ngModel)]="offerForm.description" rows="2" placeholder="Internal or customer-facing description"></textarea>
         </div>
 
         <div class="form-group">
           <label>Offer Type *</label>
-          <select [(ngModel)]="offerForm.type">
+          <select name="offerType" required [(ngModel)]="offerForm.type" (ngModelChange)="onTypeChange($event)" #offerType="ngModel">
             <option value="percentage">Percentage Discount</option>
             <option value="fixed_amount">Fixed Amount Off</option>
             <option value="bundle">Fixed Price Bundle</option>
             <option value="package">Package Deal (Buy Package)</option>
+            <option value="buyXgetY">Buy X Get Y Free</option>
             <option value="conditional">Conditional / Rule Based</option>
           </select>
+          <span class="error-text" *ngIf="offerType.invalid && (offerType.touched || offerType.dirty)">Offer type is required</span>
         </div>
 
         <div class="form-group">
           <label>Priority (1-100)</label>
-          <input type="number" [(ngModel)]="offerForm.priority" placeholder="10">
+          <input type="number" name="priority" [(ngModel)]="offerForm.priority" placeholder="10">
           <span class="hint">Higher priority applies first</span>
         </div>
 
         <div class="form-group">
           <label>Valid From</label>
-          <input type="date" [ngModel]="formatDateInput(offerForm.validFrom)" (ngModelChange)="updateValidFrom($event)">
+          <input type="date" name="validFrom" [ngModel]="formatDateInput(offerForm.validFrom)" (ngModelChange)="updateValidFrom($event)">
         </div>
 
         <div class="form-group">
           <label>Valid Until</label>
-          <input type="date" [ngModel]="formatDateInput(offerForm.validUntil)" (ngModelChange)="updateValidUntil($event)">
+          <input type="date" name="validUntil" [ngModel]="formatDateInput(offerForm.validUntil)" (ngModelChange)="updateValidUntil($event)">
         </div>
 
         <div class="form-group">
@@ -121,6 +127,26 @@
             <div class="toggle" [class.active]="offerForm.isActive"></div>
             <span>{{ offerForm.isActive ? 'Active' : 'Inactive' }}</span>
           </div>
+        </div>
+
+        <div class="form-group">
+          <label>Exclusive Offer</label>
+          <div class="toggle-wrapper" (click)="offerForm.isExclusive = !offerForm.isExclusive">
+            <div class="toggle" [class.active]="offerForm.isExclusive"></div>
+            <span>{{ offerForm.isExclusive ? 'Yes — cannot combine' : 'No — combinable' }}</span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Limit Per Patient</label>
+          <input type="number" name="usageLimitPerPatient" [(ngModel)]="offerForm.usageLimitPerPatient" placeholder="Unlimited" min="1">
+          <span class="hint">Leave empty for unlimited</span>
+        </div>
+
+        <div class="form-group">
+          <label>Total Usage Limit</label>
+          <input type="number" name="totalUsageLimit" [(ngModel)]="offerForm.totalUsageLimit" placeholder="Unlimited" min="1">
+          <span class="hint">Max total redemptions</span>
         </div>
       </div>
     </div>
@@ -155,7 +181,31 @@
 
             <div *ngSwitchCase="'min_spend'">
               <label>Minimum Cart Amount (EGP)</label>
-              <input type="number" [(ngModel)]="cond.parameters.minAmount">
+              <input type="number" [(ngModel)]="cond.parameters.minAmount" [ngModelOptions]="{ standalone: true }">
+            </div>
+
+            <div *ngSwitchCase="'patient_tag'">
+              <label>Tags (comma-separated)</label>
+              <input type="text" [ngModel]="joinArray(cond.parameters.tags)" (ngModelChange)="cond.parameters.tags = splitText($event)" [ngModelOptions]="{ standalone: true }" placeholder="e.g., oily, acne, sensitive">
+              <span class="hint">Matches against skin type, allergies, chronic conditions</span>
+            </div>
+
+            <div *ngSwitchCase="'date_range'">
+              <div class="form-grid">
+                <div class="form-group">
+                  <label>Start Date</label>
+                  <input type="date" [ngModel]="cond.parameters.startDate" (ngModelChange)="cond.parameters.startDate = $event" [ngModelOptions]="{ standalone: true }">
+                </div>
+                <div class="form-group">
+                  <label>End Date</label>
+                  <input type="date" [ngModel]="cond.parameters.endDate" (ngModelChange)="cond.parameters.endDate = $event" [ngModelOptions]="{ standalone: true }">
+                </div>
+              </div>
+            </div>
+
+            <div *ngSwitchCase="'specific_patient'">
+              <label>Patient IDs (comma-separated)</label>
+              <input type="text" [ngModel]="joinArray(cond.parameters.patientIds)" (ngModelChange)="cond.parameters.patientIds = splitText($event)" [ngModelOptions]="{ standalone: true }" placeholder="Paste patient IDs">
             </div>
           </div>
         </div>
@@ -168,6 +218,9 @@
             <option value="service_includes">Must Include Services</option>
             <option value="min_spend">Minimum Spend</option>
             <option value="new_patient">New Patients Only</option>
+            <option value="patient_tag">Patient Tag Match</option>
+            <option value="date_range">Date Range</option>
+            <option value="specific_patient">Specific Patients</option>
           </select>
           <button class="btn btn-outline" (click)="addCondition(newCondType.value)">+ Add</button>
         </div>
@@ -188,17 +241,17 @@
           <div class="ben-params">
             <div class="form-group" *ngIf="offerForm.type === 'percentage' || offerForm.type === 'conditional'">
               <label>Discount Percentage (%)</label>
-              <input type="number" [(ngModel)]="ben.parameters.percent">
+              <input type="number" [(ngModel)]="ben.parameters.percent" [ngModelOptions]="{ standalone: true }">
             </div>
 
             <div class="form-group" *ngIf="offerForm.type === 'fixed_amount'">
               <label>Discount Amount (EGP)</label>
-              <input type="number" [(ngModel)]="ben.parameters.fixedAmount">
+              <input type="number" [(ngModel)]="ben.parameters.fixedAmount" [ngModelOptions]="{ standalone: true }">
             </div>
 
             <div class="form-group" *ngIf="offerForm.type === 'bundle'">
               <label>Bundle Fixed Price (EGP)</label>
-              <input type="number" [(ngModel)]="ben.parameters.fixedPrice">
+              <input type="number" [(ngModel)]="ben.parameters.fixedPrice" [ngModelOptions]="{ standalone: true }">
             </div>
 
              <div class="params-group" *ngIf="offerForm.type === 'package'">
@@ -207,18 +260,18 @@
 
               <div class="form-group">
                 <label>Total Package Price (EGP)</label>
-                <input type="number" [(ngModel)]="ben.parameters.fixedPrice" placeholder="e.g., 5000">
+                <input type="number" [(ngModel)]="ben.parameters.fixedPrice" [ngModelOptions]="{ standalone: true }" placeholder="e.g., 5000">
               </div>
 
               <div class="package-credits-list">
                 <div class="package-credit-item" *ngFor="let credit of ben.parameters.packageCredits || []; let ci = index">
                   <div class="credit-row-inputs">
-                    <select [(ngModel)]="credit.serviceId" (change)="updateCreditServiceName(credit)">
+                    <select [(ngModel)]="credit.serviceId" [ngModelOptions]="{ standalone: true }" (change)="updateCreditServiceName(credit)">
                       <option value="">Select Service</option>
                       <option *ngFor="let s of services" [value]="s.id">{{ s.name }}</option>
                     </select>
-                    <input type="number" [(ngModel)]="credit.quantity" placeholder="Qty" min="1">
-                    <select [(ngModel)]="credit.unitType">
+                    <input type="number" [(ngModel)]="credit.quantity" [ngModelOptions]="{ standalone: true }" placeholder="Qty" min="1">
+                    <select [(ngModel)]="credit.unitType" [ngModelOptions]="{ standalone: true }">
                       <option value="session">Sessions</option>
                       <option value="pulse">Pulses</option>
                       <option value="unit">Units</option>
@@ -234,6 +287,25 @@
                 <i class="fa-solid fa-plus"></i> Add Service Credit
               </button>
             </div>
+
+            <div class="params-group" *ngIf="offerForm.type === 'buyXgetY'">
+              <div class="form-group">
+                <label>Buy Quantity</label>
+                <input type="number" [(ngModel)]="ben.parameters.buyQuantity" [ngModelOptions]="{ standalone: true }" placeholder="e.g., 3" min="1">
+              </div>
+              <div class="form-group">
+                <label>Get Free Quantity</label>
+                <input type="number" [(ngModel)]="ben.parameters.freeQuantity" [ngModelOptions]="{ standalone: true }" placeholder="e.g., 1" min="1">
+              </div>
+              <div class="form-group">
+                <label>Target Service (optional)</label>
+                <select [(ngModel)]="ben.parameters.targetServiceId" [ngModelOptions]="{ standalone: true }">
+                  <option value="">Any Service</option>
+                  <option *ngFor="let s of services" [value]="s.id">{{ s.name }}</option>
+                </select>
+                <span class="hint">Leave empty to apply to all services in cart</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -245,5 +317,5 @@
       <button class="btn btn-primary" *ngIf="currentStep < 3" (click)="currentStep = currentStep + 1">Next</button>
       <!-- Save button is handled by modal footer, but we hide it until step 3 via [showConfirm] -->
     </div>
-  </div>
+  </form>
 </app-modal>

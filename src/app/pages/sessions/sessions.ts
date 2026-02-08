@@ -1,13 +1,14 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
+import { forkJoin, Observable, of } from 'rxjs';
 import { PageHeaderComponent, ModalComponent, StatCardComponent } from '../../components/shared';
 import { DataService } from '../../services/data.service';
 import { WalletService } from '../../services/wallet.service';
 import { SweetAlertService } from '../../services/sweet-alert.service';
 import { Appointment, Patient, Doctor, Room, Service, Session, Device, InventoryItem, SessionCreditUsage, SessionExtraCharge } from '../../models';
-import { take } from 'rxjs/operators';
+import { take, switchMap } from 'rxjs/operators';
 
 interface ActiveSession {
   appointment: Appointment;
@@ -30,7 +31,8 @@ interface ActiveSession {
   templateUrl: './sessions.html',
   styleUrl: './sessions.scss'
 })
-export class Sessions implements OnInit {
+export class Sessions implements OnInit, OnDestroy {
+  private intervalId: ReturnType<typeof setInterval> | null = null;
   appointments: Appointment[] = [];
   patients: Patient[] = [];
   doctors: Doctor[] = [];
@@ -51,6 +53,11 @@ export class Sessions implements OnInit {
   endSessionConsumables: { itemId: string; name: string; quantity: number }[] = [];
   endSessionDeviceUsage: { deviceId: string; name: string; unitsUsed: number }[] = [];
   extraCharges: { description: string; amount: number }[] = [];
+  endSessionLaserSettings: { waveType: string; power: number } = { waveType: 'Alexandrite', power: 0 };
+  endSessionAttempted = false;
+  beforePhotos: string[] = [];
+  afterPhotos: string[] = [];
+  uploadingPhoto = false;
 
   constructor(
     private dataService: DataService,
@@ -62,20 +69,37 @@ export class Sessions implements OnInit {
   ngOnInit() {
     this.loadData();
     // Update elapsed time every minute
-    setInterval(() => this.updateElapsedTimes(), 60000);
+    this.intervalId = setInterval(() => this.updateElapsedTimes(), 60000);
+  }
+
+  ngOnDestroy() {
+    if (this.intervalId) {
+      clearInterval(this.intervalId);
+    }
   }
 
   loadData() {
-    this.dataService.getAppointments().subscribe(apt => {
-      this.appointments = apt;
-      this.buildActiveSessions();
+    forkJoin({
+      appointments: this.dataService.getAppointments(),
+      patients: this.dataService.getPatients(),
+      doctors: this.dataService.getDoctors(),
+      rooms: this.dataService.getRooms(),
+      services: this.dataService.getServices(),
+      devices: this.dataService.getDevices(),
+      inventory: this.dataService.getInventory()
+    }).subscribe({
+      next: ({ appointments, patients, doctors, rooms, services, devices, inventory }) => {
+        this.appointments = appointments;
+        this.patients = patients;
+        this.doctors = doctors;
+        this.rooms = rooms;
+        this.services = services;
+        this.devices = devices;
+        this.inventory = inventory;
+        this.buildActiveSessions();
+      },
+      error: () => this.alertService.error('Failed to load session data. Please refresh.')
     });
-    this.dataService.getPatients().subscribe(p => this.patients = p);
-    this.dataService.getDoctors().subscribe(d => this.doctors = d);
-    this.dataService.getRooms().subscribe(r => this.rooms = r);
-    this.dataService.getServices().subscribe(s => this.services = s);
-    this.dataService.getDevices().subscribe(d => this.devices = d);
-    this.dataService.getInventory().subscribe(i => this.inventory = i);
   }
 
   buildActiveSessions() {
@@ -141,13 +165,14 @@ export class Sessions implements OnInit {
   // Start new session from checked-in appointment
   startSession(apt: Appointment) {
     const patientName = this.getPatientName(apt.patientId);
-    this.dataService.updateAppointmentStatus(apt.id, 'in-progress');
-
-    // Immediately update local state to reflect the change
-    apt.status = 'in-progress';
-    this.buildActiveSessions();
-
-    this.alertService.sessionStarted(patientName);
+    this.dataService.updateAppointmentStatus(apt.id, 'in-progress').subscribe({
+      next: () => {
+        apt.status = 'in-progress';
+        this.buildActiveSessions();
+        this.alertService.sessionStarted(patientName);
+      },
+      error: () => this.alertService.error('Failed to start session. Please try again.')
+    });
   }
 
   // Open session details modal
@@ -223,14 +248,17 @@ export class Sessions implements OnInit {
     this.extraCharges = [];
 
     // Resolve unit types from wallet credits
-    this.walletService.getWallet(patientId).pipe(take(1)).subscribe(wallet => {
-      this.endSessionCredits = this.endSessionCredits.map(credit => {
-        const walletCredit = wallet.credits.find(c => c.serviceId === credit.serviceId);
-        return {
-          ...credit,
-          unitType: walletCredit?.unitType || credit.unitType || 'unit'
-        };
-      });
+    this.walletService.getWallet(patientId).pipe(take(1)).subscribe({
+      next: wallet => {
+        this.endSessionCredits = this.endSessionCredits.map(credit => {
+          const walletCredit = wallet.credits.find(c => c.serviceId === credit.serviceId);
+          return {
+            ...credit,
+            unitType: walletCredit?.unitType || credit.unitType || 'unit'
+          };
+        });
+      },
+      error: () => this.alertService.error('Failed to load wallet credits')
     });
 
     this.showEndSessionModal = true;
@@ -243,7 +271,32 @@ export class Sessions implements OnInit {
     this.endSessionConsumables = [];
     this.endSessionDeviceUsage = [];
     this.extraCharges = [];
+    this.endSessionLaserSettings = { waveType: 'Alexandrite', power: 0 };
     this.sessionNotes = '';
+    this.endSessionAttempted = false;
+    this.beforePhotos = [];
+    this.afterPhotos = [];
+  }
+
+  hasInvalidCreditsUsage(): boolean {
+    return this.endSessionCredits.some(c => !Number.isFinite(c.actual) || c.actual < 0);
+  }
+
+  hasInvalidDeviceUsage(): boolean {
+    return this.endSessionDeviceUsage.some(u => !Number.isFinite(u.unitsUsed) || u.unitsUsed < 0);
+  }
+
+  hasInvalidConsumables(): boolean {
+    return this.endSessionConsumables.some(c => !Number.isFinite(c.quantity) || c.quantity < 1);
+  }
+
+  hasInvalidExtraCharges(): boolean {
+    return this.extraCharges.some(c => !Number.isFinite(c.amount) || c.amount < 0 || (!c.description || !c.description.trim()));
+  }
+
+  hasInvalidLaserSettings(): boolean {
+    if (!this.isLaserSession()) return false;
+    return !Number.isFinite(this.endSessionLaserSettings.power) || this.endSessionLaserSettings.power <= 0;
   }
 
   // Add consumable to session
@@ -282,20 +335,120 @@ export class Sessions implements OnInit {
       }));
   }
 
+  // Check if current session involves a laser service
+  isLaserSession(): boolean {
+    if (!this.selectedSession) return false;
+    // Check if any service in the session requires a laser device
+    return this.selectedSession.services.some(svc => {
+      const device = this.devices.find(d => svc.requiredDevices?.includes(d.id));
+      return device?.counterType === 'pulse'; // Laser devices typically use pulse counters
+    });
+  }
+
+  // Upload photo file
+  async uploadPhoto(event: Event, photoType: 'before' | 'after') {
+    const input = event.target as HTMLInputElement;
+    if (!input.files || input.files.length === 0) return;
+
+    const file = input.files[0];
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      this.alertService.validationError('Please select a valid image file');
+      return;
+    }
+
+    // Validate file size (10MB max)
+    if (file.size > 10 * 1024 * 1024) {
+      this.alertService.validationError('Image size must be less than 10MB');
+      return;
+    }
+
+    this.uploadingPhoto = true;
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch('http://localhost:5275/api/files/upload', {
+        method: 'POST',
+        body: formData
+      });
+
+      if (!response.ok) {
+        throw new Error('Upload failed');
+      }
+
+      const data = await response.json();
+      const photoUrl = `http://localhost:5275${data.url}`;
+
+      if (photoType === 'before') {
+        this.beforePhotos.push(photoUrl);
+      } else {
+        this.afterPhotos.push(photoUrl);
+      }
+
+      this.alertService.success('Photo uploaded successfully');
+    } catch (error) {
+      this.alertService.error('Failed to upload photo. Please try again.');
+    } finally {
+      this.uploadingPhoto = false;
+      input.value = ''; // Reset input
+    }
+  }
+
+  // Remove photo
+  removePhoto(photoType: 'before' | 'after', index: number) {
+    if (photoType === 'before') {
+      this.beforePhotos.splice(index, 1);
+    } else {
+      this.afterPhotos.splice(index, 1);
+    }
+  }
+
   // Confirm end session with resource tracking
   confirmEndSession() {
     if (!this.selectedSession) return;
+
+    this.endSessionAttempted = true;
+
+    if (this.hasInvalidCreditsUsage()) {
+      this.alertService.validationError('Credits used must be 0 or more');
+      return;
+    }
+
+    if (this.hasInvalidDeviceUsage()) {
+      this.alertService.validationError('Device usage must be 0 or more');
+      return;
+    }
+
+    if (this.hasInvalidConsumables()) {
+      this.alertService.validationError('Consumable quantities must be at least 1');
+      return;
+    }
+
+    if (this.hasInvalidExtraCharges()) {
+      this.alertService.validationError('Extra charges require a description and non-negative amount');
+      return;
+    }
+
+    if (this.hasInvalidLaserSettings()) {
+      this.alertService.validationError('Laser power must be greater than 0');
+      return;
+    }
 
     const session = this.selectedSession;
     const patientId = session.patient.id;
     session.notes = this.sessionNotes;
 
+    // Collect all side-effect observables
+    const sideEffects: Observable<any>[] = [];
+
     // 1. Adjust credits based on actual usage
     for (const credit of this.endSessionCredits) {
       const diff = credit.allocated - credit.actual;
       if (diff !== 0) {
-        // Positive diff = return credits, negative = already deducted at booking
-        this.walletService.adjustCredits(patientId, credit.serviceId, diff);
+        sideEffects.push(this.walletService.adjustCredits(patientId, credit.serviceId, diff));
       }
     }
 
@@ -304,20 +457,20 @@ export class Sessions implements OnInit {
       if (usage.unitsUsed > 0) {
         const device = this.devices.find(d => d.id === usage.deviceId);
         if (device) {
-          this.dataService.updateDeviceCounter(device.id, device.currentCounter + usage.unitsUsed);
+          sideEffects.push(this.dataService.updateDeviceCounter(device.id, device.currentCounter + usage.unitsUsed));
         }
       }
     }
 
     // 3. Deduct inventory
     for (const consumable of this.endSessionConsumables) {
-      this.dataService.updateInventoryQuantity(consumable.itemId, -consumable.quantity);
+      sideEffects.push(this.dataService.updateInventoryQuantity(consumable.itemId, -consumable.quantity));
     }
 
     // 4. Log credit usage transactions
     for (const credit of this.endSessionCredits) {
       if (credit.actual > 0) {
-        this.dataService.addPatientTransaction({
+        sideEffects.push(this.dataService.addPatientTransaction({
           patientId: patientId,
           date: new Date(),
           type: 'credit_usage',
@@ -326,7 +479,7 @@ export class Sessions implements OnInit {
           method: 'credits',
           serviceId: credit.serviceId,
           relatedAppointmentId: session.appointment.id
-        });
+        }));
       }
     }
 
@@ -355,29 +508,42 @@ export class Sessions implements OnInit {
         unitType: c.unitType as 'session' | 'pulse' | 'unit'
       }));
 
-    this.dataService.addSession({
-      appointmentId: session.appointment.id,
-      patientId: patientId,
-      doctorId: session.doctor.id,
-      startTime: session.startTime,
-      endTime: new Date(),
-      consumablesUsed: this.endSessionConsumables.map(c => ({
-        inventoryItemId: c.itemId,
-        quantity: c.quantity
-      })),
-      creditsUsed: creditsUsed,
-      extraCharges: allExtraCharges,
-      clinicalNotes: this.sessionNotes,
-      status: 'completed'
+    // Wait for all side effects, then create session and update appointment
+    const sideEffects$: Observable<any> = sideEffects.length > 0 ? forkJoin(sideEffects) : of(null);
+
+    sideEffects$.pipe(
+      switchMap(() => this.dataService.addSession({
+        appointmentId: session.appointment.id,
+        patientId: patientId,
+        doctorId: session.doctor.id,
+        startTime: session.startTime,
+        endTime: new Date(),
+        consumablesUsed: this.endSessionConsumables.map(c => ({
+          inventoryItemId: c.itemId,
+          quantity: c.quantity
+        })),
+        creditsUsed: creditsUsed,
+        extraCharges: allExtraCharges,
+        laserSettings: this.isLaserSession() ? {
+          waveType: this.endSessionLaserSettings.waveType as 'Alexandrite' | 'Nd:YAG',
+          power: this.endSessionLaserSettings.power
+        } : undefined,
+        clinicalNotes: this.sessionNotes,
+        beforePhotos: this.beforePhotos,
+        afterPhotos: this.afterPhotos,
+        status: 'completed'
+      } as any)),
+      switchMap(() => this.dataService.updateAppointmentStatus(session.appointment.id, 'completed'))
+    ).subscribe({
+      next: () => {
+        session.appointment.status = 'completed';
+        this.activeSessions = this.activeSessions.filter(s => s.appointment.id !== session.appointment.id);
+
+        const patientName = `${session.patient.firstName} ${session.patient.lastName}`;
+        this.closeEndSessionModal();
+        this.alertService.sessionEnded(patientName);
+      },
+      error: () => this.alertService.error('Failed to end session. Please try again.')
     });
-
-    // 7. Update appointment status to completed
-    this.dataService.updateAppointmentStatus(session.appointment.id, 'completed');
-    session.appointment.status = 'completed';
-    this.activeSessions = this.activeSessions.filter(s => s.appointment.id !== session.appointment.id);
-
-    const patientName = `${session.patient.firstName} ${session.patient.lastName}`;
-    this.closeEndSessionModal();
-    this.alertService.sessionEnded(patientName);
   }
 }

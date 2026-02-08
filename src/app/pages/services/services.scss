@@ -3,7 +3,7 @@
   gap: 0.5rem;
   margin-bottom: 1.5rem;
   flex-wrap: wrap;
-  
+
   button {
     padding: 0.5rem 1rem;
     border: 1px solid var(--border-color);
@@ -12,15 +12,15 @@
     cursor: pointer;
     font-size: 0.875rem;
     transition: all 0.2s;
-    
+
     &:hover {
       border-color: var(--primary-color);
     }
-    
+
     &.active {
       background: var(--primary-color);
       border-color: var(--primary-color);
-      color: white;
+      color: var(--primary-light);
     }
   }
 }
@@ -38,7 +38,7 @@
   padding: 1.5rem;
   box-shadow: var(--shadow-sm);
   transition: all 0.2s;
-  
+
   &:hover {
     box-shadow: var(--shadow-md);
   }
@@ -64,13 +64,13 @@
 
 .service-info {
   flex: 1;
-  
+
   h3 {
     margin: 0;
     font-size: 1rem;
     font-weight: 600;
   }
-  
+
   .category {
     font-size: 0.8125rem;
     color: var(--text-muted);
@@ -83,8 +83,8 @@
   font-size: 0.75rem;
   font-weight: 500;
   background: var(--secondary-color);
-  color: white;
-  
+  color: var(--primary-light);
+
   &.active {
     background: var(--success);
   }
@@ -109,16 +109,16 @@
 .meta-item {
   display: flex;
   flex-direction: column;
-  
+
   .label {
     font-size: 0.75rem;
     color: var(--text-muted);
     margin-bottom: 0.25rem;
   }
-  
+
   .value {
     font-weight: 600;
-    
+
     &.price {
       color: var(--primary-color);
     }
@@ -156,17 +156,17 @@
   margin-bottom: 1.5rem;
   padding-bottom: 1.5rem;
   border-bottom: 1px solid var(--border-color);
-  
+
   &:last-child {
     border-bottom: none;
     margin-bottom: 0;
   }
-  
+
   h4 {
     margin: 0 0 0.5rem;
     font-size: 1rem;
   }
-  
+
   h5 {
     margin: 0 0 0.75rem;
     font-size: 0.875rem;
@@ -189,17 +189,17 @@
 .form-group {
   display: flex;
   flex-direction: column;
-  
+
   &.full-width {
     grid-column: span 2;
   }
-  
+
   label {
     font-size: 0.875rem;
     font-weight: 500;
     margin-bottom: 0.5rem;
   }
-  
+
   input, select, textarea {
     padding: 0.75rem;
     border: 1px solid var(--border-color);
@@ -207,7 +207,7 @@
     font-size: 0.875rem;
     font-family: inherit;
     outline: none;
-    
+
     &:focus {
       border-color: var(--primary-color);
     }
@@ -236,11 +236,11 @@
   border-radius: var(--radius-lg);
   cursor: pointer;
   transition: all 0.2s;
-  
+
   &:hover {
     border-color: var(--primary-color);
   }
-  
+
   &.selected {
     background: var(--primary-light);
     border-color: var(--primary-color);
@@ -257,23 +257,23 @@
   justify-content: center;
   font-size: 0.75rem;
   flex-shrink: 0;
-  
+
   .pricing-option.selected & {
     background: var(--primary-color);
     border-color: var(--primary-color);
-    color: white;
+    color: var(--primary-light);
   }
 }
 
 .option-content {
   display: flex;
   flex-direction: column;
-  
+
   .option-label {
     font-weight: 500;
     font-size: 0.875rem;
   }
-  
+
   .option-desc {
     font-size: 0.75rem;
     color: var(--text-muted);
@@ -291,7 +291,7 @@
   margin-bottom: 1.25rem;
   padding-bottom: 1.25rem;
   border-bottom: 1px solid var(--border-color);
-  
+
   &:last-child {
     margin-bottom: 0;
     padding-bottom: 0;
@@ -320,17 +320,17 @@
   background: var(--bg-card);
   border-radius: var(--radius-md);
   margin-bottom: 0.5rem;
-  
+
   .area-name {
     flex: 1;
     font-size: 0.875rem;
   }
-  
+
   .area-price {
     font-weight: 600;
     color: var(--primary-color);
   }
-  
+
   .remove-btn {
     background: none;
     border: none;
@@ -345,7 +345,7 @@
 .add-area-form {
   display: flex;
   gap: 0.5rem;
-  
+
   input {
     flex: 1;
     padding: 0.5rem 0.75rem;
@@ -353,7 +353,7 @@
     border-radius: var(--radius-md);
     font-size: 0.875rem;
     outline: none;
-    
+
     &:focus {
       border-color: var(--primary-color);
     }
@@ -368,14 +368,14 @@
 
 .resource-group {
   margin-bottom: 1rem;
-  
+
   label {
     display: block;
     font-size: 0.875rem;
     font-weight: 500;
     margin-bottom: 0.5rem;
   }
-  
+
   .small-hint {
     font-size: 0.75rem;
     color: var(--text-muted);
@@ -387,7 +387,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
-  
+
   .tag-option {
     padding: 0.35rem 0.75rem;
     background: var(--bg-body);
@@ -397,11 +397,11 @@
     cursor: pointer;
     transition: all 0.2s;
     user-select: none;
-    
+
     &:hover {
       border-color: var(--primary-color);
     }
-    
+
     &.selected {
       background: var(--primary-light-alpha, rgba(var(--primary-rgb), 0.1));
       border-color: var(--primary-color);
@@ -419,7 +419,7 @@
   .services-grid {
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   }
-  
+
   .pricing-options {
     grid-template-columns: 1fr;
   }
@@ -430,36 +430,36 @@
     grid-template-columns: 1fr;
     gap: 1rem;
   }
-  
+
   .service-card {
     padding: 1.25rem;
   }
-  
+
   .service-meta {
     flex-wrap: wrap;
     gap: 1rem;
   }
-  
+
   .form-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .form-group.full-width {
     grid-column: span 1;
   }
-  
+
   .form-row {
     grid-template-columns: 1fr;
   }
-  
+
   .add-area-form {
     flex-direction: column;
-    
+
     input, button {
       width: 100%;
     }
   }
-  
+
   .category-tabs {
     justify-content: center;
   }
@@ -469,13 +469,136 @@
   .pricing-option {
     padding: 0.75rem;
   }
-  
+
   .service-header {
     flex-direction: column;
     align-items: stretch;
-    
+
     .status-badge {
       align-self: flex-start;
     }
+  }
+}
+
+// Consumable picker
+.consumable-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.consumable-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+
+  select {
+    flex: 2;
+  }
+
+  input[type="number"] {
+    flex: 0 0 80px;
+    text-align: center;
+  }
+
+  .btn {
+    flex: 0 0 32px;
+    padding: 0;
+    font-size: 1.1rem;
+    line-height: 32px;
+  }
+}
+
+// Category management
+.category-manager {
+  .category-add-form {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+
+    .category-input {
+      flex: 1;
+      padding: 0.5rem 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 0.875rem;
+      background: var(--bg);
+
+      &:focus {
+        outline: none;
+        border-color: var(--primary);
+      }
+    }
+  }
+
+  .category-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .category-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.625rem 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg);
+  }
+
+  .category-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+
+    .cat-name {
+      font-weight: 500;
+    }
+
+    .cat-count {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+    }
+  }
+
+  .category-edit {
+    flex: 1;
+    margin-right: 0.5rem;
+
+    .category-input {
+      width: 100%;
+      padding: 0.375rem 0.5rem;
+      border: 1px solid var(--primary);
+      border-radius: 6px;
+      font-size: 0.875rem;
+    }
+  }
+
+  .category-actions {
+    display: flex;
+    gap: 0.25rem;
+  }
+
+  .btn-danger {
+    color: var(--danger) !important;
+    border-color: var(--danger) !important;
+
+    &:hover {
+      background: var(--danger);
+      color: white !important;
+    }
+
+    &:disabled {
+      opacity: 0.4;
+      pointer-events: none;
+    }
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 1.5rem;
+    color: var(--text-secondary);
   }
 }

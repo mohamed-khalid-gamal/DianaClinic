@@ -75,7 +75,7 @@
   border-radius: 9999px;
   font-size: 0.75rem;
   font-weight: 500;
-  color: white;
+  color: var(--primary-light);
   text-transform: capitalize;
 }
 
@@ -152,7 +152,7 @@
 .counter-info {
   margin-top: 0.75rem;
   font-size: 0.75rem;
-  color: var(--warning);
+    color: var(--warning);
   font-weight: 500;
 }
 

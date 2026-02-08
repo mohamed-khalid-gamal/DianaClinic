@@ -20,7 +20,7 @@ export interface AppliedOffer {
   providedIn: 'root'
 })
 export class OfferService {
-  
+
   constructor(private dataService: DataService) {}
 
   /**
@@ -45,15 +45,25 @@ export class OfferService {
     for (const offer of candidates) {
       if (this.checkConditions(offer, cart, patient)) {
         const benefit = this.calculateBenefit(offer, cart);
-        if (benefit && benefit.discountAmount > 0) {
+        if (benefit && (benefit.discountAmount > 0 || benefit.offer.benefits[0]?.type === 'grant_package')) {
           applicableOffers.push(benefit);
         }
       }
     }
 
-    // TODO: Handle exclusive offers mechanism (pick best exclusive or allow stacking)
-    // For now, return all applicable
-    return applicableOffers;
+    // Handle exclusive offers: if any exclusive offer matches, return only the best one
+    const exclusives = applicableOffers.filter(a => a.offer.isExclusive);
+    const nonExclusives = applicableOffers.filter(a => !a.offer.isExclusive);
+
+    if (exclusives.length > 0) {
+      // Pick the exclusive offer with the highest discount
+      const bestExclusive = exclusives.reduce((best, curr) =>
+        curr.discountAmount > best.discountAmount ? curr : best
+      );
+      return [bestExclusive];
+    }
+
+    return nonExclusives;
   }
 
   private checkConditions(offer: Offer, cart: CartItem[], patient: Patient): boolean {
@@ -73,12 +83,26 @@ export class OfferService {
           return total >= (condition.parameters.minAmount || 0);
 
         case 'new_patient':
-           // Simplistic check: if created within last 30 days or has 0 past appointments
-           // Ideally we check appointment history size
            const isNew = (new Date().getTime() - new Date(patient.createdAt).getTime()) < (30 * 24 * 60 * 60 * 1000);
            return isNew;
 
-        // Add other condition checks
+        case 'patient_tag':
+          // Check if patient has any of the required tags (match against notes/skinType)
+          if (!condition.parameters.tags || condition.parameters.tags.length === 0) return true;
+          const patientTags = [patient.skinType, ...(patient.allergies || []), ...(patient.chronicConditions || [])]
+            .filter(Boolean).map(t => String(t).toLowerCase());
+          return condition.parameters.tags.some(tag => patientTags.includes(tag.toLowerCase()));
+
+        case 'date_range':
+          const now = new Date();
+          if (condition.parameters.startDate && new Date(condition.parameters.startDate) > now) return false;
+          if (condition.parameters.endDate && new Date(condition.parameters.endDate) < now) return false;
+          return true;
+
+        case 'specific_patient':
+          if (!condition.parameters.patientIds || condition.parameters.patientIds.length === 0) return true;
+          return condition.parameters.patientIds.includes(patient.id);
+
         default:
           return true;
       }
@@ -114,17 +138,36 @@ export class OfferService {
           description += ` (Bundle Price: EGP ${benefit.parameters.fixedPrice})`;
         }
         break;
-        
+
       case 'grant_package':
          // This doesn't discount the current invoice usually, unless it's a "Package for Price X" deal
          // If it's pure grant, discount is 0, but we return object to trigger entitlement creation
          if (benefit.parameters.fixedPrice) {
-           // Buying a package
-           // Assumption: Cart contains the dummy 'package item' or we treat this as overriding the total
-           // For simplicity, let's say this offer applies if we are buying the trigger services
            discount = 0; // Logic for package purchase often handled differently (Service Item Replacement)
          }
          break;
+
+      case 'free_session': {
+        // Buy X Get Y Free logic
+        const buyQty = benefit.parameters.buyQuantity || 2;
+        const freeQty = benefit.parameters.freeQuantity || 1;
+        const targetId = benefit.parameters.targetServiceId;
+        // Find qualifying items in cart
+        const qualifying = targetId
+          ? cart.filter(i => i.serviceId === targetId)
+          : cart;
+        const totalQty = qualifying.reduce((sum, i) => sum + i.quantity, 0);
+        if (totalQty >= buyQty) {
+          const freeItems = Math.floor(totalQty / (buyQty + freeQty)) * freeQty;
+          if (freeItems > 0 && qualifying.length > 0) {
+            // Use the cheapest qualifying item price for free sessions
+            const cheapest = Math.min(...qualifying.map(i => i.price));
+            discount = freeItems * cheapest;
+            description += ` (Buy ${buyQty} Get ${freeQty} Free)`;
+          }
+        }
+        break;
+      }
     }
 
     return {

@@ -1,0 +1,202 @@
+<app-page-header
+  title="Reports & Analytics"
+  subtitle="Financial and operational insights">
+  <button class="btn btn-outline" (click)="exportToCSV()">
+    <i class="fa-solid fa-download"></i> Export CSV
+  </button>
+</app-page-header>
+
+<!-- Date Filters -->
+<div class="section-card">
+  <div class="filters">
+    <div class="form-group">
+      <label>Start Date</label>
+      <input type="date" [(ngModel)]="startDate" />
+    </div>
+    <div class="form-group">
+      <label>End Date</label>
+      <input type="date" [(ngModel)]="endDate" />
+    </div>
+    <div class="form-group">
+      <label>Period</label>
+      <select [(ngModel)]="periodType">
+        <option value="day">Daily</option>
+        <option value="week">Weekly</option>
+        <option value="month">Monthly</option>
+      </select>
+    </div>
+    <button class="btn btn-primary" (click)="refreshReports()">
+      <i class="fa-solid fa-sync"></i> Refresh
+    </button>
+  </div>
+</div>
+
+<!-- Loading State -->
+<div class="page-loading" *ngIf="loading">
+  <div class="spinner"></div>
+  <p>Loading reports...</p>
+</div>
+
+<div *ngIf="!loading">
+  <!-- Revenue Stats -->
+  <div class="stats-row" *ngIf="revenueStats">
+    <app-stat-card
+      icon="fa-solid fa-dollar-sign"
+      iconBg="rgba(34, 197, 94, 0.1)"
+      [value]="formatCurrency(revenueStats.totalRevenue)"
+      label="Total Revenue">
+    </app-stat-card>
+    <app-stat-card
+      icon="fa-solid fa-file-invoice"
+      iconBg="rgba(59, 130, 246, 0.1)"
+      [value]="revenueStats.totalInvoices"
+      label="Total Invoices">
+    </app-stat-card>
+    <app-stat-card
+      icon="fa-solid fa-chart-line"
+      iconBg="rgba(139, 92, 246, 0.1)"
+      [value]="formatCurrency(revenueStats.averageInvoice)"
+      label="Average Invoice">
+    </app-stat-card>
+  </div>
+
+  <!-- Appointment Stats -->
+  <div class="stats-row" *ngIf="appointmentStats">
+    <app-stat-card
+      icon="fa-solid fa-calendar-check"
+      iconBg="rgba(34, 197, 94, 0.1)"
+      [value]="appointmentStats.total"
+      label="Total Appointments">
+    </app-stat-card>
+    <app-stat-card
+      icon="fa-solid fa-check-circle"
+      iconBg="rgba(34, 197, 94, 0.1)"
+      [value]="formatPercent(appointmentStats.completionRate)"
+      label="Completion Rate">
+    </app-stat-card>
+    <app-stat-card
+      icon="fa-solid fa-ban"
+      iconBg="rgba(239, 68, 68, 0.1)"
+      [value]="formatPercent(appointmentStats.cancellationRate)"
+      label="Cancellation Rate">
+    </app-stat-card>
+    <app-stat-card
+      icon="fa-solid fa-user-slash"
+      iconBg="rgba(245, 158, 11, 0.1)"
+      [value]="formatPercent(appointmentStats.noShowRate)"
+      label="No-Show Rate">
+    </app-stat-card>
+  </div>
+
+  <!-- Patient Stats -->
+  <div class="stats-row" *ngIf="patientStats">
+    <app-stat-card
+      icon="fa-solid fa-users"
+      iconBg="rgba(59, 130, 246, 0.1)"
+      [value]="patientStats.totalPatients"
+      label="Total Patients">
+    </app-stat-card>
+    <app-stat-card
+      icon="fa-solid fa-user-plus"
+      iconBg="rgba(34, 197, 94, 0.1)"
+      [value]="patientStats.newPatients"
+      label="New Patients">
+    </app-stat-card>
+    <app-stat-card
+      icon="fa-solid fa-user-check"
+      iconBg="rgba(139, 92, 246, 0.1)"
+      [value]="patientStats.activePatients"
+      label="Active Patients">
+    </app-stat-card>
+    <app-stat-card
+      icon="fa-solid fa-heart"
+      iconBg="rgba(236, 72, 153, 0.1)"
+      [value]="formatPercent(patientStats.retentionRate)"
+      label="Retention Rate">
+    </app-stat-card>
+  </div>
+
+  <!-- Revenue by Service -->
+  <div class="section-card">
+    <div class="section-header">
+      <h3><i class="fa-solid fa-chart-bar"></i> Top Services by Revenue</h3>
+    </div>
+    <div class="table-container">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Service</th>
+            <th>Count</th>
+            <th>Revenue</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let item of serviceRevenue">
+            <td>{{ item.service }}</td>
+            <td>{{ item.count }}</td>
+            <td class="revenue">{{ formatCurrency(item.revenue) }}</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="empty-state" *ngIf="serviceRevenue.length === 0">
+        <p>No service data available</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Revenue by Doctor -->
+  <div class="section-card">
+    <div class="section-header">
+      <h3><i class="fa-solid fa-user-doctor"></i> Doctor Performance</h3>
+    </div>
+    <div class="table-container">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Doctor</th>
+            <th>Appointments</th>
+            <th>Revenue</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let item of doctorRevenue">
+            <td>{{ item.doctor }}</td>
+            <td>{{ item.appointmentCount }}</td>
+            <td class="revenue">{{ formatCurrency(item.revenue) }}</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="empty-state" *ngIf="doctorRevenue.length === 0">
+        <p>No doctor data available</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Revenue by Period -->
+  <div class="section-card">
+    <div class="section-header">
+      <h3><i class="fa-solid fa-chart-line"></i> Revenue Trend</h3>
+    </div>
+    <div class="table-container">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Period</th>
+            <th>Invoices</th>
+            <th>Revenue</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let item of periodRevenue">
+            <td>{{ item.period }}</td>
+            <td>{{ item.count }}</td>
+            <td class="revenue">{{ formatCurrency(item.revenue) }}</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="empty-state" *ngIf="periodRevenue.length === 0">
+        <p>No trend data available</p>
+      </div>
+    </div>
+  </div>
+</div>

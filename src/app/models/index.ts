@@ -135,6 +135,12 @@ export interface DeviceUsageLog {
   timestamp: Date;
 }
 
+// Laser Settings for laser-based treatments
+export interface LaserSettings {
+  waveType: 'Alexandrite' | 'Nd:YAG';
+  power: number; // in mJ
+}
+
 // Inventory
 export interface InventoryItem {
   id: string;
@@ -291,6 +297,7 @@ export interface Session {
   deviceUsage?: DeviceUsageLog;
   creditsUsed: SessionCreditUsage[]; // Track actual credit consumption
   extraCharges: SessionExtraCharge[]; // Extra charges from overage, etc.
+  laserSettings?: LaserSettings; // Laser wave type and power
   clinicalNotes?: string;
   beforePhotos?: string[];
   afterPhotos?: string[];
@@ -319,7 +326,7 @@ export interface Invoice {
   id: string;
   patientId: string;
   appointmentId: string;
-  sessionId: string;
+  sessionId?: string | null;
   items: InvoiceItem[];
   subtotal: number;
   discount: number;

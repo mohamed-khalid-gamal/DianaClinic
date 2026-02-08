@@ -1,12 +1,15 @@
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { forkJoin, of, Observable } from 'rxjs';
+import { switchMap } from 'rxjs/operators';
 import { PageHeaderComponent, ModalComponent } from '../../components/shared';
 import { DataService } from '../../services/data.service';
 import { WalletService } from '../../services/wallet.service';
 import { Appointment, Patient, Doctor, Room, Service, ServiceCredit } from '../../models';
 import { OfferService } from '../../services/offer.service';
 import { SweetAlertService } from '../../services/sweet-alert.service';
+import { getAppointmentStatusColor } from '../../utils/status-colors';
 
 interface TimeSlot {
   time: string;
@@ -42,9 +45,13 @@ export class Appointments implements OnInit {
   currentDate = new Date();
   viewMode: 'day' | 'week' = 'day';
   timeSlots: TimeSlot[] = [];
+  searchQuery = '';
 
   showBookingModal = false;
   bookingStep = 1;
+  bookingAttemptedStep1 = false;
+  bookingAttemptedStep3 = false;
+  bookingAttemptedStep5 = false;
 
   // Reschedule Modal
   showRescheduleModal = false;
@@ -53,6 +60,7 @@ export class Appointments implements OnInit {
   rescheduleTime = '';
   rescheduleDoctorId = '';
   rescheduleRoomId = '';
+  rescheduleAttempted = false;
   rescheduleAvailableSlots: { time: string; date: Date; doctors: Doctor[]; rooms: Room[] }[] = [];
   rescheduleSelectedDoctors: Doctor[] = [];
   rescheduleSelectedRooms: Room[] = [];
@@ -62,7 +70,7 @@ export class Appointments implements OnInit {
     patientId: '',
     patientSearch: '',
     isNewPatient: false,
-    newPatient: { firstName: '', lastName: '', phone: '', email: '' },
+    newPatient: { firstName: '', lastName: '', phone: '', email: '', dateOfBirth: '', gender: 'female' as 'male' | 'female' },
     allServiceIds: [] as string[], // Master list of selected services
     offerId: undefined as string | undefined,
     notes: '',
@@ -103,13 +111,69 @@ export class Appointments implements OnInit {
     this.generateTimeSlots();
   }
 
+  get weekDays(): { date: Date; label: string }[] {
+    const start = new Date(this.currentDate);
+    start.setDate(start.getDate() - start.getDay()); // Start of week (Sunday)
+    const days = [];
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(start);
+      d.setDate(start.getDate() + i);
+      days.push({ date: d, label: dayNames[i] });
+    }
+    return days;
+  }
+
+  isToday(date: Date): boolean {
+    const today = new Date();
+    return date.toDateString() === today.toDateString();
+  }
+
+  getAppointmentsForDate(date: Date): Appointment[] {
+    return this.filteredAppointments.filter(a =>
+      new Date(a.scheduledStart).toDateString() === date.toDateString()
+    ).sort((a, b) => new Date(a.scheduledStart).getTime() - new Date(b.scheduledStart).getTime());
+  }
+
+  get filteredAppointments(): Appointment[] {
+    if (!this.searchQuery.trim()) return this.appointments;
+    const q = this.searchQuery.toLowerCase();
+    return this.appointments.filter(a => {
+      const patient = this.patients.find(p => p.id === a.patientId);
+      const doctor = this.doctors.find(d => d.id === a.doctorId);
+      const patientName = patient ? `${patient.firstName} ${patient.lastName}`.toLowerCase() : '';
+      const doctorName = doctor?.name.toLowerCase() || '';
+      return patientName.includes(q) || doctorName.includes(q) || a.status.includes(q);
+    });
+  }
+
+  formatTime(date: Date): string {
+    return new Date(date).toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    });
+  }
+
   loadData() {
-    this.dataService.getAppointments().subscribe(data => this.appointments = data);
-    this.dataService.getPatients().subscribe(data => this.patients = data);
-    this.dataService.getDoctors().subscribe(data => this.doctors = data);
-    this.dataService.getRooms().subscribe(data => this.rooms = data);
-    this.dataService.getServices().subscribe(data => this.services = data);
-    this.dataService.getOffers().subscribe(data => this.offers = data);
+    forkJoin({
+      appointments: this.dataService.getAppointments(),
+      patients: this.dataService.getPatients(),
+      doctors: this.dataService.getDoctors(),
+      rooms: this.dataService.getRooms(),
+      services: this.dataService.getServices(),
+      offers: this.dataService.getOffers()
+    }).subscribe({
+      next: ({ appointments, patients, doctors, rooms, services, offers }) => {
+        this.appointments = appointments;
+        this.patients = patients;
+        this.doctors = doctors;
+        this.rooms = rooms;
+        this.services = services;
+        this.offers = offers;
+      },
+      error: () => this.alertService.error('Failed to load data. Please refresh.')
+    });
   }
 
   // --- Wizard Navigation & Logic ---
@@ -129,7 +193,7 @@ export class Appointments implements OnInit {
       patientId: '',
       patientSearch: '',
       isNewPatient: false,
-      newPatient: { firstName: '', lastName: '', phone: '', email: '' },
+      newPatient: { firstName: '', lastName: '', phone: '', email: '', dateOfBirth: '', gender: 'female' as 'male' | 'female' },
       allServiceIds: [],
       offerId: undefined,
       notes: '',
@@ -142,6 +206,9 @@ export class Appointments implements OnInit {
     this.availableSlots = [];
     this.applicableOffers = [];
     this.patientCredits = [];
+    this.bookingAttemptedStep1 = false;
+    this.bookingAttemptedStep3 = false;
+    this.bookingAttemptedStep5 = false;
   }
 
   // Load patient credits when patient is selected
@@ -150,18 +217,35 @@ export class Appointments implements OnInit {
       this.patientCredits = [];
       return;
     }
-    this.walletService.getAvailableCredits(this.booking.patientId).subscribe(credits => {
-      this.patientCredits = credits;
-      // Initialize credit selections
-      this.booking.creditSelections = this.patientCredits.map(c => ({
-        serviceId: c.serviceId,
-        unitsToUse: 0,
-        unitType: c.unitType
-      }));
+    this.walletService.getAvailableCredits(this.booking.patientId).subscribe({
+      next: credits => {
+        this.patientCredits = credits;
+        // Initialize credit selections
+        this.booking.creditSelections = this.patientCredits.map(c => ({
+          serviceId: c.serviceId,
+          unitsToUse: 0,
+          unitType: c.unitType
+        }));
+      },
+      error: () => this.alertService.error('Failed to load patient credits.')
     });
   }
 
   nextStep() {
+    if (!this.canProceed()) {
+      if (this.bookingStep === 1) {
+        this.bookingAttemptedStep1 = true;
+        this.alertService.validationError('Please select a patient or enter new patient details');
+      } else if (this.bookingStep === 3) {
+        this.bookingAttemptedStep3 = true;
+        this.alertService.validationError('Please select at least one service');
+      } else if (this.bookingStep === 5) {
+        this.bookingAttemptedStep5 = true;
+        this.alertService.validationError('Please select date, time, doctor, and room');
+      }
+      return;
+    }
+
     if (this.bookingStep === 1) {
       // After patient selection, load their credits
       this.loadPatientCredits();
@@ -248,11 +332,12 @@ export class Appointments implements OnInit {
   canProceed(): boolean {
     switch (this.bookingStep) {
       case 1:
-        return this.booking.patientId !== '' || (
-          this.booking.isNewPatient &&
-          this.booking.newPatient.firstName !== '' &&
-          this.booking.newPatient.phone !== ''
-        );
+        if (this.booking.isNewPatient) {
+          return this.booking.newPatient.firstName.trim() !== '' &&
+            this.booking.newPatient.lastName.trim() !== '' &&
+            this.booking.newPatient.phone.trim() !== '';
+        }
+        return this.booking.patientId !== '';
       case 2:
         // Credits step - can proceed even with no credits selected
         return true;
@@ -261,13 +346,17 @@ export class Appointments implements OnInit {
       case 4:
         return this.bookingSegments.length > 0;
       case 5:
-        const seg = this.getCurrentSegment();
-        return !!seg && seg.date !== '' && seg.time !== '' && seg.doctorId !== '' && seg.roomId !== '';
+        return this.isCurrentSegmentComplete();
       case 6:
          return true;
       default:
         return true;
     }
+  }
+
+  isCurrentSegmentComplete(): boolean {
+    const seg = this.getCurrentSegment();
+    return !!seg && seg.date !== '' && seg.time !== '' && seg.doctorId !== '' && seg.roomId !== '';
   }
 
   // --- Granular Segment Logic (Step 3) ---
@@ -469,64 +558,115 @@ export class Appointments implements OnInit {
   }
 
   confirmBooking() {
-    // First, deduct credits from wallet for credit-based services
-    for (const selection of this.booking.creditSelections) {
-      if (selection.unitsToUse > 0) {
-        this.walletService.reserveCredits(
-          this.booking.patientId,
-          selection.serviceId,
-          selection.unitsToUse
-        );
-
-        // Log transaction
-        const service = this.services.find(s => s.id === selection.serviceId);
-        this.dataService.addPatientTransaction({
-          patientId: this.booking.patientId,
-          date: new Date(),
-          type: 'credit_usage',
-          description: `Reserved ${selection.unitsToUse} ${selection.unitType}(s) for ${service?.name || 'service'}`,
-          amount: 0,
-          method: 'credits',
-          serviceId: selection.serviceId
-        });
-      }
+    if (!this.canProceed() || this.bookingSegments.length === 0 || !this.bookingSegments.every(seg => seg.date && seg.time && seg.doctorId && seg.roomId)) {
+      this.alertService.validationError('Please complete patient info, service selection, and schedule');
+      return;
     }
 
-    this.bookingSegments.forEach(seg => {
-        const [hours, minutes] = seg.time.split(':').map(Number);
-        const scheduledStart = new Date(seg.date);
-        scheduledStart.setHours(hours, minutes, 0, 0);
+    const doBooking = (patientId: string) => {
+      // Collect credit reservation observables
+      const creditOps = this.booking.creditSelections
+        .filter(s => s.unitsToUse > 0)
+        .map(selection => {
+          const service = this.services.find(s => s.id === selection.serviceId);
+          return forkJoin([
+            this.walletService.reserveCredits(patientId, selection.serviceId, selection.unitsToUse),
+            this.dataService.addPatientTransaction({
+              patientId,
+              date: new Date(),
+              type: 'credit_usage',
+              description: `Reserved ${selection.unitsToUse} ${selection.unitType}(s) for ${service?.name || 'service'}`,
+              amount: 0,
+              method: 'credits',
+              serviceId: selection.serviceId
+            })
+          ]);
+        });
 
-        const scheduledEnd = new Date(scheduledStart.getTime() + seg.duration * 60000);
+      // Wait for all credit ops (or proceed immediately if none), then create appointments
+      const creditOps$: Observable<any> = creditOps.length > 0 ? forkJoin(creditOps) : of(null);
 
-        const appointment: Appointment = {
-            id: '',
-            patientId: this.booking.patientId,
-            doctorId: seg.doctorId,
-            roomId: seg.roomId,
-            services: seg.serviceIds.map(id => {
+      creditOps$.pipe(
+        switchMap(() => {
+          const appointmentCalls = this.bookingSegments.map(seg => {
+            const scheduledStart = this.parseSlotTime(seg.time, seg.date);
+            const scheduledEnd = new Date(scheduledStart.getTime() + seg.duration * 60000);
+
+            const appointment: Appointment = {
+              id: '',
+              patientId,
+              doctorId: seg.doctorId,
+              roomId: seg.roomId,
+              services: seg.serviceIds.map(id => {
                 const creditSelection = this.booking.creditSelections.find(c => c.serviceId === id);
+                const svc = this.services.find(s => s.id === id);
                 return {
-                    serviceId: id,
-                    pricingType: 'fixed',
-                    price: 0,
-                    fromCredits: creditSelection ? creditSelection.unitsToUse > 0 : false,
-                    creditsUsed: creditSelection?.unitsToUse || 0
+                  serviceId: id,
+                  pricingType: 'fixed',
+                  price: svc?.pricingModels[0]?.basePrice || 0,
+                  fromCredits: creditSelection ? creditSelection.unitsToUse > 0 : false,
+                  creditsUsed: creditSelection?.unitsToUse || 0
                 };
-            }),
-            scheduledStart,
-            scheduledEnd,
-            status: 'scheduled',
-            notes: this.booking.notes,
-            createdAt: new Date()
-        };
-        this.dataService.addAppointment(appointment);
-    });
+              }),
+              scheduledStart,
+              scheduledEnd,
+              status: 'scheduled',
+              notes: this.booking.notes,
+              createdAt: new Date()
+            };
+            return this.dataService.addAppointment(appointment);
+          });
+          return forkJoin(appointmentCalls);
+        })
+      ).subscribe({
+        next: () => {
+          this.loadData();
+          this.closeBookingModal();
+          this.alertService.bookingConfirmed(this.bookingSegments.length);
+        },
+        error: (err: any) => {
+          this.alertService.toast('Failed to create appointments', 'error');
+        }
+      });
+    };
 
-    this.loadData();
-    this.closeBookingModal();
+    // If new patient, create patient first then book
+    if (this.booking.isNewPatient) {
+      const newPatient = {
+        ...this.booking.newPatient,
+        dateOfBirth: this.booking.newPatient.dateOfBirth ? new Date(this.booking.newPatient.dateOfBirth) : new Date(),
+        gender: this.booking.newPatient.gender || 'female' as const,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      } as Patient;
 
-    this.alertService.bookingConfirmed(this.bookingSegments.length);
+      this.dataService.addPatient(newPatient).subscribe({
+        next: (created) => {
+          this.patients.push(created);
+          doBooking(created.id);
+        },
+        error: (err: any) => {
+          this.alertService.toast('Failed to create patient', 'error');
+        }
+      });
+    } else {
+      doBooking(this.booking.patientId);
+    }
+  }
+
+  /** Parse 12-hour locale time string (e.g. "2:30 PM") into a Date */
+  private parseSlotTime(timeStr: string, dateStr: string): Date {
+    const date = new Date(dateStr);
+    const match = timeStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+    if (match) {
+      let hours = parseInt(match[1], 10);
+      const minutes = parseInt(match[2], 10);
+      const meridian = match[3].toUpperCase();
+      if (meridian === 'PM' && hours !== 12) hours += 12;
+      if (meridian === 'AM' && hours === 12) hours = 0;
+      date.setHours(hours, minutes, 0, 0);
+    }
+    return date;
   }
 
   // --- Helpers & Boileplate ---
@@ -650,7 +790,7 @@ export class Appointments implements OnInit {
   }
 
   get dayAppointments(): Appointment[] {
-    return this.appointments.filter(apt => new Date(apt.scheduledStart).toDateString() === this.currentDate.toDateString());
+    return this.filteredAppointments.filter(apt => new Date(apt.scheduledStart).toDateString() === this.currentDate.toDateString());
   }
 
   getAppointmentsForSlot(slot: TimeSlot): Appointment[] {
@@ -668,26 +808,27 @@ export class Appointments implements OnInit {
   }
   formatDateInput(date: Date): string { return date.toISOString().split('T')[0]; }
   getStatusColor(status: string): string {
-    const colors: { [key: string]: string } = {
-      'scheduled': '#3B82F6',
-      'checked-in': '#F59E0B',
-      'in-progress': '#8B5CF6',
-      'completed': '#10B981',
-      'billed': '#9CA3AF',
-      'cancelled': '#EF4444',
-      'no-show': '#F97316'
-    };
-    return colors[status] || '#6B7280';
+    return getAppointmentStatusColor(status);
   }
 
-  updateStatus(apt: Appointment, status: Appointment['status']) {
-    this.dataService.updateAppointmentStatus(apt.id, status);
-    this.loadData();
-
-    // If marked as no-show, offer to reschedule
-    if (status === 'no-show') {
-      this.offerReschedule(apt);
+  async updateStatus(apt: Appointment, status: Appointment['status']) {
+    if (status === 'cancelled') {
+      const confirmed = await this.alertService.confirm(
+        'Cancel Appointment?',
+        'Are you sure you want to cancel this appointment? This action cannot be undone.'
+      );
+      if (!confirmed) return;
     }
+    this.dataService.updateAppointmentStatus(apt.id, status).subscribe({
+      next: () => {
+        this.loadData();
+        // If marked as no-show, offer to reschedule
+        if (status === 'no-show') {
+          this.offerReschedule(apt);
+        }
+      },
+      error: () => this.alertService.error('Failed to update appointment status. Please try again.')
+    });
   }
 
   private async offerReschedule(apt: Appointment) {
@@ -725,6 +866,7 @@ export class Appointments implements OnInit {
   closeRescheduleModal() {
     this.showRescheduleModal = false;
     this.rescheduleAppointment = null;
+    this.rescheduleAttempted = false;
   }
 
   generateRescheduleSlots() {
@@ -795,7 +937,11 @@ export class Appointments implements OnInit {
   }
 
   confirmReschedule() {
-    if (!this.rescheduleAppointment || !this.canConfirmReschedule()) return;
+    this.rescheduleAttempted = true;
+    if (!this.rescheduleAppointment || !this.canConfirmReschedule()) {
+      this.alertService.validationError('Please select date, time, doctor, and room');
+      return;
+    }
 
     const apt = this.rescheduleAppointment;
     const slot = this.rescheduleAvailableSlots.find(s => s.time === this.rescheduleTime);
@@ -812,7 +958,7 @@ export class Appointments implements OnInit {
 
     // Create a new appointment with same details
     const newAppointment: Appointment = {
-      id: 'apt-' + Date.now(),
+      id: '',
       patientId: apt.patientId,
       doctorId: this.rescheduleDoctorId,
       roomId: this.rescheduleRoomId,
@@ -825,10 +971,14 @@ export class Appointments implements OnInit {
       createdAt: new Date()
     };
 
-    this.dataService.addAppointment(newAppointment);
-    this.alertService.success('Appointment Rescheduled', 'The new appointment has been created.');
-    this.closeRescheduleModal();
-    this.loadData();
+    this.dataService.addAppointment(newAppointment).subscribe({
+      next: () => {
+        this.alertService.success('Appointment Rescheduled', 'The new appointment has been created.');
+        this.closeRescheduleModal();
+        this.loadData();
+      },
+      error: () => this.alertService.error('Failed to reschedule appointment. Please try again.')
+    });
   }
 
   getReschedulePatientName(): string {

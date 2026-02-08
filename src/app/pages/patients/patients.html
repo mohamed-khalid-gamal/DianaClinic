@@ -6,7 +6,12 @@
   </button>
 </app-page-header>
 
-<div class="patients-container" [class.with-panel]="showDetailPanel">
+<div class="page-loading" *ngIf="loading">
+  <div class="spinner"></div>
+  <span class="loading-text">Loading patients...</span>
+</div>
+
+<div class="patients-container" [class.with-panel]="showDetailPanel" *ngIf="!loading">
   <!-- Patients Table -->
   <div class="table-section">
     <app-data-table
@@ -145,45 +150,50 @@
   [isOpen]="showModal"
   [title]="isEditMode ? 'Edit Patient' : 'Add New Patient'"
   (closed)="closeModal()"
-  (confirmed)="savePatient()">
+  (confirmed)="savePatient(patientFormRef)">
 
-  <div class="form-grid">
+  <form #patientFormRef="ngForm" class="form-grid">
     <div class="form-group">
       <label>First Name *</label>
-      <input type="text" [(ngModel)]="patientForm.firstName" placeholder="Enter first name">
+      <input type="text" name="firstName" required [(ngModel)]="patientForm.firstName" placeholder="Enter first name" #firstName="ngModel">
+      <span class="error-text" *ngIf="firstName.invalid && (firstName.touched || firstName.dirty)">First name is required</span>
     </div>
 
     <div class="form-group">
       <label>Last Name *</label>
-      <input type="text" [(ngModel)]="patientForm.lastName" placeholder="Enter last name">
+      <input type="text" name="lastName" required [(ngModel)]="patientForm.lastName" placeholder="Enter last name" #lastName="ngModel">
+      <span class="error-text" *ngIf="lastName.invalid && (lastName.touched || lastName.dirty)">Last name is required</span>
     </div>
 
     <div class="form-group">
       <label>Phone *</label>
-      <input type="tel" [(ngModel)]="patientForm.phone" placeholder="+20 xxx xxx xxxx">
+      <input type="tel" name="phone" required [(ngModel)]="patientForm.phone" placeholder="+20 xxx xxx xxxx" #phone="ngModel">
+      <span class="error-text" *ngIf="phone.invalid && (phone.touched || phone.dirty)">Phone is required</span>
     </div>
 
     <div class="form-group">
       <label>Email</label>
-      <input type="email" [(ngModel)]="patientForm.email" placeholder="email@example.com">
+      <input type="email" name="email" [(ngModel)]="patientForm.email" placeholder="email@example.com">
     </div>
 
     <div class="form-group">
       <label>Date of Birth *</label>
-      <input type="date" [(ngModel)]="patientForm.dateOfBirth">
+      <input type="date" name="dateOfBirth" required [(ngModel)]="patientForm.dateOfBirth" #dateOfBirth="ngModel">
+      <span class="error-text" *ngIf="dateOfBirth.invalid && (dateOfBirth.touched || dateOfBirth.dirty)">Date of birth is required</span>
     </div>
 
     <div class="form-group">
       <label>Gender *</label>
-      <select [(ngModel)]="patientForm.gender">
+      <select name="gender" required [(ngModel)]="patientForm.gender" #gender="ngModel">
         <option value="female">Female</option>
         <option value="male">Male</option>
       </select>
+      <span class="error-text" *ngIf="gender.invalid && (gender.touched || gender.dirty)">Gender is required</span>
     </div>
 
     <div class="form-group">
       <label>Skin Type (Fitzpatrick Scale)</label>
-      <select [(ngModel)]="patientForm.skinType">
+      <select name="skinType" [(ngModel)]="patientForm.skinType">
         <option [value]="1">Type I - Very Fair</option>
         <option [value]="2">Type II - Fair</option>
         <option [value]="3">Type III - Medium</option>
@@ -194,10 +204,28 @@
     </div>
 
     <div class="form-group full-width">
-      <label>Notes</label>
-      <textarea [(ngModel)]="patientForm.notes" rows="3" placeholder="Additional notes..."></textarea>
+      <label>Allergies</label>
+      <input type="text" name="allergies" [ngModel]="joinArray(patientForm.allergies)" (ngModelChange)="patientForm.allergies = splitText($event)" placeholder="Comma-separated, e.g., Lidocaine, Latex">
+      <span class="hint-text">Separate multiple allergies with commas</span>
     </div>
-  </div>
+
+    <div class="form-group full-width">
+      <label>Chronic Conditions</label>
+      <input type="text" name="chronicConditions" [ngModel]="joinArray(patientForm.chronicConditions)" (ngModelChange)="patientForm.chronicConditions = splitText($event)" placeholder="Comma-separated, e.g., Diabetes, Hypertension">
+      <span class="hint-text">Separate multiple conditions with commas</span>
+    </div>
+
+    <div class="form-group full-width">
+      <label>Contraindications</label>
+      <input type="text" name="contraindications" [ngModel]="joinArray(patientForm.contraindications)" (ngModelChange)="patientForm.contraindications = splitText($event)" placeholder="Comma-separated, e.g., Pregnancy, Photosensitivity">
+      <span class="hint-text">Separate multiple contraindications with commas</span>
+    </div>
+
+    <div class="form-group full-width">
+      <label>Notes</label>
+      <textarea name="notes" [(ngModel)]="patientForm.notes" rows="3" placeholder="Additional notes..."></textarea>
+    </div>
+  </form>
 </app-modal>
 
 <!-- Top Up Wallet Modal -->
@@ -205,17 +233,18 @@
   [isOpen]="showTopUpModal"
   title="Top Up Wallet"
   (closed)="closeTopUpModal()"
-  (confirmed)="confirmTopUp()"
-  confirmText="Add Balance">
+  confirmText="Add Balance"
+  (confirmed)="confirmTopUp(topUpFormRef)">
 
-  <div class="topup-form">
+  <form #topUpFormRef="ngForm" class="topup-form">
     <p>Add cash balance to {{ selectedPatient?.firstName }}'s wallet</p>
     <div class="form-group">
       <label>Amount (EGP)</label>
-      <input type="number" [(ngModel)]="topUpAmount" placeholder="Enter amount" min="0">
+      <input type="number" name="topUpAmount" required min="0.01" [(ngModel)]="topUpAmount" placeholder="Enter amount" #topUpAmount="ngModel">
+      <span class="error-text" *ngIf="topUpAmount.invalid && (topUpAmount.touched || topUpAmount.dirty)">Amount must be greater than 0</span>
     </div>
     <div class="current-balance" *ngIf="selectedWallet">
       Current Balance: <strong>EGP {{ selectedWallet.cashBalance | number:'1.2-2' }}</strong>
     </div>
-  </div>
+  </form>
 </app-modal>

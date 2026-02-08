@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { Observable, combineLatest, map } from 'rxjs';
+import { Observable, forkJoin, map } from 'rxjs';
 import { DataService } from './data.service';
 import { Appointment, Doctor, Patient, Room, Service } from '../models';
 
@@ -48,7 +48,7 @@ export class CalendarService {
    * Get all calendar events with full details
    */
   getAllEvents(): Observable<CalendarEvent[]> {
-    return combineLatest([
+    return forkJoin([
       this.dataService.getAppointments(),
       this.dataService.getPatients(),
       this.dataService.getDoctors(),
@@ -94,7 +94,7 @@ export class CalendarService {
   getEventsInRange(start: Date, end: Date): Observable<CalendarEvent[]> {
     return this.getAllEvents().pipe(
       map(events => events.filter(e =>
-        new Date(e.start) >= start && new Date(e.end) <= end
+        new Date(e.start) < end && new Date(e.end) > start
       ))
     );
   }

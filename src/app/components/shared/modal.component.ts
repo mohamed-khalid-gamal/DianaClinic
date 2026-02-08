@@ -1,10 +1,11 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { Component, Input, Output, EventEmitter, ViewEncapsulation } from '@angular/core';
 import { CommonModule } from '@angular/common';
 
 @Component({
   selector: 'app-modal',
   standalone: true,
   imports: [CommonModule],
+  encapsulation: ViewEncapsulation.None,
   template: `
     <div class="modal-overlay" *ngIf="isOpen" (click)="onOverlayClick($event)">
       <div class="modal-container" [style.maxWidth]="maxWidth">
@@ -110,8 +111,24 @@ import { CommonModule } from '@angular/common';
       font-weight: 600;
     }
 
+    .modal-body .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1.25rem;
+    }
+
     .modal-body .form-group {
-      margin-bottom: 1rem;
+      display: flex;
+      flex-direction: column;
+      margin-bottom: 1.25rem;
+    }
+
+    .modal-body .form-grid > .form-group {
+      margin-bottom: 0;
+    }
+
+    .modal-body .form-group.full-width {
+      grid-column: span 2;
     }
 
     .modal-body label {
@@ -126,20 +143,22 @@ import { CommonModule } from '@angular/common';
     .modal-body select,
     .modal-body textarea {
       width: 100%;
-      padding: 0.7rem 0.85rem;
+      padding: 0.75rem;
       border-radius: var(--radius-md);
       border: 1px solid var(--border-color);
       background: var(--bg-body);
       color: var(--text-main);
-      transition: border 0.2s, box-shadow 0.2s;
+      font-size: 0.875rem;
+      font-family: inherit;
+      transition: border-color 0.2s, box-shadow 0.2s;
     }
 
     .modal-body input:focus,
     .modal-body select:focus,
     .modal-body textarea:focus {
       outline: none;
-      border-color: rgba(59, 130, 246, 0.5);
-      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 3px rgba(128, 38, 50, 0.15);
     }
 
     .modal-body table {

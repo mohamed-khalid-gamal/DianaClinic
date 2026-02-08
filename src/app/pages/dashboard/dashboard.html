@@ -3,14 +3,20 @@
   subtitle="Welcome back! Here's what's happening today.">
 </app-page-header>
 
+<div class="page-loading" *ngIf="loading">
+  <div class="spinner"></div>
+  <span class="loading-text">Loading dashboard...</span>
+</div>
+
 <!-- KPI Stats Grid -->
-<div class="stats-grid">
+<div class="stats-grid" *ngIf="!loading">
   <app-stat-card
     icon="fa-solid fa-calendar-day"
     iconBg="rgba(14, 116, 144, 0.1)"
     [value]="stats.todayAppointments"
     label="Today's Appointments"
-    [clickable]="true">
+    [clickable]="true"
+    (cardClick)="navigateTo('/appointments')">
   </app-stat-card>
 
   <app-stat-card
@@ -18,7 +24,8 @@
     iconBg="rgba(139, 92, 246, 0.1)"
     [value]="stats.totalPatients"
     label="Total Patients"
-    [clickable]="true">
+    [clickable]="true"
+    (cardClick)="navigateTo('/patients')">
   </app-stat-card>
 
   <app-stat-card
@@ -26,7 +33,8 @@
     iconBg="rgba(16, 185, 129, 0.1)"
     [value]="stats.roomsInUse + '/' + stats.totalRooms"
     label="Rooms in Use"
-    [clickable]="true">
+    [clickable]="true"
+    (cardClick)="navigateTo('/rooms')">
   </app-stat-card>
 
   <app-stat-card
@@ -34,12 +42,13 @@
     iconBg="rgba(245, 158, 11, 0.1)"
     [value]="stats.pendingAlerts"
     label="Pending Alerts"
-    [clickable]="true">
+    [clickable]="true"
+    (cardClick)="scrollToAlerts()">
   </app-stat-card>
 </div>
 
 <!-- Main Content Grid -->
-<div class="dashboard-grid">
+<div class="dashboard-grid" *ngIf="!loading">
   <!-- Today's Schedule -->
   <div class="card schedule-card">
     <div class="card-header">
@@ -53,7 +62,7 @@
         </div>
         <div class="appointment-info">
           <div class="patient-row">
-            <span class="patient-id">Patient #{{ apt.patientId }}</span>
+            <span class="patient-id">{{ getPatientName(apt.patientId) }}</span>
             <span class="status-badge" [style.background]="getStatusColor(apt.status)">
               {{ apt.status }}
             </span>
@@ -65,7 +74,7 @@
           </div>
         </div>
         <div class="actions">
-          <button class="action-btn" title="Check In"><i class="fa-solid fa-check"></i></button>
+          <button class="action-btn" title="Check In" (click)="checkIn(apt)" *ngIf="apt.status === 'scheduled'"><i class="fa-solid fa-check"></i></button>
         </div>
       </div>
       <div class="empty-state" *ngIf="todayAppointments.length === 0">
@@ -75,7 +84,7 @@
   </div>
 
   <!-- Alerts & Notifications -->
-  <div class="card alerts-card">
+  <div class="card alerts-card" id="alerts-section">
     <div class="card-header">
       <h3>Alerts & Notifications</h3>
       <span class="badge" *ngIf="alerts.length > 0">{{ alerts.length }}</span>
@@ -87,6 +96,9 @@
           <span class="alert-title">{{ alert.title }}</span>
           <span class="alert-message">{{ alert.message }}</span>
         </div>
+        <button class="alert-dismiss" title="Dismiss" (click)="dismissAlert(alert)">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
       </div>
       <div class="empty-state" *ngIf="alerts.length === 0">
         <p>No pending alerts</p>
@@ -101,14 +113,15 @@
       <a routerLink="/rooms" class="view-all">Manage <i class="fa-solid fa-arrow-right"></i></a>
     </div>
     <div class="rooms-grid">
-      <div class="room-item" *ngFor="let room of rooms" [class.active]="room.isActive">
+      <div class="room-item" *ngFor="let room of rooms" [class.active]="room.isActive" [class.occupied]="isRoomOccupied(room.id)">
         <div class="room-icon"><i class="fa-solid fa-hospital"></i></div>
         <div class="room-info">
           <span class="room-name">{{ room.name }}</span>
           <span class="room-type">{{ room.type }}</span>
+          <span class="room-patient" *ngIf="getRoomCurrentPatient(room.id)">{{ getRoomCurrentPatient(room.id) }}</span>
         </div>
-        <div class="room-status" [class.available]="room.isActive">
-          {{ room.isActive ? 'Available' : 'Unavailable' }}
+        <div class="room-status" [class.available]="room.isActive && !isRoomOccupied(room.id)" [class.in-use]="isRoomOccupied(room.id)">
+          {{ !room.isActive ? 'Unavailable' : isRoomOccupied(room.id) ? 'In Use' : 'Available' }}
         </div>
       </div>
     </div>

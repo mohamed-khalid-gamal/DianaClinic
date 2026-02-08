@@ -1,25 +1,35 @@
-<app-page-header 
-  title="Services" 
+<app-page-header
+  title="Services"
   subtitle="Manage service menu and pricing configurations">
-  <button class="btn btn-primary" (click)="openAddModal()">
-    + Add Service
-  </button>
+  <div class="header-actions">
+    <button class="btn btn-outline" (click)="openCategoryModal()">
+      <i class="fa-solid fa-tags"></i> Manage Categories
+    </button>
+    <button class="btn btn-primary" (click)="openAddModal()">
+      + Add Service
+    </button>
+  </div>
 </app-page-header>
 
+<div class="page-loading" *ngIf="loading">
+  <div class="spinner"></div>
+  <span class="loading-text">Loading services...</span>
+</div>
+
 <!-- Category Tabs -->
-<div class="category-tabs">
+<div class="category-tabs" *ngIf="!loading">
   <button [class.active]="selectedCategory === 'all'" (click)="selectedCategory = 'all'">
     All Services
   </button>
-  <button *ngFor="let cat of categories" 
-          [class.active]="selectedCategory === cat.id" 
+  <button *ngFor="let cat of categories"
+          [class.active]="selectedCategory === cat.id"
           (click)="selectedCategory = cat.id">
     {{ cat.name }}
   </button>
 </div>
 
 <!-- Services Grid -->
-<div class="services-grid">
+<div class="services-grid" *ngIf="!loading">
   <div class="service-card" *ngFor="let service of filteredServices">
     <div class="service-header">
       <div class="service-icon"><i [class]="getCategoryIcon(service.categoryId)"></i></div>
@@ -31,9 +41,9 @@
         {{ service.isActive ? 'Active' : 'Inactive' }}
       </span>
     </div>
-    
+
     <p class="description" *ngIf="service.description">{{ service.description }}</p>
-    
+
     <div class="service-meta">
       <div class="meta-item">
         <span class="label">Duration</span>
@@ -44,61 +54,65 @@
         <span class="value price">{{ getMainPrice(service) }}</span>
       </div>
     </div>
-    
+
     <div class="pricing-types">
       <span class="pricing-tag" *ngFor="let type of getPricingTypes(service)">
         {{ type | titlecase }}
       </span>
     </div>
-    
+
     <div class="service-actions">
       <button class="btn btn-primary" (click)="openEditModal(service)"><i class="fa-solid fa-pen-to-square"></i> Edit</button>
+      <button class="btn btn-outline" (click)="deleteService(service)"><i class="fa-solid fa-trash"></i> Delete</button>
     </div>
   </div>
 </div>
 
 <!-- Add/Edit Service Modal -->
-<app-modal 
-  [isOpen]="showModal" 
+<app-modal
+  [isOpen]="showModal"
   [title]="isEditMode ? 'Edit Service' : 'Add New Service'"
   maxWidth="750px"
   (closed)="closeModal()"
-  (confirmed)="saveService()">
-  
-  <div class="modal-content">
+  (confirmed)="saveService(serviceFormRef)">
+
+  <form #serviceFormRef="ngForm" class="modal-content">
     <!-- Basic Info -->
     <div class="form-section">
       <h4>Basic Information</h4>
       <div class="form-grid">
         <div class="form-group">
           <label>Service Name *</label>
-          <input type="text" [(ngModel)]="serviceForm.name" placeholder="e.g., Full Body Laser">
+          <input type="text" name="serviceName" required [(ngModel)]="serviceForm.name" placeholder="e.g., Full Body Laser" #serviceName="ngModel">
+          <span class="error-text" *ngIf="serviceName.invalid && (serviceName.touched || serviceName.dirty)">Service name is required</span>
         </div>
-        
+
         <div class="form-group">
           <label>Category *</label>
-          <select [(ngModel)]="serviceForm.categoryId">
+          <select name="categoryId" required [(ngModel)]="serviceForm.categoryId" #categoryId="ngModel">
             <option value="">Select category</option>
             <option *ngFor="let cat of categories" [value]="cat.id">{{ cat.name }}</option>
           </select>
+          <span class="error-text" *ngIf="categoryId.invalid && (categoryId.touched || categoryId.dirty)">Category is required</span>
         </div>
-        
+
         <div class="form-group">
           <label>Duration (minutes) *</label>
-          <input type="number" [(ngModel)]="serviceForm.duration" min="5" step="5">
+          <input type="number" name="duration" required [(ngModel)]="serviceForm.duration" min="5" step="5" #duration="ngModel">
+          <span class="error-text" *ngIf="duration.invalid && (duration.touched || duration.dirty)">Duration is required</span>
         </div>
-        
+
         <div class="form-group">
           <label>Status</label>
-          <select [(ngModel)]="serviceForm.isActive">
+          <select name="status" [(ngModel)]="serviceForm.isActive">
             <option [ngValue]="true">Active</option>
             <option [ngValue]="false">Inactive</option>
           </select>
         </div>
-        
+
         <div class="form-group full-width">
           <label>Description</label>
-          <textarea [(ngModel)]="serviceForm.description" rows="2" placeholder="Brief description..."></textarea>
+          <textarea name="description" [(ngModel)]="serviceForm.description" rows="2" placeholder="Brief description..."></textarea>
         </div>
       </div>
     </div>
@@ -107,11 +121,11 @@
     <div class="form-section">
       <h4>Resource Requirements</h4>
       <p class="section-hint">Specify which rooms and doctors differ for this service to enforce booking rules.</p>
-      
+
       <div class="resource-group">
         <label>Required Room Types</label>
         <div class="tags-selector">
-          <div class="tag-option" 
+          <div class="tag-option"
                *ngFor="let type of roomTypes"
                [class.selected]="hasRoomType(type)"
                (click)="toggleRoomType(type)">
@@ -124,7 +138,7 @@
         <label>Qualified Doctors (Optional)</label>
         <p class="small-hint">If selected, only these doctors can perform this service. Leave empty for all.</p>
         <div class="tags-selector">
-          <div class="tag-option" 
+          <div class="tag-option"
                *ngFor="let doctor of doctors"
                [class.selected]="isDoctorAllowed(doctor.id)"
                (click)="toggleDoctor(doctor.id)">
@@ -133,14 +147,14 @@
         </div>
       </div>
     </div>
-    
+
     <!-- Pricing Models -->
     <div class="form-section">
       <h4>Pricing Models</h4>
       <p class="section-hint">Select one or more pricing methods for this service</p>
-      
+
       <div class="pricing-options">
-        <div class="pricing-option" 
+        <div class="pricing-option"
              *ngFor="let type of pricingTypes"
              [class.selected]="hasPricingType(type.key)"
              (click)="togglePricingType(type.key)">
@@ -153,7 +167,7 @@
           </div>
         </div>
       </div>
-      
+
       <!-- Pricing Details -->
       <div class="pricing-details" *ngIf="serviceForm.pricingModels?.length">
         <!-- Fixed Price -->
@@ -161,28 +175,28 @@
           <h5>Fixed Session Price</h5>
           <div class="form-group">
             <label>Price (EGP)</label>
-            <input type="number" [(ngModel)]="getPricingModel('fixed')!.basePrice" min="0">
+            <input type="number" [(ngModel)]="getPricingModel('fixed')!.basePrice" [ngModelOptions]="{ standalone: true }" min="0">
           </div>
         </div>
-        
+
         <!-- Pulse-Based -->
         <div class="price-config" *ngIf="hasPricingType('pulse')">
           <h5>Pulse-Based Pricing</h5>
           <div class="form-row">
             <div class="form-group">
               <label>Base Fee (EGP)</label>
-              <input type="number" [(ngModel)]="getPricingModel('pulse')!.basePrice" min="0">
+              <input type="number" [(ngModel)]="getPricingModel('pulse')!.basePrice" [ngModelOptions]="{ standalone: true }" min="0">
             </div>
             <div class="form-group">
               <label>Price per Pulse (EGP)</label>
-              <input type="number" [(ngModel)]="getPricingModel('pulse')!.pricePerUnit" min="0" step="0.1">
+              <input type="number" [(ngModel)]="getPricingModel('pulse')!.pricePerUnit" [ngModelOptions]="{ standalone: true }" min="0" step="0.1">
             </div>
           </div>
           <div class="formula-preview">
             Formula: Base Fee + (Pulses Used × Price per Pulse)
           </div>
         </div>
-        
+
         <!-- Area-Based -->
         <div class="price-config" *ngIf="hasPricingType('area')">
           <h5>Area/Tier Pricing</h5>
@@ -194,21 +208,86 @@
             </div>
           </div>
           <div class="add-area-form">
-            <input type="text" [(ngModel)]="newArea.name" placeholder="Area name (e.g., Full Legs)">
-            <input type="number" [(ngModel)]="newArea.price" placeholder="Price" min="0">
+            <input type="text" [(ngModel)]="newArea.name" [ngModelOptions]="{ standalone: true }" placeholder="Area name (e.g., Full Legs)">
+            <input type="number" [(ngModel)]="newArea.price" [ngModelOptions]="{ standalone: true }" placeholder="Price" min="0">
             <button class="btn btn-outline" (click)="addArea()">Add</button>
           </div>
         </div>
-        
+
         <!-- Time-Based -->
         <div class="price-config" *ngIf="hasPricingType('time')">
           <h5>Time-Based Pricing</h5>
           <div class="form-group">
             <label>Price per Minute (EGP)</label>
-            <input type="number" [(ngModel)]="getPricingModel('time')!.pricePerUnit" min="0" step="0.5">
+            <input type="number" [(ngModel)]="getPricingModel('time')!.pricePerUnit" [ngModelOptions]="{ standalone: true }" min="0" step="0.5">
           </div>
         </div>
       </div>
     </div>
+
+    <!-- Consumables -->
+    <div class="form-section">
+      <h4>Consumables Used</h4>
+      <p class="section-hint">Specify which inventory items are consumed per session of this service.</p>
+
+      <div class="consumable-list" *ngIf="serviceForm.consumables?.length">
+        <div class="consumable-row" *ngFor="let cons of serviceForm.consumables; let i = index">
+          <select [ngModel]="cons.inventoryItemId" (ngModelChange)="cons.inventoryItemId = $event" [ngModelOptions]="{ standalone: true }">
+            <option value="">Select item</option>
+            <option *ngFor="let item of inventoryItems" [value]="item.id">{{ item.name }} ({{ item.unit }})</option>
+          </select>
+          <input type="number" [ngModel]="cons.quantity" (ngModelChange)="cons.quantity = $event" [ngModelOptions]="{ standalone: true }" min="1" placeholder="Qty">
+          <button type="button" class="btn btn-outline btn-sm" (click)="removeConsumable(i)">×</button>
+        </div>
+      </div>
+      <button type="button" class="btn btn-outline btn-sm" (click)="addConsumable()">+ Add Consumable</button>
+    </div>
+  </form>
+</app-modal>
+
+<!-- Category Management Modal -->
+<app-modal
+  [isOpen]="showCategoryModal"
+  title="Manage Categories"
+  maxWidth="550px"
+  (closed)="closeCategoryModal()"
+  [showFooter]="false">
+
+  <div class="category-manager">
+    <div class="category-add-form">
+      <input type="text" [(ngModel)]="newCategoryName" placeholder="New category name..." class="category-input">
+      <button class="btn btn-primary btn-sm" (click)="addNewCategory()" [disabled]="!newCategoryName.trim()">
+        <i class="fa-solid fa-plus"></i> Add
+      </button>
+    </div>
+
+    <div class="category-list" *ngIf="categories.length; else noCats">
+      <div class="category-item" *ngFor="let cat of categories">
+        <div class="category-info" *ngIf="editingCategoryId !== cat.id">
+          <span class="cat-name">{{ cat.name }}</span>
+          <span class="cat-count">{{ getServiceCountForCategory(cat.id) }} services</span>
+        </div>
+        <div class="category-edit" *ngIf="editingCategoryId === cat.id">
+          <input type="text" [(ngModel)]="editingCategoryName" class="category-input">
+        </div>
+        <div class="category-actions">
+          <button *ngIf="editingCategoryId !== cat.id" class="btn btn-outline btn-sm" (click)="startEditCategory(cat)">
+            <i class="fa-solid fa-pen"></i>
+          </button>
+          <button *ngIf="editingCategoryId === cat.id" class="btn btn-primary btn-sm" (click)="saveCategory(cat)">
+            <i class="fa-solid fa-check"></i>
+          </button>
+          <button *ngIf="editingCategoryId === cat.id" class="btn btn-outline btn-sm" (click)="cancelEditCategory()">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+          <button *ngIf="editingCategoryId !== cat.id" class="btn btn-outline btn-sm btn-danger" (click)="deleteCategory(cat)" [disabled]="getServiceCountForCategory(cat.id) > 0">
+            <i class="fa-solid fa-trash"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+    <ng-template #noCats>
+      <div class="empty-state"><p>No categories yet. Add one above.</p></div>
+    </ng-template>
   </div>
 </app-modal>

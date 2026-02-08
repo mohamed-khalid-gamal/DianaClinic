@@ -1,5 +1,5 @@
-<app-page-header 
-  title="Doctors" 
+<app-page-header
+  title="Doctors"
   subtitle="Manage doctor profiles and schedules">
   <button class="btn btn-primary" (click)="openAddModal()">
     + Add Doctor
@@ -13,45 +13,48 @@
   (delete)="deleteDoctor($event)">
 </app-data-table>
 
-<app-modal 
-  [isOpen]="showModal" 
+<app-modal
+  [isOpen]="showModal"
   [title]="isEditMode ? 'Edit Doctor' : 'Add New Doctor'"
   (closed)="closeModal()"
-  (confirmed)="saveDoctor()">
-  
-  <div class="modal-content">
+  (confirmed)="saveDoctor(doctorFormRef)">
+
+  <form #doctorFormRef="ngForm" class="modal-content">
     <div class="form-section">
       <h4>Basic Information</h4>
       <div class="form-grid">
         <div class="form-group full-width">
           <label>Full Name *</label>
-          <input type="text" [(ngModel)]="doctorForm.name" placeholder="Dr. Full Name">
+          <input type="text" name="doctorName" required [(ngModel)]="doctorForm.name" placeholder="Dr. Full Name" #doctorName="ngModel">
+          <span class="error-text" *ngIf="doctorName.invalid && (doctorName.touched || doctorName.dirty)">Doctor name is required</span>
         </div>
-        
+
         <div class="form-group">
           <label>Specialty *</label>
-          <select [(ngModel)]="doctorForm.specialty">
+          <select name="specialty" required [(ngModel)]="doctorForm.specialty" #specialty="ngModel">
             <option value="">Select specialty</option>
             <option value="Dermatology">Dermatology</option>
             <option value="Cosmetic Surgery">Cosmetic Surgery</option>
             <option value="Laser Specialist">Laser Specialist</option>
             <option value="Aesthetician">Aesthetician</option>
           </select>
+          <span class="error-text" *ngIf="specialty.invalid && (specialty.touched || specialty.dirty)">Specialty is required</span>
         </div>
-        
+
         <div class="form-group">
           <label>Phone *</label>
-          <input type="tel" [(ngModel)]="doctorForm.phone" placeholder="+20 xxx xxx xxxx">
+          <input type="tel" name="phone" required [(ngModel)]="doctorForm.phone" placeholder="+20 xxx xxx xxxx" #doctorPhone="ngModel">
+          <span class="error-text" *ngIf="doctorPhone.invalid && (doctorPhone.touched || doctorPhone.dirty)">Phone is required</span>
         </div>
-        
+
         <div class="form-group">
           <label>Email</label>
-          <input type="email" [(ngModel)]="doctorForm.email" placeholder="doctor@clinic.com">
+          <input type="email" name="email" [(ngModel)]="doctorForm.email" placeholder="doctor@clinic.com">
         </div>
-        
+
         <div class="form-group">
           <label>Status</label>
-          <select [(ngModel)]="doctorForm.isActive">
+          <select name="status" [(ngModel)]="doctorForm.isActive">
             <option [ngValue]="true">Active</option>
             <option [ngValue]="false">Inactive</option>
           </select>
@@ -62,7 +65,7 @@
     <div class="form-section">
       <h4>Schedule Configuration</h4>
       <p class="hint">Assign shifts to specific days, times, and rooms.</p>
-      
+
       <div class="shifts-list">
         <div class="shift-item" *ngFor="let shift of doctorForm.workingHours; let i = index">
           <div class="shift-info">
@@ -81,13 +84,13 @@
       <div class="add-shift-form">
         <h5>Add New Shift</h5>
         <div class="shift-inputs">
-          <select [(ngModel)]="newShift.dayOfWeek">
-            <option *ngFor="let day of days" [value]="day.id">{{ day.name }}</option>
+          <select name="newShiftDay" [(ngModel)]="newShift.dayOfWeek">
+            <option *ngFor="let day of days" [ngValue]="day.id">{{ day.name }}</option>
           </select>
-          <input type="time" [(ngModel)]="newShift.startTime">
+          <input type="time" name="newShiftStart" [(ngModel)]="newShift.startTime">
           <span class="separator">to</span>
-          <input type="time" [(ngModel)]="newShift.endTime">
-          <select [(ngModel)]="newShift.roomId">
+          <input type="time" name="newShiftEnd" [(ngModel)]="newShift.endTime">
+          <select name="newShiftRoom" [(ngModel)]="newShift.roomId">
             <option value="">Any Room</option>
             <option *ngFor="let room of rooms" [value]="room.id">{{ room.name }}</option>
           </select>
@@ -95,5 +98,5 @@
         </div>
       </div>
     </div>
-  </div>
+  </form>
 </app-modal>

@@ -3,8 +3,7 @@
     <i class="fa-solid fa-bars"></i>
   </button>
   <div class="mobile-logo">
-    <i class="fa-solid fa-heart-pulse"></i>
-    <span>Merve Aesthetics</span>
+    <img src="/logo-final-2.png" alt="Merve Aesthetics" class="logo-img">
   </div>
 </div>
 
@@ -18,8 +17,7 @@
      [class.mobile-open]="mobileMenuOpen"
      [class.mobile]="isMobile">
   <div class="logo-area">
-    <div class="logo-icon"><i class="fa-solid fa-heart-pulse"></i></div>
-    <span class="logo-text" *ngIf="!collapsed">Merve Aesthetics</span>
+    <img src="/logo-final-2.png" alt="Merve Aesthetics" class="logo-img" [class.icon-only]="collapsed">
     <button class="close-mobile" *ngIf="isMobile" (click)="closeMobileMenu()">
       <i class="fa-solid fa-xmark"></i>
     </button>

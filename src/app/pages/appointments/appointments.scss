@@ -70,6 +70,116 @@
   }
 }
 
+// Search inline
+.search-inline {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  padding: 0.25rem 0.75rem;
+
+  i { color: var(--text-muted); font-size: 0.875rem; }
+
+  input {
+    border: none;
+    background: transparent;
+    font-size: 0.875rem;
+    color: var(--text-main);
+    outline: none;
+    width: 160px;
+
+    &::placeholder { color: var(--text-muted); }
+  }
+}
+
+// Week View
+.week-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.week-day {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  min-height: 400px;
+  overflow: hidden;
+}
+
+.week-day-header {
+  padding: 0.75rem;
+  text-align: center;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-main);
+
+  &.today {
+    background: rgba(14, 116, 144, 0.1);
+    border-bottom-color: var(--primary);
+  }
+
+  .day-name {
+    display: block;
+    font-weight: 600;
+    font-size: 0.8125rem;
+  }
+
+  .day-date {
+    display: block;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+  }
+}
+
+.week-day-appointments {
+  padding: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.week-apt-card {
+  padding: 0.5rem;
+  border-left: 3px solid var(--primary);
+  background: var(--bg-main);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  font-size: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.125rem;
+
+  .week-apt-time {
+    color: var(--text-muted);
+    font-size: 0.6875rem;
+  }
+
+  .week-apt-patient {
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+}
+
+.week-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 80px;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
 // Schedule Grid
 .schedule-grid {
   display: flex;
@@ -751,7 +861,7 @@
 
   &:hover {
     border-color: var(--primary-color);
-    background: white;
+    background: var(--bg-card);
   }
 
   &.selected {

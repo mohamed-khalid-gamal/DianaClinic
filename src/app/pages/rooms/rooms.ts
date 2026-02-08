@@ -1,6 +1,6 @@
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { FormsModule, NgForm } from '@angular/forms';
 import { PageHeaderComponent, DataTableComponent, ModalComponent, TableColumn } from '../../components/shared';
 import { DataService } from '../../services/data.service';
 import { SweetAlertService } from '../../services/sweet-alert.service';
@@ -40,11 +40,14 @@ export class Rooms implements OnInit {
   }
 
   loadRooms() {
-    this.dataService.getRooms().subscribe(rooms => {
-      this.rooms = rooms.map(r => ({
-        ...r,
-        status: r.isActive ? 'Available' : 'Unavailable'
-      }));
+    this.dataService.getRooms().subscribe({
+      next: rooms => {
+        this.rooms = rooms.map(r => ({
+          ...r,
+          status: r.isActive ? 'Available' : 'Unavailable'
+        }));
+      },
+      error: () => this.alertService.error('Failed to load rooms. Please refresh.')
     });
   }
 
@@ -64,27 +67,59 @@ export class Rooms implements OnInit {
     this.showModal = false;
   }
 
-  saveRoom() {
+  saveRoom(form?: NgForm) {
+    if (form && form.invalid) {
+      form.form.markAllAsTouched();
+      this.alertService.validationError('Please fill all required fields');
+      return;
+    }
+
+    const roomNameValue = this.roomForm.name?.trim();
+    const roomTypeValue = this.roomForm.type?.trim();
+
+    if (!roomNameValue) {
+      this.alertService.validationError('Room name is required');
+      return;
+    }
+    if (!roomTypeValue) {
+      this.alertService.validationError('Room type is required');
+      return;
+    }
+
     const roomName = this.roomForm.name || 'Room';
     if (!this.isEditMode) {
-      this.dataService.addRoom(this.roomForm as Room);
-      this.alertService.created('Room', roomName);
+      this.dataService.addRoom(this.roomForm as Room).subscribe({
+        next: () => {
+          this.alertService.created('Room', roomName);
+          this.loadRooms();
+          this.closeModal();
+        },
+        error: () => this.alertService.toast('Failed to create room', 'error')
+      });
     } else {
-      this.alertService.updated('Room', roomName);
+      this.dataService.updateRoom(this.roomForm as Room).subscribe({
+        next: () => {
+          this.alertService.updated('Room', roomName);
+          this.loadRooms();
+          this.closeModal();
+        },
+        error: () => this.alertService.toast('Failed to update room', 'error')
+      });
     }
-    this.loadRooms();
-    this.closeModal();
   }
 
   async deleteRoom(room: Room) {
     const confirmed = await this.alertService.confirmDelete(room.name, 'Room');
     if (confirmed) {
-      this.dataService.deleteRoom(room.id);
-      // Immediately update local array for instant UI refresh
-      this.rooms = this.rooms.filter(r => r.id !== room.id);
-      this.alertService.deleted('Room', room.name);
+      this.dataService.deleteRoom(room.id).subscribe({
+        next: () => {
+          this.rooms = this.rooms.filter(r => r.id !== room.id);
+          this.alertService.deleted('Room', room.name);
+          this.cdr.markForCheck();
+        },
+        error: () => this.alertService.toast('Failed to delete room', 'error')
+      });
     }
-    this.cdr.markForCheck();
   }
 
   getEmptyForm(): Partial<Room> {
@@ -96,5 +131,13 @@ export class Rooms implements OnInit {
       capacity: 1,
       isActive: true
     };
+  }
+
+  joinArray(arr?: string[]): string {
+    return (arr || []).join(', ');
+  }
+
+  splitText(text: string): string[] {
+    return text.split(',').map(s => s.trim()).filter(s => s.length > 0);
   }
 }

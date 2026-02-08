@@ -1,6 +1,7 @@
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { FormsModule, NgForm } from '@angular/forms';
+import { forkJoin } from 'rxjs';
 import { PageHeaderComponent, DataTableComponent, ModalComponent, TableColumn } from '../../components/shared';
 import { DataService } from '../../services/data.service';
 import { SweetAlertService } from '../../services/sweet-alert.service';
@@ -49,16 +50,22 @@ export class Doctors implements OnInit {
   ) {}
 
   ngOnInit() {
-    this.loadDoctors();
-    this.dataService.getRooms().subscribe(rooms => this.rooms = rooms);
+    this.loadData();
   }
 
-  loadDoctors() {
-    this.dataService.getDoctors().subscribe(doctors => {
-      this.doctors = doctors.map(d => ({
-        ...d,
-        status: d.isActive ? 'Active' : 'Inactive'
-      }));
+  loadData() {
+    forkJoin({
+      doctors: this.dataService.getDoctors(),
+      rooms: this.dataService.getRooms()
+    }).subscribe({
+      next: ({ doctors, rooms }) => {
+        this.doctors = doctors.map(d => ({
+          ...d,
+          status: d.isActive ? 'Active' : 'Inactive'
+        }));
+        this.rooms = rooms;
+      },
+      error: () => this.alertService.error('Failed to load doctors. Please refresh.')
     });
   }
 
@@ -97,28 +104,64 @@ export class Doctors implements OnInit {
     return this.rooms.find(r => r.id === roomId)?.name || 'Any Room';
   }
 
-  saveDoctor() {
+  saveDoctor(form?: NgForm) {
+    if (form && form.invalid) {
+      form.form.markAllAsTouched();
+      this.alertService.validationError('Please fill all required fields');
+      return;
+    }
+
+    const nameValue = this.doctorForm.name?.trim();
+    const specialtyValue = this.doctorForm.specialty?.trim();
+    const phoneValue = this.doctorForm.phone?.trim();
+
+    if (!nameValue) {
+      this.alertService.validationError('Doctor name is required');
+      return;
+    }
+    if (!specialtyValue) {
+      this.alertService.validationError('Specialty is required');
+      return;
+    }
+    if (!phoneValue) {
+      this.alertService.validationError('Phone is required');
+      return;
+    }
+
     const doctorName = this.doctorForm.name || 'Doctor';
     if (this.isEditMode) {
-      // Update
-      this.alertService.updated('Doctor', doctorName);
+      this.dataService.updateDoctor(this.doctorForm as Doctor).subscribe({
+        next: () => {
+          this.alertService.updated('Doctor', doctorName);
+          this.loadData();
+          this.closeModal();
+        },
+        error: () => this.alertService.toast('Failed to update doctor', 'error')
+      });
     } else {
-      this.dataService.addDoctor(this.doctorForm as Doctor);
-      this.alertService.created('Doctor', doctorName);
+      this.dataService.addDoctor(this.doctorForm as Doctor).subscribe({
+        next: () => {
+          this.alertService.created('Doctor', doctorName);
+          this.loadData();
+          this.closeModal();
+        },
+        error: () => this.alertService.toast('Failed to create doctor', 'error')
+      });
     }
-    this.loadDoctors();
-    this.closeModal();
   }
 
   async deleteDoctor(doctor: Doctor) {
     const confirmed = await this.alertService.confirmDelete(doctor.name, 'Doctor');
     if (confirmed) {
-      this.dataService.deleteDoctor(doctor.id);
-      // Immediately update local array for instant UI refresh
-      this.doctors = this.doctors.filter(d => d.id !== doctor.id);
-      this.alertService.deleted('Doctor', doctor.name);
+      this.dataService.deleteDoctor(doctor.id).subscribe({
+        next: () => {
+          this.doctors = this.doctors.filter(d => d.id !== doctor.id);
+          this.alertService.deleted('Doctor', doctor.name);
+          this.cdr.markForCheck();
+        },
+        error: () => this.alertService.toast('Failed to delete doctor', 'error')
+      });
     }
-    this.cdr.markForCheck();
   }
 
   getEmptyForm(): Partial<Doctor> {

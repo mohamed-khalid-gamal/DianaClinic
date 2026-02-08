@@ -1,12 +1,14 @@
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { FormsModule, NgForm } from '@angular/forms';
 import { RouterModule } from '@angular/router';
+import { forkJoin } from 'rxjs';
+import { switchMap } from 'rxjs/operators';
 import { PageHeaderComponent, DataTableComponent, ModalComponent, TableColumn } from '../../components/shared';
 import { DataService } from '../../services/data.service';
 import { WalletService } from '../../services/wallet.service';
 import { SweetAlertService } from '../../services/sweet-alert.service';
-import { Patient, PatientWallet, ServiceCredit } from '../../models';
+import { Patient, PatientWallet, ServiceCredit, Appointment } from '../../models';
 
 @Component({
   selector: 'app-patients',
@@ -17,6 +19,7 @@ import { Patient, PatientWallet, ServiceCredit } from '../../models';
 })
 export class Patients implements OnInit {
   patients: Patient[] = [];
+  loading = true;
   selectedPatient: Patient | null = null;
   selectedWallet: PatientWallet | null = null;
 
@@ -50,13 +53,25 @@ export class Patients implements OnInit {
   }
 
   loadPatients() {
-    this.dataService.getPatients().subscribe(patients => {
-      this.patients = patients.map(p => ({
-        ...p,
-        fullName: `${p.firstName} ${p.lastName}`,
-        age: this.calculateAge(p.dateOfBirth),
-        lastVisit: new Date() // Mock
-      }));
+    forkJoin({
+      patients: this.dataService.getPatients(),
+      appointments: this.dataService.getAppointments()
+    }).subscribe({
+      next: ({ patients, appointments }) => {
+        this.patients = patients.map(p => {
+          const patientApts = appointments
+            .filter(a => a.patientId === p.id && (a.status === 'completed' || a.status === 'billed'))
+            .sort((a, b) => new Date(b.scheduledStart).getTime() - new Date(a.scheduledStart).getTime());
+          return {
+            ...p,
+            fullName: `${p.firstName} ${p.lastName}`,
+            age: this.calculateAge(p.dateOfBirth),
+            lastVisit: patientApts.length > 0 ? new Date(patientApts[0].scheduledStart) : undefined
+          };
+        });
+        this.loading = false;
+      },
+      error: () => this.alertService.error('Failed to load patients. Please refresh.')
     });
   }
 
@@ -87,33 +102,77 @@ export class Patients implements OnInit {
     this.showModal = false;
   }
 
-  savePatient() {
+  savePatient(form?: NgForm) {
+    if (form && form.invalid) {
+      form.form.markAllAsTouched();
+      this.alertService.validationError('Please fill all required fields');
+      return;
+    }
+
+    const firstName = this.patientForm.firstName?.trim();
+    const lastName = this.patientForm.lastName?.trim();
+    const phone = this.patientForm.phone?.trim();
+
+    if (!firstName) {
+      this.alertService.validationError('First name is required');
+      return;
+    }
+    if (!lastName) {
+      this.alertService.validationError('Last name is required');
+      return;
+    }
+    if (!phone) {
+      this.alertService.validationError('Phone is required');
+      return;
+    }
+    if (!this.patientForm.dateOfBirth) {
+      this.alertService.validationError('Date of birth is required');
+      return;
+    }
+    if (!this.patientForm.gender) {
+      this.alertService.validationError('Gender is required');
+      return;
+    }
+
     const patientName = `${this.patientForm.firstName} ${this.patientForm.lastName}`;
     if (this.isEditMode && this.patientForm.id) {
-      this.dataService.updatePatient(this.patientForm as Patient);
-      this.alertService.updated('Patient', patientName);
+      this.dataService.updatePatient(this.patientForm as Patient).subscribe({
+        next: () => {
+          this.alertService.updated('Patient', patientName);
+          this.loadPatients();
+          this.closeModal();
+        },
+        error: () => this.alertService.toast('Failed to update patient', 'error')
+      });
     } else {
       this.dataService.addPatient({
         ...this.patientForm,
         createdAt: new Date(),
         updatedAt: new Date()
-      } as Patient);
-      this.alertService.created('Patient', patientName);
+      } as Patient).subscribe({
+        next: () => {
+          this.alertService.created('Patient', patientName);
+          this.loadPatients();
+          this.closeModal();
+        },
+        error: () => this.alertService.toast('Failed to create patient', 'error')
+      });
     }
-    this.loadPatients();
-    this.closeModal();
   }
 
   async deletePatient(patient: Patient) {
     const patientName = `${patient.firstName} ${patient.lastName}`;
     const confirmed = await this.alertService.confirmDelete(patientName, 'Patient');
     if (confirmed) {
-      this.dataService.deletePatient(patient.id);
-      // Immediately update local array for instant UI refresh
-      this.patients = this.patients.filter(p => p.id !== patient.id);
-      this.alertService.deleted('Patient', patientName);
+      this.dataService.deletePatient(patient.id).subscribe({
+        next: () => {
+          this.patients = this.patients.filter(p => p.id !== patient.id);
+          this.alertService.deleted('Patient', patientName);
+          this.cdr.markForCheck();
+        },
+        error: () => this.alertService.toast('Failed to delete patient', 'error')
+      });
     }
-    this.cdr.markForCheck();
   }
 
   viewPatientDetails(patient: Patient) {
@@ -123,8 +182,11 @@ export class Patients implements OnInit {
   }
 
   loadWallet(patientId: string) {
-    this.walletService.getWallet(patientId).subscribe(wallet => {
-      this.selectedWallet = wallet;
+    this.walletService.getWallet(patientId).subscribe({
+      next: wallet => {
+        this.selectedWallet = wallet;
+      },
+      error: () => this.alertService.error('Failed to load wallet data.')
     });
   }
 
@@ -144,21 +206,41 @@ export class Patients implements OnInit {
     this.showTopUpModal = false;
   }
 
-  confirmTopUp() {
+  confirmTopUp(form?: NgForm) {
+    if (form && form.invalid) {
+      form.form.markAllAsTouched();
+      this.alertService.validationError('Please enter a valid amount');
+      return;
+    }
+
+    if (!this.selectedPatient) {
+      this.alertService.validationError('Select a patient before topping up');
+      return;
+    }
+    if (this.topUpAmount <= 0) {
+      this.alertService.validationError('Top up amount must be greater than 0');
+      return;
+    }
+
     if (this.selectedPatient && this.topUpAmount > 0) {
       const patientName = `${this.selectedPatient.firstName} ${this.selectedPatient.lastName}`;
-      this.walletService.addCashBalance(this.selectedPatient.id, this.topUpAmount);
-      this.dataService.addPatientTransaction({
-        patientId: this.selectedPatient.id,
-        date: new Date(),
-        type: 'wallet_topup',
-        description: 'Wallet top-up',
-        amount: this.topUpAmount,
-        method: 'cash'
+      this.walletService.addCashBalance(this.selectedPatient.id, this.topUpAmount).pipe(
+        switchMap(() => this.dataService.addPatientTransaction({
+          patientId: this.selectedPatient!.id,
+          date: new Date(),
+          type: 'wallet_topup',
+          description: 'Wallet top-up',
+          amount: this.topUpAmount,
+          method: 'cash'
+        }))
+      ).subscribe({
+        next: () => {
+          this.loadWallet(this.selectedPatient!.id);
+          this.alertService.walletTopUp(this.topUpAmount, patientName);
+          this.closeTopUpModal();
+        },
+        error: () => this.alertService.toast('Failed to top up wallet', 'error')
       });
-      this.loadWallet(this.selectedPatient.id);
-      this.alertService.walletTopUp(this.topUpAmount, patientName);
-      this.closeTopUpModal();
     }
   }
 
@@ -186,6 +268,14 @@ export class Patients implements OnInit {
       contraindications: [],
       notes: ''
     };
+  }
+
+  joinArray(arr?: string[]): string {
+    return (arr || []).join(', ');
+  }
+
+  splitText(text: string): string[] {
+    return text.split(',').map(s => s.trim()).filter(s => s.length > 0);
   }
 
   getSkinTypeLabel(type?: number): string {

@@ -33,30 +33,35 @@
       </div>
       <div class="wallet-item">
         <span class="label">Credits Remaining</span>
-        <span class="value">{{ totalCredits }} sessions</span>
+        <span class="value" *ngIf="creditBreakdown.length; else noBreakdown">
+          <span *ngFor="let cb of creditBreakdown; let last = last">
+            {{ cb.count }} {{ cb.unitType }}s<span *ngIf="!last">, </span>
+          </span>
+        </span>
+        <ng-template #noBreakdown><span class="value">0 credits</span></ng-template>
       </div>
     </div>
   </div>
 
   <div class="stat-grid">
     <app-stat-card
-      title="Next Appointment"
+      label="Next Appointment"
       [value]="nextAppointment ? formatDateTime(nextAppointment.scheduledStart) : 'No upcoming appointments'"
       icon="fa-solid fa-calendar-check">
     </app-stat-card>
     <app-stat-card
-      title="Last Visit"
+      label="Last Visit"
       [value]="lastVisit ? formatDateTime(lastVisit.scheduledStart) : 'No previous visits'"
       icon="fa-solid fa-clock-rotate-left">
     </app-stat-card>
     <app-stat-card
-      title="Active Credits"
-      [value]="totalCredits + ' units'"
+      label="Active Credits"
+      [value]="creditSummary"
       icon="fa-solid fa-ticket">
     </app-stat-card>
     <app-stat-card
       *ngIf="pendingPurchases.length > 0"
-      title="Pending Bills"
+      label="Pending Bills"
       [value]="pendingPurchases.length + ' packages'"
       icon="fa-solid fa-file-invoice-dollar">
     </app-stat-card>

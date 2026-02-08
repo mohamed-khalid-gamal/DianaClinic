@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { FormsModule, NgForm } from '@angular/forms';
+import { forkJoin } from 'rxjs';
 import { PageHeaderComponent, ModalComponent } from '../../components/shared';
 import { DataService } from '../../services/data.service';
 import { SweetAlertService } from '../../services/sweet-alert.service';
@@ -33,8 +34,16 @@ export class Offers implements OnInit {
   }
 
   loadData() {
-    this.dataService.getOffers().subscribe(offers => this.offers = offers);
-    this.dataService.getServices().subscribe(services => this.services = services);
+    forkJoin({
+      offers: this.dataService.getOffers(),
+      services: this.dataService.getServices()
+    }).subscribe({
+      next: ({ offers, services }) => {
+        this.offers = offers;
+        this.services = services;
+      },
+      error: () => this.alertService.error('Failed to load offers. Please refresh.')
+    });
   }
 
   get filteredOffers(): Offer[] {
@@ -66,7 +75,13 @@ export class Offers implements OnInit {
     this.showModal = false;
   }
 
-  saveOffer() {
+  saveOffer(form?: NgForm) {
+    if (form && form.invalid) {
+      form.form.markAllAsTouched();
+      this.alertService.validationError('Please fill all required fields');
+      return;
+    }
+
     if (!this.offerForm.name) {
       this.alertService.validationError('Offer Name is required');
       return;
@@ -83,30 +98,59 @@ export class Offers implements OnInit {
 
     const offerName = this.offerForm.name;
     if (this.isEditMode && this.offerForm.id) {
-      this.dataService.updateOffer(this.offerForm as Offer);
-      this.alertService.updated('Offer', offerName);
+      this.dataService.updateOffer(this.offerForm as Offer).subscribe({
+        next: () => {
+          this.alertService.updated('Offer', offerName);
+          this.loadData();
+          this.closeModal();
+        },
+        error: () => this.alertService.toast('Failed to update offer', 'error')
+      });
     } else {
-      this.dataService.addOffer(this.offerForm as Offer);
-      this.alertService.created('Offer', offerName);
+      this.dataService.addOffer(this.offerForm as Offer).subscribe({
+        next: () => {
+          this.alertService.created('Offer', offerName);
+          this.loadData();
+          this.closeModal();
+        },
+        error: () => this.alertService.toast('Failed to create offer', 'error')
+      });
     }
-
-    this.loadData();
-    this.closeModal();
   }
 
   toggleOfferStatus(offer: Offer, event?: Event) {
     if(event) event.stopPropagation();
     offer.isActive = !offer.isActive;
-    this.dataService.updateOffer(offer);
-    const status = offer.isActive ? 'activated' : 'deactivated';
-    this.alertService.toast(`Offer "${offer.name}" ${status}`, offer.isActive ? 'success' : 'warning');
+    this.dataService.updateOffer(offer).subscribe({
+      next: () => {
+        const status = offer.isActive ? 'activated' : 'deactivated';
+        this.alertService.toast(`Offer "${offer.name}" ${status}`, offer.isActive ? 'success' : 'warning');
+      },
+      error: () => {
+        offer.isActive = !offer.isActive;
+        this.alertService.error('Failed to update offer status. Please try again.');
+      }
+    });
+  }
+
+  async deleteOffer(offer: Offer) {
+    const confirmed = await this.alertService.confirmDelete(offer.name, 'Offer');
+    if (confirmed) {
+      this.dataService.deleteOffer(offer.id).subscribe({
+        next: () => {
+          this.offers = this.offers.filter(o => o.id !== offer.id);
+          this.alertService.deleted('Offer', offer.name);
+        },
+        error: () => this.alertService.error('Failed to delete offer. Please try again.')
+      });
+    }
   }
 
   // Wizard Helpers
   addCondition(type: string) {
     if (!this.offerForm.conditions) this.offerForm.conditions = [];
     this.offerForm.conditions.push({
-      id: Math.random().toString(36).substr(2, 9),
+      id: crypto.randomUUID(),
       type: type as any,
       parameters: { serviceIds: [] }
     });
@@ -136,13 +180,24 @@ export class Offers implements OnInit {
     const labels: any = {
       'service_includes': 'Must Include Services',
       'min_spend': 'Minimum Spend Amount',
-      'new_patient': 'New Patients Only'
+      'new_patient': 'New Patients Only',
+      'patient_tag': 'Patient Tag Match',
+      'date_range': 'Date Range',
+      'specific_patient': 'Specific Patients'
     };
     return labels[type] || type;
   }
 
   getServiceName(serviceId: string): string {
     return this.services.find(s => s.id === serviceId)?.name || 'Unknown';
+  }
+
+  joinArray(arr?: string[]): string {
+    return (arr || []).join(', ');
+  }
+
+  splitText(text: string): string[] {
+    return text.split(',').map(t => t.trim()).filter(t => t.length > 0);
   }
 
   formatDate(date: Date | undefined): string {
@@ -161,6 +216,7 @@ export class Offers implements OnInit {
       'bundle': 'Fixed Bundle',
       'package': 'Credit Package',
       'fixed_amount': 'Flat Discount',
+      'buyXgetY': 'Buy X Get Y',
       'conditional': 'Conditional Rule'
     };
     return map[type] || type;
@@ -175,6 +231,7 @@ export class Offers implements OnInit {
       case 'fixed_amount_off': return `EGP ${benefit.parameters.fixedAmount} Off`;
       case 'fixed_price': return `Price: EGP ${benefit.parameters.fixedPrice}`;
       case 'grant_package': return `${benefit.parameters.packageSessions} Sessions for EGP ${benefit.parameters.fixedPrice}`;
+      case 'free_session': return `Buy ${benefit.parameters.buyQuantity || 2} Get ${benefit.parameters.freeQuantity || 1} Free`;
       default: return benefit.type;
     }
   }
@@ -182,11 +239,13 @@ export class Offers implements OnInit {
   getConditionDescription(offer: Offer): string {
      if (!offer.conditions || offer.conditions.length === 0) return 'Applies to everyone';
      const cond = offer.conditions[0];
-     // Simple summary of first condition
      switch (cond.type) {
         case 'new_patient': return 'New Patients Only';
         case 'min_spend': return `Spend > EGP ${cond.parameters.minAmount}`;
         case 'service_includes': return `Requires specific services`;
+        case 'patient_tag': return `Tags: ${(cond.parameters.tags || []).join(', ')}`;
+        case 'date_range': return `Date range condition`;
+        case 'specific_patient': return `${(cond.parameters.patientIds || []).length} specific patient(s)`;
         default: return `${offer.conditions.length} condition(s)`;
      }
   }
@@ -200,6 +259,7 @@ export class Offers implements OnInit {
       name: '',
       type: 'percentage',
       isActive: true,
+      isExclusive: false,
       validFrom: today,
       validUntil: nextMonth,
       conditions: [],
@@ -208,7 +268,9 @@ export class Offers implements OnInit {
         type: 'percent_off',
         parameters: { percent: 10, packageCredits: [] }
       }],
-      priority: 10
+      priority: 10,
+      usageLimitPerPatient: undefined,
+      totalUsageLimit: undefined
     };
   }
 
@@ -248,5 +310,19 @@ export class Offers implements OnInit {
 
   updateValidUntil(value: string) {
     if (value) this.offerForm.validUntil = new Date(value);
+  }
+
+  onTypeChange(type: string) {
+    if (!this.offerForm.benefits || this.offerForm.benefits.length === 0) return;
+    const ben = this.offerForm.benefits[0];
+    const typeMap: Record<string, OfferBenefit['type']> = {
+      'percentage': 'percent_off',
+      'fixed_amount': 'fixed_amount_off',
+      'bundle': 'fixed_price',
+      'package': 'grant_package',
+      'buyXgetY': 'free_session',
+      'conditional': 'percent_off'
+    };
+    ben.type = typeMap[type] || 'percent_off';
   }
 }

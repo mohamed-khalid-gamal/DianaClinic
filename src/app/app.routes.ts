@@ -1,33 +1,21 @@
 import { Routes } from '@angular/router';
-import { Dashboard } from './pages/dashboard/dashboard';
-import { Patients } from './pages/patients/patients';
-import { Appointments } from './pages/appointments/appointments';
-import { Doctors } from './pages/doctors/doctors';
-import { Rooms } from './pages/rooms/rooms';
-import { Devices } from './pages/devices/devices';
-import { Inventory } from './pages/inventory/inventory';
-import { Services } from './pages/services/services';
-import { Offers } from './pages/offers/offers';
-import { Billing } from './pages/billing/billing';
-import { Sessions } from './pages/sessions/sessions';
-import { PatientProfile } from './pages/patient-profile/patient-profile';
-import { CalendarPage } from './pages/calendar/calendar';
-import { ManualPage } from './pages/manual';
 
 export const routes: Routes = [
   { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
-  { path: 'dashboard', component: Dashboard },
-  { path: 'patients', component: Patients },
-  { path: 'patients/:id', component: PatientProfile },
-  { path: 'appointments', component: Appointments },
-  { path: 'sessions', component: Sessions },
-  { path: 'calendar', component: CalendarPage },
-  { path: 'doctors', component: Doctors },
-  { path: 'rooms', component: Rooms },
-  { path: 'devices', component: Devices },
-  { path: 'inventory', component: Inventory },
-  { path: 'services', component: Services },
-  { path: 'offers', component: Offers },
-  { path: 'billing', component: Billing },
-  { path: 'manual', component: ManualPage },
+  { path: 'dashboard', loadComponent: () => import('./pages/dashboard/dashboard').then(m => m.Dashboard) },
+  { path: 'patients', loadComponent: () => import('./pages/patients/patients').then(m => m.Patients) },
+  { path: 'patients/:id', loadComponent: () => import('./pages/patient-profile/patient-profile').then(m => m.PatientProfile) },
+  { path: 'appointments', loadComponent: () => import('./pages/appointments/appointments').then(m => m.Appointments) },
+  { path: 'sessions', loadComponent: () => import('./pages/sessions/sessions').then(m => m.Sessions) },
+  { path: 'calendar', loadComponent: () => import('./pages/calendar/calendar').then(m => m.CalendarPage) },
+  { path: 'doctors', loadComponent: () => import('./pages/doctors/doctors').then(m => m.Doctors) },
+  { path: 'rooms', loadComponent: () => import('./pages/rooms/rooms').then(m => m.Rooms) },
+  { path: 'devices', loadComponent: () => import('./pages/devices/devices').then(m => m.Devices) },
+  { path: 'inventory', loadComponent: () => import('./pages/inventory/inventory').then(m => m.Inventory) },
+  { path: 'services', loadComponent: () => import('./pages/services/services').then(m => m.Services) },
+  { path: 'offers', loadComponent: () => import('./pages/offers/offers').then(m => m.Offers) },
+  { path: 'billing', loadComponent: () => import('./pages/billing/billing').then(m => m.Billing) },
+  { path: 'reports', loadComponent: () => import('./pages/reports/reports').then(m => m.Reports) },
+  { path: 'manual', loadComponent: () => import('./pages/manual').then(m => m.ManualPage) },
+  { path: '**', redirectTo: 'dashboard' },
 ];

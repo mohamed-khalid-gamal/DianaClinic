@@ -1,6 +1,6 @@
 import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { FormsModule, NgForm } from '@angular/forms';
 import { PageHeaderComponent, DataTableComponent, ModalComponent, StatCardComponent, TableColumn } from '../../components/shared';
 import { DataService } from '../../services/data.service';
 import { SweetAlertService } from '../../services/sweet-alert.service';
@@ -44,11 +44,14 @@ export class Inventory implements OnInit {
   }
 
   loadItems() {
-    this.dataService.getInventory().subscribe(items => {
-      this.items = items.map(item => ({
-        ...item,
-        stockStatus: this.getStockStatus(item)
-      }));
+    this.dataService.getInventory().subscribe({
+      next: items => {
+        this.items = items.map(item => ({
+          ...item,
+          stockStatus: this.getStockStatus(item)
+        }));
+      },
+      error: () => this.alertService.error('Failed to load inventory. Please refresh.')
     });
   }
 
@@ -88,27 +91,67 @@ export class Inventory implements OnInit {
     this.showModal = false;
   }
 
-  saveItem() {
+  saveItem(form?: NgForm) {
+    if (form && form.invalid) {
+      form.form.markAllAsTouched();
+      this.alertService.validationError('Please fill all required fields');
+      return;
+    }
+
+    const nameValue = this.itemForm.name?.trim();
+    const skuValue = this.itemForm.sku?.trim();
+
+    if (!nameValue) {
+      this.alertService.validationError('Product name is required');
+      return;
+    }
+    if (!skuValue) {
+      this.alertService.validationError('SKU is required');
+      return;
+    }
+    if (!this.itemForm.category) {
+      this.alertService.validationError('Category is required');
+      return;
+    }
+    if (this.itemForm.quantity == null || this.itemForm.quantity < 0) {
+      this.alertService.validationError('Quantity must be 0 or more');
+      return;
+    }
+
     const itemName = this.itemForm.name || 'Item';
     if (!this.isEditMode) {
-      this.dataService.addInventoryItem(this.itemForm as InventoryItem);
-      this.alertService.created('Inventory Item', itemName);
+      this.dataService.addInventoryItem(this.itemForm as InventoryItem).subscribe({
+        next: () => {
+          this.alertService.created('Inventory Item', itemName);
+          this.loadItems();
+          this.closeModal();
+        },
+        error: () => this.alertService.error('Failed to create item. Please try again.')
+      });
     } else {
-      this.alertService.updated('Inventory Item', itemName);
+      this.dataService.updateInventoryItem(this.itemForm as InventoryItem).subscribe({
+        next: () => {
+          this.alertService.updated('Inventory Item', itemName);
+          this.loadItems();
+          this.closeModal();
+        },
+        error: () => this.alertService.error('Failed to update item. Please try again.')
+      });
     }
-    this.loadItems();
-    this.closeModal();
   }
 
   async deleteItem(item: InventoryItem) {
     const confirmed = await this.alertService.confirmDelete(item.name, 'Inventory Item');
     if (confirmed) {
-      this.dataService.deleteInventoryItem(item.id);
-      // Immediately update local array for instant UI refresh
-      this.items = this.items.filter(i => i.id !== item.id);
-      this.alertService.deleted('Inventory Item', item.name);
+      this.dataService.deleteInventoryItem(item.id).subscribe({
+        next: () => {
+          this.items = this.items.filter(i => i.id !== item.id);
+          this.alertService.deleted('Inventory Item', item.name);
+          this.cdr.markForCheck();
+        },
+        error: () => this.alertService.error('Failed to delete item. Please try again.')
+      });
     }
-    this.cdr.markForCheck();
   }
 
   getEmptyForm(): Partial<InventoryItem> {

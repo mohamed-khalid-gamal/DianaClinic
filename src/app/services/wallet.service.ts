@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable, of } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { HttpClient } from '@angular/common/http';
+import { Observable, of } from 'rxjs';
+import { map, catchError } from 'rxjs/operators';
 import { PatientWallet, ServiceCredit } from '../models';
 
 @Injectable({
@@ -8,124 +9,71 @@ import { PatientWallet, ServiceCredit } from '../models';
 })
 export class WalletService {
 
-  private wallets$ = new BehaviorSubject<PatientWallet[]>(this.generateMockWallets());
+  private readonly apiBase = '/api';
+
+  constructor(private http: HttpClient) {}
 
   /**
    * Get wallet for a specific patient
    */
   getWallet(patientId: string): Observable<PatientWallet> {
-    return this.wallets$.pipe(
-      map(wallets => {
-        let wallet = wallets.find(w => w.patientId === patientId);
-        if (!wallet) {
-          // Create empty wallet if doesn't exist
-          wallet = { patientId, cashBalance: 0, credits: [] };
-          this.wallets$.next([...wallets, wallet]);
-        }
-        return wallet;
-      })
+    return this.http.get<PatientWallet>(`${this.apiBase}/patients/${patientId}/wallet`).pipe(
+      map(wallet => this.hydrateWallet(wallet))
     );
-  }
-
-  /**
-   * Get all wallets (for admin purposes)
-   */
-  getAllWallets(): Observable<PatientWallet[]> {
-    return this.wallets$.asObservable();
   }
 
   /**
    * Add cash balance to patient wallet
    */
-  addCashBalance(patientId: string, amount: number): void {
-    const wallets = this.wallets$.value;
-    const walletIndex = wallets.findIndex(w => w.patientId === patientId);
-
-    if (walletIndex > -1) {
-      wallets[walletIndex].cashBalance += amount;
-    } else {
-      wallets.push({ patientId, cashBalance: amount, credits: [] });
-    }
-
-    this.wallets$.next([...wallets]);
+  addCashBalance(patientId: string, amount: number): Observable<PatientWallet> {
+    return this.http.post<PatientWallet>(
+      `${this.apiBase}/patients/${patientId}/wallet/topup`,
+      { amount }
+    );
   }
 
   /**
    * Deduct cash balance from patient wallet
    */
-  deductCashBalance(patientId: string, amount: number): boolean {
-    const wallets = this.wallets$.value;
-    const wallet = wallets.find(w => w.patientId === patientId);
-
-    if (!wallet || wallet.cashBalance < amount) {
-      return false; // Insufficient balance
-    }
-
-    wallet.cashBalance -= amount;
-    this.wallets$.next([...wallets]);
-    return true;
+  deductCashBalance(patientId: string, amount: number): Observable<PatientWallet> {
+    return this.http.post<PatientWallet>(
+      `${this.apiBase}/patients/${patientId}/wallet/deduct`,
+      { amount }
+    );
   }
 
   /**
    * Add service credits (from package purchase)
    */
-  addCredit(patientId: string, credit: ServiceCredit): void {
-    const wallets = this.wallets$.value;
-    let walletIndex = wallets.findIndex(w => w.patientId === patientId);
-
-    if (walletIndex === -1) {
-      // Create wallet if doesn't exist
-      wallets.push({ patientId, cashBalance: 0, credits: [credit] });
-    } else {
-      // Check if credit for same service/package exists
-      const existingCreditIndex = wallets[walletIndex].credits.findIndex(
-        c => c.serviceId === credit.serviceId && c.packageId === credit.packageId
-      );
-
-      if (existingCreditIndex > -1) {
-        // Add to existing credit
-        wallets[walletIndex].credits[existingCreditIndex].remaining += credit.remaining;
-        wallets[walletIndex].credits[existingCreditIndex].total += credit.total;
-      } else {
-        wallets[walletIndex].credits.push(credit);
+  addCredit(patientId: string, credit: ServiceCredit): Observable<PatientWallet> {
+    return this.http.post<PatientWallet>(
+      `${this.apiBase}/patients/${patientId}/wallet/credits`,
+      {
+        serviceId: credit.serviceId,
+        serviceName: credit.serviceName,
+        remaining: credit.remaining,
+        total: credit.total,
+        expiresAt: credit.expiresAt,
+        packageId: credit.packageId,
+        unitType: credit.unitType
       }
-    }
-
-    this.wallets$.next([...wallets]);
+    );
   }
 
   /**
    * Redeem a service credit (use one session)
    */
-  redeemCredit(patientId: string, serviceId: string, units: number = 1): boolean {
-    const wallets = this.wallets$.value;
-    const wallet = wallets.find(w => w.patientId === patientId);
-
-    if (!wallet) return false;
-
-    const creditIndex = wallet.credits.findIndex(
-      c => c.serviceId === serviceId && c.remaining > 0
+  redeemCredit(patientId: string, serviceId: string, units: number = 1): Observable<PatientWallet> {
+    return this.http.post<PatientWallet>(
+      `${this.apiBase}/patients/${patientId}/wallet/credits/redeem`,
+      { serviceId, units }
     );
-
-    if (creditIndex === -1) return false; // No credits available
-
-    const credit = wallet.credits[creditIndex];
-    const actualUnits = Math.min(units, credit.remaining);
-    credit.remaining -= actualUnits;
-
-    // Remove credit if fully used
-    if (credit.remaining <= 0) {
-      wallet.credits.splice(creditIndex, 1);
-    }
-
-    this.wallets$.next([...wallets]);
-    return true;
   }
 
   /**
    * Reserve credits for appointment (temporarily reduce but can be adjusted at session end)
    */
-  reserveCredits(patientId: string, serviceId: string, units: number): boolean {
+  reserveCredits(patientId: string, serviceId: string, units: number): Observable<PatientWallet> {
     return this.redeemCredit(patientId, serviceId, units);
   }
 
@@ -133,28 +81,12 @@ export class WalletService {
    * Adjust credits after session (if actual usage differs from reserved)
    * positive adjustment = return credits, negative = deduct more
    */
-  adjustCredits(patientId: string, serviceId: string, adjustment: number): void {
-    if (adjustment === 0) return;
-
-    const wallets = this.wallets$.value;
-    const wallet = wallets.find(w => w.patientId === patientId);
-    if (!wallet) return;
-
-    const creditIndex = wallet.credits.findIndex(c => c.serviceId === serviceId);
-
-    if (adjustment > 0) {
-      // Return credits
-      if (creditIndex > -1) {
-        wallet.credits[creditIndex].remaining += adjustment;
-      }
-    } else {
-      // Deduct more credits
-      if (creditIndex > -1 && wallet.credits[creditIndex].remaining >= Math.abs(adjustment)) {
-        wallet.credits[creditIndex].remaining += adjustment; // adjustment is negative
-      }
-    }
-
-    this.wallets$.next([...wallets]);
+  adjustCredits(patientId: string, serviceId: string, adjustment: number): Observable<any> {
+    if (adjustment === 0) return of(null);
+    return this.http.patch<PatientWallet>(
+      `${this.apiBase}/patients/${patientId}/wallet/credits/adjust`,
+      { serviceId, adjustment }
+    );
   }
 
   /**
@@ -178,63 +110,13 @@ export class WalletService {
     );
   }
 
-  /**
-   * Generate mock wallet data
-   */
-  private generateMockWallets(): PatientWallet[] {
-    return [
-      {
-        patientId: 'p1',
-        cashBalance: 500,
-        credits: [
-          {
-            serviceId: 's1',
-            serviceName: 'Full Body Laser Hair Removal',
-            remaining: 4,
-            total: 6,
-            expiresAt: new Date(2026, 5, 30),
-            packageId: 'pkg1',
-            unitType: 'session'
-          },
-          {
-            serviceId: 's2',
-            serviceName: 'Face Laser',
-            remaining: 500,
-            total: 1000,
-            expiresAt: new Date(2026, 11, 31),
-            packageId: 'pkg2',
-            unitType: 'pulse'
-          },
-          {
-            serviceId: 's4',
-            serviceName: 'HydraFacial',
-            remaining: 2,
-            total: 3,
-            expiresAt: new Date(2026, 11, 31),
-            packageId: 'pkg3',
-            unitType: 'session'
-          }
-        ]
-      },
-      {
-        patientId: 'p2',
-        cashBalance: 1200,
-        credits: []
-      },
-      {
-        patientId: 'p3',
-        cashBalance: 0,
-        credits: [
-          {
-            serviceId: 's6',
-            serviceName: 'Botox Full Face',
-            remaining: 1,
-            total: 2,
-            packageId: 'pkg4',
-            unitType: 'session'
-          }
-        ]
-      }
-    ];
+  private hydrateWallet(wallet: PatientWallet): PatientWallet {
+    return {
+      ...wallet,
+      credits: (wallet.credits || []).map(credit => ({
+        ...credit,
+        expiresAt: credit.expiresAt ? new Date(credit.expiresAt) : undefined
+      }))
+    };
   }
 }

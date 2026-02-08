@@ -155,10 +155,12 @@ import { CalendarEvent, CalendarView } from '../../services/calendar.service';
       .fc-theme-standard td,
       .fc-theme-standard th {
         border-color: var(--border-color);
+        background: var(--bg-card); /* STRICT: Force Cream background */
       }
 
       .fc-theme-standard .fc-scrollgrid {
         border-color: var(--border-color);
+        background: var(--bg-card);
       }
 
       .fc-col-header-cell {
@@ -183,15 +185,16 @@ import { CalendarEvent, CalendarView } from '../../services/calendar.service';
         font-size: 0.875rem;
         font-weight: 500;
         padding: 0.5rem;
+        color: var(--text-main);
       }
 
       .fc-day-today {
-        background: rgba(14, 116, 144, 0.05) !important;
+        background: rgba(65, 22, 28, 0.05) !important; /* Maroon tint */
       }
 
       .fc-day-today .fc-daygrid-day-number {
         background: var(--primary-color);
-        color: white;
+        color: var(--primary-light);
         border-radius: 50%;
         width: 28px;
         height: 28px;
@@ -211,7 +214,7 @@ import { CalendarEvent, CalendarView } from '../../services/calendar.service';
 
       .fc-event:hover {
         transform: translateY(-1px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        box-shadow: 0 4px 12px rgba(65, 22, 28, 0.15);
       }
 
       .fc-timegrid-event {
@@ -240,6 +243,7 @@ import { CalendarEvent, CalendarView } from '../../services/calendar.service';
       .fc-toolbar-title {
         font-size: 1.125rem !important;
         font-weight: 600;
+        color: var(--text-heading);
       }
 
       .fc-button {
@@ -261,7 +265,7 @@ import { CalendarEvent, CalendarView } from '../../services/calendar.service';
       .fc-button-active {
         background: var(--primary-color) !important;
         border-color: var(--primary-color) !important;
-        color: white !important;
+        color: var(--primary-light) !important;
       }
 
       .fc-button-primary:not(:disabled).fc-button-active {
@@ -277,7 +281,7 @@ import { CalendarEvent, CalendarView } from '../../services/calendar.service';
 
       .fc-today-button:hover {
         background: var(--primary-color) !important;
-        color: white !important;
+        color: var(--primary-light) !important;
       }
 
       .fc-today-button:disabled {
@@ -305,9 +309,9 @@ import { CalendarEvent, CalendarView } from '../../services/calendar.service';
       }
 
       .fc-list-event:hover td {
-        background: rgba(14, 116, 144, 0.05);
+        background: rgba(65, 22, 28, 0.05); /* Maroon tint */
       }
-
+    
       .fc-list-event-time {
         font-weight: 500;
         color: var(--text-muted);
@@ -318,6 +322,7 @@ import { CalendarEvent, CalendarView } from '../../services/calendar.service';
       }
 
       .fc-popover {
+        background: var(--bg-card);
         border-radius: var(--radius-lg);
         box-shadow: var(--shadow-lg);
         border: 1px solid var(--border-color);

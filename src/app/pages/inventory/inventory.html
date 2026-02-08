@@ -1,5 +1,5 @@
-<app-page-header 
-  title="Inventory & Pharmacy" 
+<app-page-header
+  title="Inventory & Pharmacy"
   subtitle="Track stock levels, expiry dates, and manage products">
   <button class="btn btn-primary" (click)="openAddModal()">
     + Add Item
@@ -8,33 +8,33 @@
 
 <!-- Stats Row -->
 <div class="stats-row">
-  <app-stat-card 
-    icon="fa-solid fa-boxes-stacked" 
+  <app-stat-card
+    icon="fa-solid fa-boxes-stacked"
     iconBg="rgba(14, 116, 144, 0.1)"
     [value]="getTotalItems()"
     label="Total Products">
   </app-stat-card>
-  
-  <app-stat-card 
-    icon="fa-solid fa-triangle-exclamation" 
+
+  <app-stat-card
+    icon="fa-solid fa-triangle-exclamation"
     iconBg="rgba(245, 158, 11, 0.1)"
     [value]="getLowStockCount()"
     label="Low Stock Items"
     [clickable]="true"
     (cardClick)="activeFilter = 'low'">
   </app-stat-card>
-  
-  <app-stat-card 
-    icon="fa-solid fa-calendar-xmark" 
+
+  <app-stat-card
+    icon="fa-solid fa-calendar-xmark"
     iconBg="rgba(239, 68, 68, 0.1)"
     [value]="getExpiringCount()"
     label="Expiring Soon"
     [clickable]="true"
     (cardClick)="activeFilter = 'expiring'">
   </app-stat-card>
-  
-  <app-stat-card 
-    icon="fa-solid fa-coins" 
+
+  <app-stat-card
+    icon="fa-solid fa-coins"
     iconBg="rgba(16, 185, 129, 0.1)"
     [value]="'EGP ' + getTotalValue().toLocaleString()"
     label="Inventory Value">
@@ -70,37 +70,40 @@
   (delete)="deleteItem($event)">
 </app-data-table>
 
-<app-modal 
-  [isOpen]="showModal" 
+<app-modal
+  [isOpen]="showModal"
   [title]="isEditMode ? 'Edit Item' : 'Add New Item'"
   maxWidth="700px"
   (closed)="closeModal()"
-  (confirmed)="saveItem()">
-  
-  <div class="form-grid">
+  (confirmed)="saveItem(itemFormRef)">
+
+  <form #itemFormRef="ngForm" class="form-grid">
     <div class="form-group">
       <label>Product Name *</label>
-      <input type="text" [(ngModel)]="itemForm.name" placeholder="Product name">
+      <input type="text" name="name" required [(ngModel)]="itemForm.name" placeholder="Product name" #itemName="ngModel">
+      <span class="error-text" *ngIf="itemName.invalid && (itemName.touched || itemName.dirty)">Product name is required</span>
     </div>
-    
+
     <div class="form-group">
       <label>SKU *</label>
-      <input type="text" [(ngModel)]="itemForm.sku" placeholder="e.g., HA-001">
+      <input type="text" name="sku" required [(ngModel)]="itemForm.sku" placeholder="e.g., HA-001" #itemSku="ngModel">
+      <span class="error-text" *ngIf="itemSku.invalid && (itemSku.touched || itemSku.dirty)">SKU is required</span>
     </div>
-    
+
     <div class="form-group">
       <label>Category *</label>
-      <select [(ngModel)]="itemForm.category">
+      <select name="category" required [(ngModel)]="itemForm.category" #itemCategory="ngModel">
         <option value="drug">Drug / Injectable</option>
         <option value="consumable">Consumable</option>
         <option value="retail">Retail Product</option>
         <option value="equipment">Equipment</option>
       </select>
+      <span class="error-text" *ngIf="itemCategory.invalid && (itemCategory.touched || itemCategory.dirty)">Category is required</span>
     </div>
-    
+
     <div class="form-group">
       <label>Unit</label>
-      <select [(ngModel)]="itemForm.unit">
+      <select name="unit" [(ngModel)]="itemForm.unit">
         <option value="piece">Piece</option>
         <option value="vial">Vial</option>
         <option value="bottle">Bottle</option>
@@ -109,45 +112,46 @@
         <option value="pair">Pair</option>
       </select>
     </div>
-    
+
     <div class="form-group">
       <label>Quantity *</label>
-      <input type="number" [(ngModel)]="itemForm.quantity" min="0">
+      <input type="number" name="quantity" required [(ngModel)]="itemForm.quantity" min="0" #itemQuantity="ngModel">
+      <span class="error-text" *ngIf="itemQuantity.invalid && (itemQuantity.touched || itemQuantity.dirty)">Quantity is required</span>
     </div>
-    
+
     <div class="form-group">
       <label>Reorder Threshold</label>
-      <input type="number" [(ngModel)]="itemForm.reorderThreshold" min="0">
+      <input type="number" name="reorderThreshold" [(ngModel)]="itemForm.reorderThreshold" min="0">
     </div>
-    
+
     <div class="form-group">
       <label>Cost Price (EGP)</label>
-      <input type="number" [(ngModel)]="itemForm.costPrice" min="0" step="0.01">
+      <input type="number" name="costPrice" [(ngModel)]="itemForm.costPrice" min="0" step="0.01">
     </div>
-    
+
     <div class="form-group">
       <label>Selling Price (EGP)</label>
-      <input type="number" [(ngModel)]="itemForm.sellingPrice" min="0" step="0.01">
+      <input type="number" name="sellingPrice" [(ngModel)]="itemForm.sellingPrice" min="0" step="0.01">
     </div>
-    
+
     <div class="form-group">
       <label>Expiry Date</label>
-      <input type="date" [(ngModel)]="itemForm.expiryDate">
+      <input type="date" name="expiryDate" [(ngModel)]="itemForm.expiryDate">
     </div>
-    
+
     <div class="form-group">
       <label>Batch Number</label>
-      <input type="text" [(ngModel)]="itemForm.batchNumber" placeholder="e.g., B2024-001">
+      <input type="text" name="batchNumber" [(ngModel)]="itemForm.batchNumber" placeholder="e.g., B2024-001">
     </div>
-    
+
     <div class="form-group">
       <label>Supplier</label>
-      <input type="text" [(ngModel)]="itemForm.supplier" placeholder="Supplier name">
+      <input type="text" name="supplier" [(ngModel)]="itemForm.supplier" placeholder="Supplier name">
     </div>
-    
+
     <div class="form-group">
       <label>Storage Location</label>
-      <input type="text" [(ngModel)]="itemForm.location" placeholder="e.g., Cabinet A">
+      <input type="text" name="location" [(ngModel)]="itemForm.location" placeholder="e.g., Cabinet A">
     </div>
-  </div>
+  </form>
 </app-modal>

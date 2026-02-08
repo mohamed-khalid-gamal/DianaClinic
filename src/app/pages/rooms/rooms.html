@@ -1,5 +1,5 @@
-<app-page-header 
-  title="Rooms" 
+<app-page-header
+  title="Rooms"
   subtitle="Manage clinic rooms and facilities">
   <button class="btn btn-primary" (click)="openAddModal()">
     + Add Room
@@ -13,44 +13,52 @@
   (delete)="deleteRoom($event)">
 </app-data-table>
 
-<app-modal 
-  [isOpen]="showModal" 
+<app-modal
+  [isOpen]="showModal"
   [title]="isEditMode ? 'Edit Room' : 'Add New Room'"
   (closed)="closeModal()"
-  (confirmed)="saveRoom()">
-  
-  <div class="form-grid">
+  (confirmed)="saveRoom(roomFormRef)">
+
+  <form #roomFormRef="ngForm" class="form-grid">
     <div class="form-group">
       <label>Room Name *</label>
-      <input type="text" [(ngModel)]="roomForm.name" placeholder="e.g., Laser Suite 1">
+      <input type="text" name="roomName" required [(ngModel)]="roomForm.name" placeholder="e.g., Laser Suite 1" #roomName="ngModel">
+      <span class="error-text" *ngIf="roomName.invalid && (roomName.touched || roomName.dirty)">Room name is required</span>
     </div>
-    
+
     <div class="form-group">
       <label>Room Type *</label>
-      <select [(ngModel)]="roomForm.type">
+      <select name="roomType" required [(ngModel)]="roomForm.type" #roomType="ngModel">
         <option value="treatment">Treatment</option>
         <option value="consultation">Consultation</option>
         <option value="surgery">Surgery</option>
         <option value="storage">Storage</option>
       </select>
+      <span class="error-text" *ngIf="roomType.invalid && (roomType.touched || roomType.dirty)">Room type is required</span>
     </div>
-    
+
     <div class="form-group">
       <label>Floor</label>
-      <input type="text" [(ngModel)]="roomForm.floor" placeholder="e.g., 1, Ground">
+      <input type="text" name="floor" [(ngModel)]="roomForm.floor" placeholder="e.g., 1, Ground">
     </div>
-    
+
     <div class="form-group">
       <label>Capacity</label>
-      <input type="number" [(ngModel)]="roomForm.capacity" min="1" max="10">
+      <input type="number" name="capacity" [(ngModel)]="roomForm.capacity" min="1" max="10">
     </div>
-    
+
+    <div class="form-group full-width">
+      <label>Equipment</label>
+      <input type="text" name="equipment" [ngModel]="joinArray(roomForm.equipment)" (ngModelChange)="roomForm.equipment = splitText($event)" placeholder="Comma-separated, e.g., Laser, Cryotherapy, Sterilizer">
+      <span class="hint-text">Separate multiple items with commas</span>
+    </div>
+
     <div class="form-group">
       <label>Status</label>
-      <select [(ngModel)]="roomForm.isActive">
+      <select name="status" [(ngModel)]="roomForm.isActive">
         <option [ngValue]="true">Available</option>
         <option [ngValue]="false">Unavailable</option>
       </select>
     </div>
-  </div>
+  </form>
 </app-modal>

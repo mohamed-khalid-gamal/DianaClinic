@@ -18,13 +18,13 @@ export interface TableColumn {
     <div class="table-container">
       <div class="table-header" *ngIf="searchable || filterable">
         <div class="search-box" *ngIf="searchable">
-          <input type="text" 
-                 placeholder="Search..." 
+          <input type="text"
+                 placeholder="Search..."
                  [(ngModel)]="searchQuery"
                  (input)="onSearch()">
         </div>
       </div>
-      
+
       <div class="table-wrapper">
         <table>
           <thead>
@@ -35,15 +35,15 @@ export interface TableColumn {
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let row of filteredData; let i = index" 
+            <tr *ngFor="let row of filteredData; let i = index"
                 [class.clickable]="rowClickable"
                 (click)="onRowClick(row)">
               <td *ngFor="let col of columns">
                 <ng-container [ngSwitch]="col.type">
                   <span *ngSwitchCase="'date'">{{ formatDate(row[col.key]) }}</span>
                   <span *ngSwitchCase="'currency'">{{ formatCurrency(row[col.key]) }}</span>
-                  <span *ngSwitchCase="'badge'" 
-                        class="badge" 
+                  <span *ngSwitchCase="'badge'"
+                        class="badge"
                         [style.background]="getBadgeColor(row[col.key], col.badgeColors)">
                     {{ row[col.key] }}
                   </span>
@@ -63,9 +63,16 @@ export interface TableColumn {
           </tbody>
         </table>
       </div>
-      
+
       <div class="table-footer" *ngIf="paginated">
-        <span class="page-info">Showing {{ startIndex + 1 }}-{{ endIndex }} of {{ data.length }}</span>
+        <span class="page-info">Showing {{ startIndex + 1 }}-{{ endIndex }} of {{ totalFilteredCount }}</span>
+        <div class="page-size-selector">
+          <select [(ngModel)]="pageSize" (change)="currentPage = 1">
+            <option [value]="10">10 / page</option>
+            <option [value]="25">25 / page</option>
+            <option [value]="50">50 / page</option>
+          </select>
+        </div>
         <div class="pagination">
           <button (click)="prevPage()" [disabled]="currentPage === 1"><i class="fa-solid fa-chevron-left"></i></button>
           <span>Page {{ currentPage }} of {{ totalPages }}</span>
@@ -81,14 +88,14 @@ export interface TableColumn {
       border: 1px solid var(--border-color);
       overflow: hidden;
     }
-    
+
     .table-header {
       padding: 1rem 1.5rem;
       border-bottom: 1px solid var(--border-color);
       display: flex;
       gap: 1rem;
     }
-    
+
     .search-box input {
       padding: 0.5rem 1rem;
       border: 1px solid var(--border-color);
@@ -97,26 +104,28 @@ export interface TableColumn {
       width: 300px;
       outline: none;
       transition: border-color 0.2s;
+      background: var(--bg-card);
+      color: var(--text-main);
     }
-    
+
     .search-box input:focus {
       border-color: var(--primary-color);
     }
-    
+
     .table-wrapper {
       overflow-x: auto;
     }
-    
+
     table {
       width: 100%;
       border-collapse: collapse;
     }
-    
+
     th, td {
       padding: 1rem 1.5rem;
       text-align: left;
     }
-    
+
     th {
       background: var(--bg-body);
       font-weight: 600;
@@ -125,23 +134,23 @@ export interface TableColumn {
       letter-spacing: 0.05em;
       color: var(--text-muted);
     }
-    
+
     tr {
       border-bottom: 1px solid var(--border-color);
     }
-    
+
     tbody tr:hover {
       background: var(--bg-body);
     }
-    
+
     tbody tr.clickable {
       cursor: pointer;
     }
-    
+
     tbody tr:last-child {
       border-bottom: none;
     }
-    
+
     .badge {
       display: inline-block;
       padding: 0.25rem 0.75rem;
@@ -151,12 +160,12 @@ export interface TableColumn {
       color: white;
       text-transform: capitalize;
     }
-    
+
     .actions {
       display: flex;
       gap: 0.5rem;
     }
-    
+
     .action-btn {
       background: none;
       border: none;
@@ -165,21 +174,21 @@ export interface TableColumn {
       border-radius: var(--radius-md);
       transition: background 0.2s;
     }
-    
+
     .action-btn:hover {
       background: var(--bg-body);
     }
-    
+
     .action-btn.delete:hover {
       background: rgba(239, 68, 68, 0.1);
     }
-    
+
     .empty-state {
       text-align: center;
       color: var(--text-muted);
       padding: 3rem !important;
     }
-    
+
     .table-footer {
       padding: 1rem 1.5rem;
       border-top: 1px solid var(--border-color);
@@ -187,18 +196,18 @@ export interface TableColumn {
       justify-content: space-between;
       align-items: center;
     }
-    
+
     .page-info {
       font-size: 0.875rem;
       color: var(--text-muted);
     }
-    
+
     .pagination {
       display: flex;
       align-items: center;
       gap: 0.75rem;
     }
-    
+
     .pagination button {
       padding: 0.5rem 0.75rem;
       border: 1px solid var(--border-color);
@@ -207,14 +216,23 @@ export interface TableColumn {
       cursor: pointer;
       transition: all 0.2s;
     }
-    
+
     .pagination button:hover:not(:disabled) {
       background: var(--bg-body);
     }
-    
+
     .pagination button:disabled {
       opacity: 0.5;
       cursor: not-allowed;
+    }
+
+    .page-size-selector select {
+      padding: 0.375rem 0.5rem;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      font-size: 0.8125rem;
+      background: var(--bg-card);
+      cursor: pointer;
     }
   `]
 })
@@ -226,7 +244,7 @@ export class DataTableComponent {
   @Input() paginated = true;
   @Input() pageSize = 10;
   @Input() rowClickable = false;
-  
+
   @Output() rowClick = new EventEmitter<any>();
   @Output() edit = new EventEmitter<any>();
   @Output() delete = new EventEmitter<any>();
@@ -239,9 +257,10 @@ export class DataTableComponent {
     let result = this.data;
     if (this.searchQuery) {
       const query = this.searchQuery.toLowerCase();
+      const columnKeys = this.columns.map(c => c.key).filter(k => k !== 'actions');
       result = result.filter(row =>
-        Object.values(row).some(val =>
-          String(val).toLowerCase().includes(query)
+        columnKeys.some(key =>
+          String(row[key] ?? '').toLowerCase().includes(query)
         )
       );
     }
@@ -252,8 +271,22 @@ export class DataTableComponent {
     return result;
   }
 
+  get totalFilteredCount(): number {
+    let result = this.data;
+    if (this.searchQuery) {
+      const query = this.searchQuery.toLowerCase();
+      const columnKeys = this.columns.map(c => c.key).filter(k => k !== 'actions');
+      result = result.filter(row =>
+        columnKeys.some(key =>
+          String(row[key] ?? '').toLowerCase().includes(query)
+        )
+      );
+    }
+    return result.length;
+  }
+
   get totalPages(): number {
-    return Math.ceil(this.data.length / this.pageSize);
+    return Math.max(1, Math.ceil(this.totalFilteredCount / this.pageSize));
   }
 
   get startIndex(): number {
@@ -261,7 +294,7 @@ export class DataTableComponent {
   }
 
   get endIndex(): number {
-    return Math.min(this.startIndex + this.pageSize, this.data.length);
+    return Math.min(this.startIndex + this.pageSize, this.totalFilteredCount);
   }
 
   onSearch() {

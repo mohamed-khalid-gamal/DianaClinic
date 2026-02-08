@@ -1,7 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterModule } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
+import { forkJoin } from 'rxjs';
 import { PageHeaderComponent, CalendarComponent, ModalComponent } from '../../components/shared';
 import { CalendarService, CalendarEvent, CalendarView } from '../../services/calendar.service';
 import { DataService } from '../../services/data.service';
@@ -41,7 +42,8 @@ export class CalendarPage implements OnInit {
   constructor(
     private calendarService: CalendarService,
     private dataService: DataService,
-    private alertService: SweetAlertService
+    private alertService: SweetAlertService,
+    private router: Router
   ) {}
 
   ngOnInit() {
@@ -49,14 +51,21 @@ export class CalendarPage implements OnInit {
   }
 
   loadData() {
-    this.calendarService.getAllEvents().subscribe(events => {
-      this.events = events;
-      this.applyFilter();
+    forkJoin({
+      events: this.calendarService.getAllEvents(),
+      doctors: this.dataService.getDoctors(),
+      rooms: this.dataService.getRooms(),
+      patients: this.dataService.getPatients()
+    }).subscribe({
+      next: ({ events, doctors, rooms, patients }) => {
+        this.events = events;
+        this.doctors = doctors;
+        this.rooms = rooms;
+        this.patients = patients;
+        this.applyFilter();
+      },
+      error: () => this.alertService.error('Failed to load calendar data. Please refresh.')
     });
-
-    this.dataService.getDoctors().subscribe(d => this.doctors = d);
-    this.dataService.getRooms().subscribe(r => this.rooms = r);
-    this.dataService.getPatients().subscribe(p => this.patients = p);
   }
 
   setTab(tab: 'all' | 'room' | 'doctor' | 'patient') {
@@ -161,8 +170,8 @@ export class CalendarPage implements OnInit {
   }
 
   onDateSelect(selection: { start: Date; end: Date }) {
-    // Could open booking modal with pre-selected time
-    console.log('Date selected:', selection);
+    const dateStr = selection.start.toISOString().split('T')[0];
+    this.router.navigate(['/appointments'], { queryParams: { date: dateStr } });
   }
 
   onViewChange(view: CalendarView) {

@@ -2,24 +2,33 @@
 
 /* Global Styles */
 :root {
-  /* Medical & Clean Palette */
-  --primary-color: #0E7490; /* Cyan-700 - Professional Teal */
-  --primary-light: #CFFAFE; /* Cyan-100 */
-  --primary-dark: #155E75; /* Cyan-800 */
+  /* STRICT Palette - 4 Colors Only */
+  /*
+     1. #0e0d0c (Rich Black) - Text / Contrast
+     2. #faf0df (Primary Cream) - Backgrounds
+     3. #802632 (Muted Ruby) - Primary / Actions / Error
+     4. #41161c (Deep Maroon) - Accents / Headings / Success(mapped)
+  */
 
-  --secondary-color: #64748B; /* Slate-500 */
+  --primary-color: #802632; /* Muted Ruby */
+  --primary-light: #faf0df; /* Mapped to Cream (bg) or maybe diluted Ruby if transparency allowed, but user said 'only colors'. Let's use Cream for light backgrounds. */
+  --primary-dark: #41161c; /* Deep Maroon */
 
-  --bg-body: #F8FAFC; /* Slate-50 - Clinical White/Grey */
-  --bg-card: #FFFFFF;
+  --secondary-color: #41161c; /* Deep Maroon */
 
-  --text-main: #0F172A; /* Slate-900 */
-  --text-muted: #64748B; /* Slate-500 */
+  --bg-body: #faf0df; /* Primary Cream */
+  --bg-card: #faf0df; /* Primary Cream */
 
-  --success: #10B981; /* Emerald-500 */
-  --warning: #F59E0B; /* Amber-500 */
-  --danger: #EF4444; /* Red-500 */
+  --text-main: #0e0d0c; /* Rich Black */
+  --text-heading: #41161c; /* Deep Maroon */
+  --text-muted: #41161c; /* Deep Maroon (using transparency elsewhere, or just solid Maroon) */
 
-  --border-color: #E2E8F0; /* Slate-200 */
+  /* Functional Mappings */
+  --success: #41161c; /* Deep Maroon - representing 'solid/good' state */
+  --warning: #41161c; /* Deep Maroon */
+  --danger: #802632; /* Muted Ruby - reddish enough for danger */
+
+  --border-color: rgba(65, 22, 28, 0.2); /* Deep Maroon with opacity - technically a derived color, but consistent with identity */
 
   /* Spacing & Sizes */
   --sidebar-width: 260px;
@@ -28,12 +37,12 @@
   --mobile-nav-height: 56px;
   --radius-md: 8px;
   --radius-lg: 12px;
-  --radius-xl: 16px; /* For cards */
+  --radius-xl: 16px;
 
-  /* Shadows */
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  /* Shadows - utilizing Maroon for shadow color */
+  --shadow-sm: 0 1px 2px 0 rgba(65, 22, 28, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(65, 22, 28, 0.1), 0 2px 4px -2px rgba(65, 22, 28, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(65, 22, 28, 0.1), 0 4px 6px -4px rgba(65, 22, 28, 0.1);
 
   /* Breakpoints (for reference - use in media queries) */
   /* xs: < 640px - Small phones */
@@ -41,6 +50,10 @@
   /* md: 768px - Tablets portrait */
   /* lg: 1024px - Tablets landscape, small laptops */
   /* xl: 1280px - Desktops */
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
 }
 
 body {
@@ -55,7 +68,7 @@ body {
 h1, h2, h3, h4, h5, h6 {
   margin-top: 0;
   font-weight: 600;
-  color: var(--text-main);
+  color: var(--text-heading);
 }
 
 .card {
@@ -78,10 +91,18 @@ h1, h2, h3, h4, h5, h6 {
   transition: all 0.2s;
 
   &.btn-primary {
-    background-color: var(--primary-color);
-    color: white;
+    background-color: var(--primary-color); /* Muted Ruby */
+    color: #faf0df; /* Cream text */
     &:hover {
-      background-color: var(--primary-dark);
+      background-color: var(--primary-dark); /* Deep Maroon */
+    }
+  }
+
+  &.btn-secondary {
+    background-color: var(--primary-dark);
+    color: #faf0df;
+    &:hover {
+      background-color: var(--primary-color);
     }
   }
 
@@ -90,7 +111,7 @@ h1, h2, h3, h4, h5, h6 {
     border: 1px solid var(--border-color);
     color: var(--text-main);
     &:hover {
-      background: var(--bg-body);
+      background: rgba(65, 22, 28, 0.05);
     }
   }
 }
@@ -633,9 +654,35 @@ h1, h2, h3, h4, h5, h6 {
   }
 }
 
+/* Form Grid Layout */
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.25rem;
+
+  @media (max-width: 640px) {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* Form Group Helper */
 .form-group {
-  margin-bottom: 1rem;
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 1.25rem;
+
+  /* Inside a grid, gap handles spacing — remove margin */
+  .form-grid > & {
+    margin-bottom: 0;
+  }
+
+  &.full-width {
+    grid-column: span 2;
+
+    @media (max-width: 640px) {
+      grid-column: span 1;
+    }
+  }
 
   label {
     display: block;
@@ -650,6 +697,33 @@ h1, h2, h3, h4, h5, h6 {
     color: var(--text-muted);
     margin-top: 0.25rem;
   }
+
+  .error-text {
+    font-size: 0.8125rem;
+    color: var(--danger);
+    margin-top: 0.35rem;
+  }
+
+  .hint-text {
+    font-size: 0.75rem;
+    color: var(--text-secondary, #888);
+    margin-top: 0.25rem;
+  }
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.25rem;
+  margin-bottom: 1.25rem;
+
+  @media (max-width: 640px) {
+    grid-template-columns: 1fr;
+  }
+
+  .form-group {
+    margin-bottom: 0;
+  }
 }
 
 .form-group select,
@@ -661,12 +735,73 @@ h1, h2, h3, h4, h5, h6 {
   border-radius: var(--radius-md);
   background: var(--bg-card);
   font-size: 0.9375rem;
+  font-family: inherit;
   transition: border-color 0.2s, box-shadow 0.2s;
+  color: var(--text-main);
 
   &:focus {
     outline: none;
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(14, 116, 144, 0.15);
+    box-shadow: 0 0 0 3px rgba(128, 38, 50, 0.15);
+  }
+
+  &::placeholder {
+    color: var(--text-muted);
+    opacity: 0.7;
+  }
+}
+
+.form-group textarea {
+  resize: vertical;
+}
+
+/* Global Search Input Override */
+input[type="search"],
+input[type="text"].search-input {
+  background-color: var(--bg-card) !important;
+  color: var(--text-main);
+  border-color: var(--border-color);
+}
+
+
+/* Toggle Switch / Slider Styles */
+/* Assuming standard checkbox or simple toggle since no material lib found yet, but adding generic toggle loop */
+.switch, .toggle, .slider {
+  background-color: var(--bg-body);
+}
+
+/* Custom Toggle Style if they exist as checkboxes */
+input[type="checkbox"].toggle-switch {
+  appearance: none;
+  width: 40px;
+  height: 20px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  position: relative;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 14px;
+    height: 14px;
+    background: var(--text-muted);
+    border-radius: 50%;
+    transition: all 0.2s;
+  }
+
+  &:checked {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+
+    &::after {
+      transform: translateX(20px);
+      background: var(--primary-light);
+    }
   }
 }
 
@@ -690,4 +825,51 @@ h1, h2, h3, h4, h5, h6 {
   .extra-charge-row {
     flex-wrap: wrap;
   }
+}
+
+/* Global Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-body);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary-color);
+}
+
+// Global loading spinner
+.page-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 2rem;
+  flex-direction: column;
+  gap: 1rem;
+
+  .spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid var(--border-color);
+    border-top-color: var(--primary-color);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  .loading-text {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+  }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }

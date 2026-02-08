@@ -40,7 +40,7 @@
   }
   
   .close-btn {
-    background: none;
+    background: transparent;
     border: none;
     font-size: 1.5rem;
     cursor: pointer;
@@ -149,6 +149,13 @@
     background: rgba(245, 158, 11, 0.1);
     color: var(--warning);
   }
+  
+.status-scheduled { background: rgba(128, 38, 50, 0.15); color: var(--primary-color); }
+.status-checked-in { background: rgba(65, 22, 28, 0.15); color: var(--success); }
+.status-in-progress { background: rgba(65, 22, 28, 0.15); color: var(--warning); }
+.status-completed { background: rgba(128, 38, 50, 0.15); color: var(--primary-color); }
+.status-billed { background: rgba(65, 22, 28, 0.15); color: var(--success); }
+.status-cancelled, .status-no-show { background: rgba(128, 38, 50, 0.15); color: var(--danger); }
 }
 
 .wallet-section {
@@ -170,7 +177,7 @@
   padding: 1.25rem;
   display: flex;
   gap: 1.5rem;
-  color: white;
+  color: var(--primary-light);
   margin-bottom: 1rem;
   
   .wallet-balance, .wallet-credits {

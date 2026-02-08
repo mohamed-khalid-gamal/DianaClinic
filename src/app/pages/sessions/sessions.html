@@ -173,6 +173,7 @@
           </li>
         </ul>
       </div>
+      <span class="error-text" *ngIf="endSessionAttempted && hasInvalidCreditsUsage()">Credits used must be 0 or more</span>
     </div>
 
     <!-- Device Usage -->
@@ -188,6 +189,22 @@
       <div class="empty-state" *ngIf="endSessionDeviceUsage.length === 0">
         <p>No devices assigned to this room.</p>
       </div>
+      <span class="error-text" *ngIf="endSessionAttempted && hasInvalidDeviceUsage()">Device usage must be 0 or more</span>
+    </div>
+
+    <!-- Laser Settings -->
+    <div class="form-group" *ngIf="isLaserSession()">
+      <label>Laser Settings</label>
+      <p class="hint">Select the wavelength and power used</p>
+      <div class="laser-settings-row">
+        <select [(ngModel)]="endSessionLaserSettings.waveType">
+          <option value="Alexandrite">Alexandrite</option>
+          <option value="Nd:YAG">Nd:YAG</option>
+        </select>
+        <input type="number" [(ngModel)]="endSessionLaserSettings.power" placeholder="Power" min="0" />
+        <span class="unit-label">mJ</span>
+      </div>
+      <span class="error-text" *ngIf="endSessionAttempted && hasInvalidLaserSettings()">Laser power must be greater than 0</span>
     </div>
 
     <!-- Consumables -->
@@ -213,6 +230,7 @@
           </button>
         </div>
       </div>
+      <span class="error-text" *ngIf="endSessionAttempted && hasInvalidConsumables()">Consumable quantities must be at least 1</span>
     </div>
 
     <!-- Extra Charges -->
@@ -238,6 +256,57 @@
       <button class="btn btn-outline btn-sm" (click)="addExtraCharge()">
         <i class="fa-solid fa-plus"></i> Add Charge
       </button>
+      <span class="error-text" *ngIf="endSessionAttempted && hasInvalidExtraCharges()">Extra charges require a description and non-negative amount</span>
+    </div>
+
+    <!-- Photos -->
+    <div class="form-group">
+      <label>Session Photos</label>
+      <p class="hint">Upload before/after photos for treatment documentation</p>
+
+      <div class="photo-upload-section">
+        <div class="photo-category">
+          <h4>Before Photos</h4>
+          <div class="photo-gallery">
+            <div class="photo-item" *ngFor="let photo of beforePhotos; let i = index">
+              <img [src]="photo" alt="Before photo">
+              <button class="photo-remove" (click)="removePhoto('before', i)">
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            </div>
+            <label class="photo-add" [class.disabled]="uploadingPhoto">
+              <input
+                type="file"
+                accept="image/*"
+                (change)="uploadPhoto($event, 'before')"
+                [disabled]="uploadingPhoto" />
+              <i class="fa-solid fa-plus"></i>
+              <span>Add Photo</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="photo-category">
+          <h4>After Photos</h4>
+          <div class="photo-gallery">
+            <div class="photo-item" *ngFor="let photo of afterPhotos; let i = index">
+              <img [src]="photo" alt="After photo">
+              <button class="photo-remove" (click)="removePhoto('after', i)">
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            </div>
+            <label class="photo-add" [class.disabled]="uploadingPhoto">
+              <input
+                type="file"
+                accept="image/*"
+                (change)="uploadPhoto($event, 'after')"
+                [disabled]="uploadingPhoto" />
+              <i class="fa-solid fa-plus"></i>
+              <span>Add Photo</span>
+            </label>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- Notes -->

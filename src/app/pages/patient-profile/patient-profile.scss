@@ -258,7 +258,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: white;
+  background: var(--bg-card);
   padding: 0.75rem 1rem;
   border-radius: var(--radius-md);
 }

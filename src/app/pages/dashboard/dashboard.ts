@@ -1,9 +1,12 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
+import { forkJoin } from 'rxjs';
 import { PageHeaderComponent, StatCardComponent } from '../../components/shared';
 import { DataService } from '../../services/data.service';
-import { Appointment, Alert, Doctor, Room } from '../../models';
+import { SweetAlertService } from '../../services/sweet-alert.service';
+import { Appointment, Alert, Doctor, Room, Patient } from '../../models';
+import { getAppointmentStatusColor } from '../../utils/status-colors';
 
 @Component({
   selector: 'app-dashboard',
@@ -13,6 +16,7 @@ import { Appointment, Alert, Doctor, Room } from '../../models';
   styleUrl: './dashboard.scss'
 })
 export class Dashboard implements OnInit {
+  loading = true;
   stats = {
     todayAppointments: 0,
     totalPatients: 0,
@@ -28,49 +32,45 @@ export class Dashboard implements OnInit {
   alerts: Alert[] = [];
   doctors: Doctor[] = [];
   rooms: Room[] = [];
+  patients: Patient[] = [];
 
-  constructor(private dataService: DataService) {}
+  constructor(
+    private dataService: DataService,
+    private alertService: SweetAlertService,
+    private router: Router
+  ) {}
 
   ngOnInit() {
     this.loadDashboardData();
   }
 
   loadDashboardData() {
-    this.dataService.getDashboardStats().subscribe(stats => {
-      this.stats = stats;
-    });
-
-    this.dataService.getAppointments().subscribe(appointments => {
-      const today = new Date();
-      this.todayAppointments = appointments
-        .filter(a => new Date(a.scheduledStart).toDateString() === today.toDateString())
-        .sort((a, b) => new Date(a.scheduledStart).getTime() - new Date(b.scheduledStart).getTime());
-    });
-
-    this.dataService.getAlerts().subscribe(alerts => {
-      this.alerts = alerts.filter(a => !a.isRead).slice(0, 5);
-    });
-
-    this.dataService.getDoctors().subscribe(doctors => {
-      this.doctors = doctors;
-    });
-
-    this.dataService.getRooms().subscribe(rooms => {
-      this.rooms = rooms;
+    forkJoin({
+      stats: this.dataService.getDashboardStats(),
+      appointments: this.dataService.getAppointments(),
+      alerts: this.dataService.getAlerts(),
+      doctors: this.dataService.getDoctors(),
+      rooms: this.dataService.getRooms(),
+      patients: this.dataService.getPatients()
+    }).subscribe({
+      next: ({ stats, appointments, alerts, doctors, rooms, patients }) => {
+        this.stats = stats;
+        this.doctors = doctors;
+        this.rooms = rooms;
+        this.patients = patients;
+        this.alerts = alerts.filter(a => !a.isRead).slice(0, 5);
+        const today = new Date();
+        this.todayAppointments = appointments
+          .filter(a => new Date(a.scheduledStart).toDateString() === today.toDateString())
+          .sort((a, b) => new Date(a.scheduledStart).getTime() - new Date(b.scheduledStart).getTime());
+        this.loading = false;
+      },
+      error: () => this.alertService.error('Failed to load dashboard data. Please refresh.')
     });
   }
 
   getStatusColor(status: string): string {
-    const colors: { [key: string]: string } = {
-      'scheduled': '#3B82F6',
-      'checked-in': '#F59E0B',
-      'in-progress': '#8B5CF6',
-      'completed': '#10B981',
-      'billed': '#9CA3AF',
-      'cancelled': '#EF4444',
-      'no-show': '#F97316'
-    };
-    return colors[status] || '#6B7280';
+    return getAppointmentStatusColor(status);
   }
 
   formatTime(date: Date): string {
@@ -89,6 +89,11 @@ export class Dashboard implements OnInit {
     return this.rooms.find(r => r.id === roomId)?.name || 'Unknown';
   }
 
+  getPatientName(patientId: string): string {
+    const p = this.patients.find(pt => pt.id === patientId);
+    return p ? `${p.firstName} ${p.lastName}` : 'Unknown';
+  }
+
   getAlertIcon(type: string): string {
     const icons: { [key: string]: string } = {
       'low_stock': 'fa-solid fa-box-open',
@@ -101,5 +106,54 @@ export class Dashboard implements OnInit {
 
   getSeverityClass(severity: string): string {
     return `severity-${severity}`;
+  }
+
+  navigateTo(path: string) {
+    this.router.navigate([path]);
+  }
+
+  checkIn(apt: Appointment) {
+    this.dataService.updateAppointmentStatus(apt.id, 'checked-in').subscribe({
+      next: () => {
+        apt.status = 'checked-in';
+        this.alertService.success(`Patient checked in successfully`);
+      },
+      error: () => this.alertService.error('Failed to check in patient')
+    });
+  }
+
+  scrollToAlerts() {
+    document.getElementById('alerts-section')?.scrollIntoView({ behavior: 'smooth' });
+  }
+
+  dismissAlert(alert: Alert) {
+    this.dataService.markAlertRead(alert.id).subscribe({
+      next: () => {
+        this.alerts = this.alerts.filter(a => a.id !== alert.id);
+        this.stats.pendingAlerts = Math.max(0, this.stats.pendingAlerts - 1);
+      },
+      error: () => this.alertService.error('Failed to dismiss alert')
+    });
+  }
+
+  isRoomOccupied(roomId: string): boolean {
+    const now = new Date().getTime();
+    return this.todayAppointments.some(a =>
+      a.roomId === roomId &&
+      (a.status === 'checked-in' || a.status === 'in-progress') &&
+      new Date(a.scheduledStart).getTime() <= now &&
+      new Date(a.scheduledEnd).getTime() >= now
+    );
+  }
+
+  getRoomCurrentPatient(roomId: string): string | null {
+    const now = new Date().getTime();
+    const apt = this.todayAppointments.find(a =>
+      a.roomId === roomId &&
+      (a.status === 'checked-in' || a.status === 'in-progress') &&
+      new Date(a.scheduledStart).getTime() <= now &&
+      new Date(a.scheduledEnd).getTime() >= now
+    );
+    return apt ? this.getPatientName(apt.patientId) : null;
   }
 }
