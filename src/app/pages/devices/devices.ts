@@ -154,17 +154,28 @@ export class Devices implements OnInit {
   }
 
   logUsage() {
-    if (this.selectedDevice && this.usageLog.counterEnd > this.usageLog.counterStart) {
-      const usedPulses = this.usageLog.counterEnd - this.usageLog.counterStart;
-      this.dataService.updateDeviceCounter(this.selectedDevice.id, this.usageLog.counterEnd).subscribe({
-        next: () => {
-          this.alertService.toast(`Logged ${usedPulses.toLocaleString()} units for ${this.selectedDevice!.name}`, 'success');
-          this.loadData();
-        },
-        error: () => this.alertService.toast('Failed to update device counter', 'error')
-      });
+    if (!this.selectedDevice) {
+      this.alertService.toast('No device selected', 'error');
+      return;
     }
-    this.closeLogModal();
+
+    if (this.usageLog.counterEnd <= this.usageLog.counterStart) {
+      this.alertService.validationError('Counter end must be greater than the current counter');
+      return;
+    }
+
+    const usedPulses = this.usageLog.counterEnd - this.usageLog.counterStart;
+    this.dataService.updateDeviceCounter(this.selectedDevice.id, this.usageLog.counterEnd).subscribe({
+      next: () => {
+        this.alertService.toast(`Logged ${usedPulses.toLocaleString()} units for ${this.selectedDevice!.name}`, 'success');
+        this.loadData();
+        this.closeLogModal();
+      },
+      error: (err) => {
+        console.error('Failed to update device counter:', err);
+        this.alertService.toast('Failed to update device counter', 'error');
+      }
+    });
   }
 
   getEmptyForm(): Partial<Device> {
