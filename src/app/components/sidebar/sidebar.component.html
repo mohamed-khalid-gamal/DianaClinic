@@ -31,6 +31,10 @@
        (click)="onNavClick()">
       <i [class]="item.icon"></i>
       <span class="label" *ngIf="!collapsed || isMobile">{{ item.label }}</span>
+      <span class="badge" *ngIf="getBadgeCount(item) > 0 && (!collapsed || isMobile)">
+        {{ getBadgeCount(item) }}
+      </span>
+      <span class="badge-dot" *ngIf="getBadgeCount(item) > 0 && collapsed && !isMobile"></span>
     </a>
   </nav>
 
