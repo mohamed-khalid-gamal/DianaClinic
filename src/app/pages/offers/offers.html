@@ -201,20 +201,52 @@
             <!-- Parameter Inputs for Single Rules -->
             <div class="cond-params" [ngSwitch]="cond.type" *ngIf="cond.type !== 'group'">
                
-               <!-- Service Includes -->
-               <div *ngSwitchCase="'service_includes'">
-                  <label>Services Included:</label>
-                  <select (change)="addServiceToCondition(cond, $event)">
-                     <option value="">+ Add Service</option>
-                     <option *ngFor="let s of services" [value]="s.id">{{ s.name }}</option>
-                  </select>
-                  <div class="tag-list">
-                     <span class="tag" *ngFor="let sid of (cond.parameters.serviceIds || [])">
-                        {{ getServiceName(sid) }}
-                        <i class="fa-solid fa-xmark" (click)="removeServiceFromCondition(cond, sid)"></i>
-                     </span>
-                  </div>
-               </div>
+                <!-- Service Includes -->
+                <div *ngSwitchCase="'service_includes'">
+                   <div class="form-grid">
+                       <div class="form-group">
+                           <label>Match Logic</label>
+                           <select [(ngModel)]="cond.parameters.matchType" [ngModelOptions]="{ standalone: true }">
+                               <option value="all">Match ALL (Bundle)</option>
+                               <option value="any">Match ANY (One of)</option>
+                               <option value="none">Exclude (None of)</option>
+                               <option value="exact">Exact Match Only</option>
+                           </select>
+                       </div>
+                       <div class="form-group">
+                           <label>Min Quantity / Units</label>
+                           <input type="number" [(ngModel)]="cond.parameters.minQuantity" [ngModelOptions]="{ standalone: true }" placeholder="Qty">
+                       </div>
+                   </div>
+
+                   <div class="form-group">
+                       <label>Include Categories:</label>
+                       <select (change)="addCategoryToCondition(cond, $event)">
+                           <option value="">+ Add Category</option>
+                           <option *ngFor="let c of categories" [value]="c.id">{{ c.name }}</option>
+                       </select>
+                       <div class="tag-list">
+                           <span class="tag" *ngFor="let cid of (cond.parameters.categoryIds || [])">
+                               {{ getCategoryName(cid) }}
+                               <i class="fa-solid fa-xmark" (click)="removeCategoryFromCondition(cond, cid)"></i>
+                           </span>
+                       </div>
+                   </div>
+
+                   <div class="form-group">
+                       <label>Include Specific Services:</label>
+                       <select (change)="addServiceToCondition(cond, $event)">
+                          <option value="">+ Add Service</option>
+                          <option *ngFor="let s of services" [value]="s.id">{{ s.name }}</option>
+                       </select>
+                       <div class="tag-list">
+                          <span class="tag" *ngFor="let sid of (cond.parameters.serviceIds || [])">
+                             {{ getServiceName(sid) }}
+                             <i class="fa-solid fa-xmark" (click)="removeServiceFromCondition(cond, sid)"></i>
+                          </span>
+                       </div>
+                   </div>
+                </div>
 
                <!-- Min Spend -->
                <div *ngSwitchCase="'min_spend'">

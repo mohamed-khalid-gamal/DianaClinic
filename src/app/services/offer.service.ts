@@ -26,7 +26,7 @@ export class OfferService {
   /**
    * Main entry point: Evaluate all available offers against the current cart and patient.
    */
-  evaluateOffers(cart: CartItem[], patient: Patient, allOffers: Offer[]): AppliedOffer[] {
+  evaluateOffers(cart: CartItem[], patient: Patient, allOffers: Offer[], services: Service[] = []): AppliedOffer[] {
     const applicableOffers: AppliedOffer[] = [];
     const today = new Date();
 
@@ -43,7 +43,7 @@ export class OfferService {
 
     // 3. Evaluate conditions
     for (const offer of candidates) {
-      if (this.evaluateOfferConditions(offer, cart, patient)) {
+      if (this.evaluateOfferConditions(offer, cart, patient, services)) {
         const benefit = this.calculateBenefit(offer, cart);
         if (benefit && (benefit.discountAmount > 0 || benefit.offer.benefits[0]?.type === 'grant_package')) {
           applicableOffers.push(benefit);
@@ -66,29 +66,25 @@ export class OfferService {
     return nonExclusives;
   }
 
-  private evaluateOfferConditions(offer: Offer, cart: CartItem[], patient: Patient): boolean {
+  private evaluateOfferConditions(offer: Offer, cart: CartItem[], patient: Patient, services: Service[]): boolean {
     if (!offer.conditions || offer.conditions.length === 0) return true;
     // Top level is always implicit AND
-    return offer.conditions.every(cond => this.evaluateCondition(cond, cart, patient));
+    return offer.conditions.every(cond => this.evaluateCondition(cond, cart, patient, services));
   }
 
-  private evaluateCondition(condition: OfferCondition, cart: CartItem[], patient: Patient): boolean {
+  private evaluateCondition(condition: OfferCondition, cart: CartItem[], patient: Patient, services: Service[]): boolean {
     switch (condition.type) {
       case 'group':
         if (!condition.children || condition.children.length === 0) return true;
         if (condition.logic === 'OR') {
-          return condition.children.some(child => this.evaluateCondition(child, cart, patient));
+          return condition.children.some(child => this.evaluateCondition(child, cart, patient, services));
         } else {
           // Default to AND
-          return condition.children.every(child => this.evaluateCondition(child, cart, patient));
+          return condition.children.every(child => this.evaluateCondition(child, cart, patient, services));
         }
 
       case 'service_includes':
-        // Cart must contain specific services
-        if (!condition.parameters.serviceIds) return true;
-        const cartServiceIds = cart.map(i => i.serviceId);
-        // Check if ALL required services are in cart
-        return condition.parameters.serviceIds.every(reqId => cartServiceIds.includes(reqId));
+        return this.evaluateServiceIncludes(condition, cart, services);
 
       case 'min_spend':
         const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
@@ -183,6 +179,68 @@ export class OfferService {
           default: return value == target;
       }
   }
+
+  private evaluateServiceIncludes(condition: OfferCondition, cart: CartItem[], allServices: Service[]): boolean {
+    const params = condition.parameters;
+    const cartServiceIds = new Set(cart.map(i => i.serviceId));
+
+    // 1. Resolve Target IDs from Service IDs and Categories
+    let targetIds = new Set<string>(params.serviceIds || []);
+
+    if (params.categoryIds && params.categoryIds.length > 0) {
+      allServices
+        .filter(s => params.categoryIds?.includes(s.categoryId))
+        .forEach(s => targetIds.add(s.id));
+    }
+
+    if (targetIds.size === 0) return true; // No targets defined = match all? Or ignore? Assuming ignore -> true.
+
+    // 2. Determine matches based on matchType
+    const matchType = params.matchType || 'all';
+    
+    // Check coverage
+    const cartHasId = (id: string) => cartServiceIds.has(id);
+    
+    let isMatch = false;
+
+    if (matchType === 'any') {
+      // At least one target ID is in cart
+      isMatch = Array.from(targetIds).some(id => cartHasId(id));
+    } else if (matchType === 'none') {
+      // NONE of the target IDs are in cart
+      isMatch = !Array.from(targetIds).some(id => cartHasId(id));
+      // For 'none', minQuantity doesn't make sense to check on matches (since there are none), so return early
+      return isMatch;
+    } else if (matchType === 'exact') {
+      // Cart services must be exactly the target set
+      if (cartServiceIds.size !== targetIds.size) isMatch = false;
+      else isMatch = Array.from(targetIds).every(id => cartHasId(id));
+    } else {
+      // 'all' (default) - Cart must contain ALL target IDs
+      // This is strict 'all listed must be present'. 
+      // If categories are used, it implies "All services in this category"? No, that's dangerous.
+      // Usually 'all' with categories means "Is this logical?". 
+      // If user selects "Category: Laser" and "Match: All", it implies "Cart must contain ALL laser services available". That's unlikely.
+      // Probably 'all' is useful for bundling specific Service IDs. 
+      // For categories, 'any' is the standard use case. 
+      // However, we follow logic: All IDs in targetIds must be in cart.
+      isMatch = Array.from(targetIds).every(id => cartHasId(id));
+    }
+
+    if (!isMatch) return false;
+
+    // 3. Check Minimum Quantity (Total items matching the target)
+    if (params.minQuantity && params.minQuantity > 0) {
+       // Count quantity of items in cart that match the target set
+       const matchingCartItems = cart.filter(i => targetIds.has(i.serviceId));
+       const totalUnits = matchingCartItems.reduce((sum, item) => sum + item.quantity, 0);
+       
+       if (totalUnits < params.minQuantity) return false;
+    }
+
+    return true;
+  }
+}
 
   private evaluateCartProperty(condition: OfferCondition, cart: CartItem[]): boolean {
       const prop = condition.parameters.attributeName; // 'totalQuantity', 'totalItems', 'distinctCategories'

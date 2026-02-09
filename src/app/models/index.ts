@@ -242,6 +242,11 @@ export interface OfferCondition {
     startDate?: Date;
     endDate?: Date;
     
+    // Advanced Service Matching
+    categoryIds?: string[]; // Match services from these categories
+    matchType?: 'all' | 'any' | 'none' | 'exact'; // Default 'all'
+    minQuantity?: number; // Minimum units/sessions/pulses
+    
     // New fields
     startTime?: string; // HH:mm
     endTime?: string; // HH:mm
