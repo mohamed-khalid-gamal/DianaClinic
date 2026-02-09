@@ -188,7 +188,8 @@ export class DataService {
   }
 
   updateOffer(offer: Offer): Observable<Offer> {
-    return this.http.put<Offer>(`${this.apiBase}/offers/${offer.id}`, offer);
+    const { id, createdAt, ...payload } = offer;
+    return this.http.put<Offer>(`${this.apiBase}/offers/${offer.id}`, payload);
   }
 
   deleteOffer(id: string): Observable<void> {
