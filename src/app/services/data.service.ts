@@ -3,7 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable, of, forkJoin } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 import {
-  Patient, Doctor, Room, Device, InventoryItem,
+  Patient, Doctor, Room, Device, InventoryItem, InventoryCategory,
   ServiceCategory, Service, Offer, Appointment, Alert, PatientWallet, PatientTransaction, PackagePurchase, Session, Invoice
 } from '../models';
 
@@ -125,6 +125,23 @@ export class DataService {
 
   deleteInventoryItem(id: string): Observable<void> {
     return this.http.delete<void>(`${this.apiBase}/inventory/${id}`);
+  }
+
+  // Inventory Categories
+  getInventoryCategories(): Observable<InventoryCategory[]> {
+    return this.http.get<InventoryCategory[]>(`${this.apiBase}/inventory/categories`);
+  }
+
+  addInventoryCategory(category: InventoryCategory): Observable<InventoryCategory> {
+    return this.http.post<InventoryCategory>(`${this.apiBase}/inventory/categories`, category);
+  }
+
+  updateInventoryCategory(category: InventoryCategory): Observable<InventoryCategory> {
+    return this.http.put<InventoryCategory>(`${this.apiBase}/inventory/categories/${category.id}`, category);
+  }
+
+  deleteInventoryCategory(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.apiBase}/inventory/categories/${id}`);
   }
 
   // Services & Categories

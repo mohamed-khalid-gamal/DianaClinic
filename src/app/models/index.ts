@@ -146,7 +146,7 @@ export interface InventoryItem {
   id: string;
   name: string;
   sku: string;
-  category: 'drug' | 'consumable' | 'retail' | 'equipment';
+  category: string; // Now uses dynamic InventoryCategory IDs
   quantity: number;
   unit: string;
   costPrice: number;
@@ -156,6 +156,12 @@ export interface InventoryItem {
   batchNumber?: string;
   supplier?: string;
   location?: string;
+}
+
+export interface InventoryCategory {
+  id: string;
+  name: string;
+  description?: string;
 }
 
 // Service & Pricing

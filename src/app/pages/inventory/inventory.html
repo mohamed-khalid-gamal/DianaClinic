@@ -1,9 +1,14 @@
 <app-page-header
   title="Inventory & Pharmacy"
   subtitle="Track stock levels, expiry dates, and manage products">
-  <button class="btn btn-primary" (click)="openAddModal()">
-    + Add Item
-  </button>
+  <div class="header-actions">
+    <button class="btn btn-outline" (click)="openCategoryModal()">
+      <i class="fa-solid fa-tags"></i> Manage Categories
+    </button>
+    <button class="btn btn-primary" (click)="openAddModal()">
+      + Add Item
+    </button>
+  </div>
 </app-page-header>
 
 <!-- Stats Row -->
@@ -46,14 +51,10 @@
   <button [class.active]="activeFilter === 'all'" (click)="activeFilter = 'all'">
     All Items
   </button>
-  <button [class.active]="activeFilter === 'drug'" (click)="activeFilter = 'drug'">
-    Drugs
-  </button>
-  <button [class.active]="activeFilter === 'consumable'" (click)="activeFilter = 'consumable'">
-    Consumables
-  </button>
-  <button [class.active]="activeFilter === 'retail'" (click)="activeFilter = 'retail'">
-    Retail Products
+  <button *ngFor="let cat of categories"
+          [class.active]="activeFilter === cat.id"
+          (click)="activeFilter = cat.id">
+    {{ cat.name }}
   </button>
   <button [class.active]="activeFilter === 'low'" (click)="activeFilter = 'low'">
     Low Stock
@@ -93,10 +94,8 @@
     <div class="form-group">
       <label>Category *</label>
       <select name="category" required [(ngModel)]="itemForm.category" #itemCategory="ngModel">
-        <option value="drug">Drug / Injectable</option>
-        <option value="consumable">Consumable</option>
-        <option value="retail">Retail Product</option>
-        <option value="equipment">Equipment</option>
+        <option value="">Select category</option>
+        <option *ngFor="let cat of categories" [value]="cat.id">{{ cat.name }}</option>
       </select>
       <span class="error-text" *ngIf="itemCategory.invalid && (itemCategory.touched || itemCategory.dirty)">Category is required</span>
     </div>
@@ -154,4 +153,51 @@
       <input type="text" name="location" [(ngModel)]="itemForm.location" placeholder="e.g., Cabinet A">
     </div>
   </form>
+</app-modal>
+
+<!-- Category Management Modal -->
+<app-modal
+  [isOpen]="showCategoryModal"
+  title="Manage Categories"
+  maxWidth="550px"
+  (closed)="closeCategoryModal()"
+  [showFooter]="false">
+
+  <div class="category-manager">
+    <div class="category-add-form">
+      <input type="text" [(ngModel)]="newCategoryName" placeholder="New category name..." class="category-input">
+      <button class="btn btn-primary btn-sm" (click)="addNewCategory()" [disabled]="!newCategoryName.trim()">
+        <i class="fa-solid fa-plus"></i> Add
+      </button>
+    </div>
+
+    <div class="category-list" *ngIf="categories.length; else noCats">
+      <div class="category-item" *ngFor="let cat of categories">
+        <div class="category-info" *ngIf="editingCategoryId !== cat.id">
+          <span class="cat-name">{{ cat.name }}</span>
+          <span class="cat-count">{{ getItemCountForCategory(cat.id) }} items</span>
+        </div>
+        <div class="category-edit" *ngIf="editingCategoryId === cat.id">
+          <input type="text" [(ngModel)]="editingCategoryName" class="category-input">
+        </div>
+        <div class="category-actions">
+          <button *ngIf="editingCategoryId !== cat.id" class="btn btn-outline btn-sm" (click)="startEditCategory(cat)">
+            <i class="fa-solid fa-pen"></i>
+          </button>
+          <button *ngIf="editingCategoryId === cat.id" class="btn btn-primary btn-sm" (click)="saveCategory(cat)">
+            <i class="fa-solid fa-check"></i>
+          </button>
+          <button *ngIf="editingCategoryId === cat.id" class="btn btn-outline btn-sm" (click)="cancelEditCategory()">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+          <button *ngIf="editingCategoryId !== cat.id" class="btn btn-outline btn-sm btn-danger" (click)="deleteCategory(cat)" [disabled]="getItemCountForCategory(cat.id) > 0">
+            <i class="fa-solid fa-trash"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+    <ng-template #noCats>
+      <div class="empty-state"><p>No categories yet. Add one above.</p></div>
+    </ng-template>
+  </div>
 </app-modal>
