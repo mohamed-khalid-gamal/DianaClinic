@@ -154,76 +154,207 @@
     <!-- Step 2: Conditions (Who/When?) -->
     <div class="wizard-step" *ngIf="currentStep === 2">
       <h4>Conditions (When does this apply?)</h4>
-      <p class="hint">Leave empty to apply to everyone/everything depending on type.</p>
+      <p class="hint">Leave empty to apply to everyone. Use 'Logic Group' to create complex AND/OR rules.</p>
+      
+      <!-- Recursive Template for Condition Node -->
+      <ng-template #conditionNode let-cond="cond" let-parent="parent">
+         <div class="condition-item" [class.group-item]="cond.type === 'group'" [class.nested]="!!parent">
+            <div class="cond-header">
+               <div *ngIf="cond.type === 'group'" class="group-controls">
+                  <strong><i class="fa-solid fa-layer-group"></i> Group:</strong>
+                  <select [(ngModel)]="cond.logic" [ngModelOptions]="{standalone: true}" class="logic-select">
+                     <option value="AND">Must Match ALL (AND)</option>
+                     <option value="OR">Match ANY (OR)</option>
+                  </select>
+               </div>
+               <div *ngIf="cond.type !== 'group'" class="rule-header">
+                  <strong>{{ getConditionLabel(cond.type) }}</strong>
+               </div>
+               <button class="btn-remove" (click)="removeCondition(parent, cond.id)" title="Remove"><i class="fa-solid fa-trash"></i></button>
+            </div>
 
+            <!-- Group Children -->
+            <div *ngIf="cond.type === 'group'" class="group-children">
+               <div *ngFor="let child of cond.children">
+                  <ng-container *ngTemplateOutlet="conditionNode; context: {cond: child, parent: cond}"></ng-container>
+               </div>
+               
+               <div class="add-condition-inline">
+                  <select #childType>
+                     <option value="service_includes">Must Include Services</option>
+                     <option value="min_spend">Minimum Spend</option>
+                     <option value="limit_per_patient">Limit Per Patient</option>
+                     <option value="new_patient">New Patients Only</option>
+                     <option value="patient_tag">Patient Tag Match</option>
+                     <option value="date_range">Date Range</option>
+                     <option value="time_range">Time of Day</option>
+                     <option value="day_of_week">Days of Week</option>
+                     <option value="specific_patient">Specific Patients</option>
+                     <option value="customer_attribute">Patient Attribute</option>
+                     <option value="cart_property">Cart Property</option>
+                     <option value="group">Nested Group</option>
+                  </select>
+                  <button class="btn btn-sm btn-outline" (click)="addCondition(cond, childType.value)">+ Add to Group</button>
+               </div>
+            </div>
+
+            <!-- Parameter Inputs for Single Rules -->
+            <div class="cond-params" [ngSwitch]="cond.type" *ngIf="cond.type !== 'group'">
+               
+               <!-- Service Includes -->
+               <div *ngSwitchCase="'service_includes'">
+                  <label>Services Included:</label>
+                  <select (change)="addServiceToCondition(cond, $event)">
+                     <option value="">+ Add Service</option>
+                     <option *ngFor="let s of services" [value]="s.id">{{ s.name }}</option>
+                  </select>
+                  <div class="tag-list">
+                     <span class="tag" *ngFor="let sid of (cond.parameters.serviceIds || [])">
+                        {{ getServiceName(sid) }}
+                        <i class="fa-solid fa-xmark" (click)="removeServiceFromCondition(cond, sid)"></i>
+                     </span>
+                  </div>
+               </div>
+
+               <!-- Min Spend -->
+               <div *ngSwitchCase="'min_spend'">
+                  <label>Minimum Amount (EGP)</label>
+                  <input type="number" [(ngModel)]="cond.parameters.minAmount" [ngModelOptions]="{ standalone: true }">
+               </div>
+
+               <!-- Time Range -->
+               <div *ngSwitchCase="'time_range'" class="form-grid">
+                   <div class="form-group">
+                       <label>Start Time</label>
+                       <input type="time" [(ngModel)]="cond.parameters.startTime" [ngModelOptions]="{ standalone: true }">
+                   </div>
+                   <div class="form-group">
+                       <label>End Time</label>
+                       <input type="time" [(ngModel)]="cond.parameters.endTime" [ngModelOptions]="{ standalone: true }">
+                   </div>
+               </div>
+
+               <!-- Day of Week -->
+               <div *ngSwitchCase="'day_of_week'">
+                   <label>Days Active</label>
+                   <div class="days-selector">
+                       <label *ngFor="let day of [0,1,2,3,4,5,6]; let idx = index">
+                           <input type="checkbox" 
+                                  [checked]="cond.parameters.daysOfWeek?.includes(day)" 
+                                  (change)="cond.parameters.daysOfWeek = cond.parameters.daysOfWeek || []; $event.target.checked ? cond.parameters.daysOfWeek.push(day) : cond.parameters.daysOfWeek.splice(cond.parameters.daysOfWeek.indexOf(day), 1)">
+                           {{ ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][idx] }}
+                       </label>
+                   </div>
+               </div>
+
+               <!-- Patient Attributes -->
+               <div *ngSwitchCase="'customer_attribute'" class="form-grid">
+                   <div class="form-group">
+                       <label>Attribute</label>
+                       <select [(ngModel)]="cond.parameters.attributeName" [ngModelOptions]="{ standalone: true }">
+                           <option value="age">Age</option>
+                           <option value="gender">Gender</option>
+                           <option value="city">City</option>
+                           <option value="totalVisits">Total Visits</option>
+                       </select>
+                   </div>
+                   <div class="form-group">
+                       <label>Operator</label>
+                       <select [(ngModel)]="cond.operator" [ngModelOptions]="{ standalone: true }">
+                           <option value="equals">Equals</option>
+                           <option value="not_equals">Not Equals</option>
+                           <option value="greater_than">Greater Than</option>
+                           <option value="less_than">Less Than</option>
+                           <option value="contains">Contains</option>
+                       </select>
+                   </div>
+                   <div class="form-group">
+                       <label>Value</label>
+                       <input type="text" [(ngModel)]="cond.parameters.attributeValue" [ngModelOptions]="{ standalone: true }">
+                   </div>
+               </div>
+
+               <!-- Cart Property -->
+               <div *ngSwitchCase="'cart_property'" class="form-grid">
+                   <div class="form-group">
+                       <label>Property</label>
+                       <select [(ngModel)]="cond.parameters.attributeName" [ngModelOptions]="{ standalone: true }">
+                           <option value="totalQuantity">Total Items Count</option>
+                           <option value="totalItems">Distinct Items Count</option>
+                       </select>
+                   </div>
+                   <div class="form-group">
+                       <label>Operator</label>
+                       <select [(ngModel)]="cond.operator" [ngModelOptions]="{ standalone: true }">
+                           <option value="greater_than">Greater Than</option>
+                           <option value="equals">Equals</option>
+                           <option value="less_than">Less Than</option>
+                       </select>
+                   </div>
+                   <div class="form-group">
+                       <label>Value</label>
+                       <input type="number" [(ngModel)]="cond.parameters.threshold" [ngModelOptions]="{ standalone: true }">
+                   </div>
+               </div>
+               
+               <!-- Patient Tags -->
+               <div *ngSwitchCase="'patient_tag'">
+                  <label>Tags (comma-separated)</label>
+                  <input type="text" [ngModel]="joinArray(cond.parameters.tags)" (ngModelChange)="cond.parameters.tags = splitText($event)" [ngModelOptions]="{ standalone: true }" placeholder="e.g. VIP, Employee">
+                  <div class="mt-2">
+                      <label><input type="checkbox" [checked]="cond.operator === 'not_contains'" (change)="cond.operator = $event.target.checked ? 'not_contains' : 'contains'"> Must NOT have these tags</label>
+                  </div>
+               </div>
+
+               <!-- Date Range -->
+               <div *ngSwitchCase="'date_range'">
+                  <div class="form-grid">
+                    <div class="form-group">
+                      <label>Start Date</label>
+                      <input type="date" [ngModel]="cond.parameters.startDate" (ngModelChange)="cond.parameters.startDate = $event" [ngModelOptions]="{ standalone: true }">
+                    </div>
+                    <div class="form-group">
+                      <label>End Date</label>
+                      <input type="date" [ngModel]="cond.parameters.endDate" (ngModelChange)="cond.parameters.endDate = $event" [ngModelOptions]="{ standalone: true }">
+                    </div>
+                  </div>
+               </div>
+
+               <!-- Specific Patient -->
+               <div *ngSwitchCase="'specific_patient'">
+                  <label>Patient IDs</label>
+                  <input type="text" [ngModel]="joinArray(cond.parameters.patientIds)" (ngModelChange)="cond.parameters.patientIds = splitText($event)" [ngModelOptions]="{ standalone: true }">
+               </div>
+
+            </div>
+         </div>
+      </ng-template>
+
+      <!-- Root Conditions List -->
       <div class="conditions-list">
-        <div class="condition-item" *ngFor="let cond of offerForm.conditions; let i = index">
-          <div class="cond-header">
-            <strong>{{ getConditionLabel(cond.type) }}</strong>
-            <button class="btn-remove" (click)="removeCondition(i)"><i class="fa-solid fa-trash"></i></button>
-          </div>
-
-          <!-- Condition Params -->
-          <div class="cond-params" [ngSwitch]="cond.type">
-            <div *ngSwitchCase="'service_includes'">
-              <label>Services Included:</label>
-              <select (change)="addServiceToCondition(cond, $event)">
-                <option value="">+ Add Service</option>
-                <option *ngFor="let s of services" [value]="s.id">{{ s.name }}</option>
-              </select>
-              <div class="tag-list">
-                <span class="tag" *ngFor="let sid of (cond.parameters.serviceIds || [])">
-                  {{ getServiceName(sid) }}
-                  <i class="fa-solid fa-xmark" (click)="removeServiceFromCondition(cond, sid)"></i>
-                </span>
-              </div>
-            </div>
-
-            <div *ngSwitchCase="'min_spend'">
-              <label>Minimum Cart Amount (EGP)</label>
-              <input type="number" [(ngModel)]="cond.parameters.minAmount" [ngModelOptions]="{ standalone: true }">
-            </div>
-
-            <div *ngSwitchCase="'patient_tag'">
-              <label>Tags (comma-separated)</label>
-              <input type="text" [ngModel]="joinArray(cond.parameters.tags)" (ngModelChange)="cond.parameters.tags = splitText($event)" [ngModelOptions]="{ standalone: true }" placeholder="e.g., oily, acne, sensitive">
-              <span class="hint">Matches against skin type, allergies, chronic conditions</span>
-            </div>
-
-            <div *ngSwitchCase="'date_range'">
-              <div class="form-grid">
-                <div class="form-group">
-                  <label>Start Date</label>
-                  <input type="date" [ngModel]="cond.parameters.startDate" (ngModelChange)="cond.parameters.startDate = $event" [ngModelOptions]="{ standalone: true }">
-                </div>
-                <div class="form-group">
-                  <label>End Date</label>
-                  <input type="date" [ngModel]="cond.parameters.endDate" (ngModelChange)="cond.parameters.endDate = $event" [ngModelOptions]="{ standalone: true }">
-                </div>
-              </div>
-            </div>
-
-            <div *ngSwitchCase="'specific_patient'">
-              <label>Patient IDs (comma-separated)</label>
-              <input type="text" [ngModel]="joinArray(cond.parameters.patientIds)" (ngModelChange)="cond.parameters.patientIds = splitText($event)" [ngModelOptions]="{ standalone: true }" placeholder="Paste patient IDs">
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="add-condition">
-        <label>Add Condition:</label>
-        <div class="add-row">
-          <select #newCondType>
-            <option value="service_includes">Must Include Services</option>
-            <option value="min_spend">Minimum Spend</option>
-            <option value="new_patient">New Patients Only</option>
-            <option value="patient_tag">Patient Tag Match</option>
-            <option value="date_range">Date Range</option>
-            <option value="specific_patient">Specific Patients</option>
-          </select>
-          <button class="btn btn-outline" (click)="addCondition(newCondType.value)">+ Add</button>
-        </div>
+         <div *ngFor="let cond of offerForm.conditions">
+            <ng-container *ngTemplateOutlet="conditionNode; context: {cond: cond, parent: null}"></ng-container>
+         </div>
+         
+         <div class="add-condition">
+           <label>Add New Rule:</label>
+           <div class="add-row">
+             <select #newCondType>
+               <option value="service_includes">Must Include Services</option>
+               <option value="min_spend">Minimum Spend</option>
+               <option value="new_patient">New Patients Only</option>
+               <option value="patient_tag">Patient Tag Match</option>
+               <option value="date_range">Date Range</option>
+               <option value="time_range">Time of Day</option>
+               <option value="day_of_week">Days of Week</option>
+               <option value="specific_patient">Specific Patients</option>
+               <option value="customer_attribute">Patient Attribute</option>
+               <option value="cart_property">Cart Property</option>
+               <option value="group">Logic Group (AND/OR)</option>
+             </select>
+             <button class="btn btn-outline" (click)="addCondition(null, newCondType.value)">+ Add</button>
+           </div>
+         </div>
       </div>
     </div>
 

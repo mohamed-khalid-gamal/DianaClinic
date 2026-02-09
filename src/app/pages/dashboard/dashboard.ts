@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { forkJoin } from 'rxjs';
@@ -13,7 +13,8 @@ import { getAppointmentStatusColor } from '../../utils/status-colors';
   standalone: true,
   imports: [CommonModule, RouterModule, PageHeaderComponent, StatCardComponent],
   templateUrl: './dashboard.html',
-  styleUrl: './dashboard.scss'
+  styleUrl: './dashboard.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class Dashboard implements OnInit {
   loading = true;
@@ -37,7 +38,8 @@ export class Dashboard implements OnInit {
   constructor(
     private dataService: DataService,
     private alertService: SweetAlertService,
-    private router: Router
+    private router: Router,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit() {
@@ -64,8 +66,9 @@ export class Dashboard implements OnInit {
           .filter(a => new Date(a.scheduledStart).toDateString() === today.toDateString())
           .sort((a, b) => new Date(a.scheduledStart).getTime() - new Date(b.scheduledStart).getTime());
         this.loading = false;
+        this.cdr.markForCheck();
       },
-      error: () => this.alertService.error('Failed to load dashboard data. Please refresh.')
+      error: () => {} // Handled globally
     });
   }
 
@@ -117,8 +120,9 @@ export class Dashboard implements OnInit {
       next: () => {
         apt.status = 'checked-in';
         this.alertService.success(`Patient checked in successfully`);
+        this.cdr.markForCheck();
       },
-      error: () => this.alertService.error('Failed to check in patient')
+      error: () => {} // Handled globally
     });
   }
 
@@ -131,8 +135,9 @@ export class Dashboard implements OnInit {
       next: () => {
         this.alerts = this.alerts.filter(a => a.id !== alert.id);
         this.stats.pendingAlerts = Math.max(0, this.stats.pendingAlerts - 1);
+        this.cdr.markForCheck();
       },
-      error: () => this.alertService.error('Failed to dismiss alert')
+      error: () => {} // Handled globally
     });
   }
 

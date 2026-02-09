@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { forkJoin, of, Observable, switchMap } from 'rxjs';
@@ -29,7 +29,8 @@ interface PaymentMethod {
   standalone: true,
   imports: [CommonModule, FormsModule, PageHeaderComponent, ModalComponent],
   templateUrl: './billing.html',
-  styleUrl: './billing.scss'
+  styleUrl: './billing.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class Billing implements OnInit {
   appointments: Appointment[] = [];
@@ -76,7 +77,8 @@ export class Billing implements OnInit {
     private dataService: DataService,
     private offerService: OfferService,
     private walletService: WalletService,
-    private alertService: SweetAlertService
+    private alertService: SweetAlertService,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit() {
@@ -99,8 +101,9 @@ export class Billing implements OnInit {
         this.doctors = doctors;
         this.offers = offers;
         this.invoices = invoices;
+        this.cdr.markForCheck();
       },
-      error: () => this.alertService.error('Failed to load billing data. Please refresh.')
+      error: () => {} // Handled globally
     });
   }
 
@@ -229,8 +232,9 @@ export class Billing implements OnInit {
             });
           }
         }
+        this.cdr.markForCheck();
       },
-      error: () => this.alertService.error('Failed to load session data.')
+      error: () => {} // Handled globally
     });
 
     // Load available credits for this patient
@@ -238,8 +242,9 @@ export class Billing implements OnInit {
       this.walletService.getAvailableCredits(this.selectedPatient.id).subscribe({
         next: credits => {
           this.availableCredits = credits;
+          this.cdr.markForCheck();
         },
-        error: () => this.alertService.error('Failed to load patient credits.')
+        error: () => {} // Handled globally
       });
     }
 
@@ -522,13 +527,12 @@ export class Billing implements OnInit {
             this.closeInvoiceModal();
             this.loadData();
           });
+        this.cdr.markForCheck();
       },
       error: (err: any) => {
         this.isProcessingInvoice = false;
-        console.error('Invoice creation failed:', err);
-        const serverMsg = err?.error?.error || err?.error?.message || err?.message || '';
-        this.alertService.error(`Failed to create invoice. ${serverMsg}`.trim());
-      }
+        this.cdr.markForCheck();
+      } // Handled globally
     });
   }
 

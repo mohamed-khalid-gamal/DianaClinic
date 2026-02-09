@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, NgForm } from '@angular/forms';
 import { forkJoin } from 'rxjs';
@@ -12,7 +12,8 @@ import { Offer, Service, OfferCondition, OfferBenefit, PackageCreditItem } from 
   standalone: true,
   imports: [CommonModule, FormsModule, PageHeaderComponent, ModalComponent],
   templateUrl: './offers.html',
-  styleUrl: './offers.scss'
+  styleUrl: './offers.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class Offers implements OnInit {
   offers: Offer[] = [];
@@ -42,8 +43,12 @@ export class Offers implements OnInit {
       next: ({ offers, services }) => {
         this.offers = offers;
         this.services = services;
+        this.cdr.markForCheck();
       },
-      error: () => this.alertService.error('Failed to load offers. Please refresh.')
+      error: () => {
+        this.alertService.error('Failed to load offers. Please refresh.');
+        this.cdr.markForCheck();
+      }
     });
   }
 
@@ -104,8 +109,9 @@ export class Offers implements OnInit {
           this.alertService.updated('Offer', offerName);
           this.loadData();
           this.closeModal();
+          this.cdr.markForCheck();
         },
-        error: () => this.alertService.toast('Failed to update offer', 'error')
+        error: () => {} // Handled globally
       });
     } else {
       this.dataService.addOffer(this.offerForm as Offer).subscribe({
@@ -113,8 +119,9 @@ export class Offers implements OnInit {
           this.alertService.created('Offer', offerName);
           this.loadData();
           this.closeModal();
+          this.cdr.markForCheck();
         },
-        error: () => this.alertService.toast('Failed to create offer', 'error')
+        error: () => {} // Handled globally
       });
     }
   }
@@ -126,10 +133,11 @@ export class Offers implements OnInit {
       next: () => {
         const status = offer.isActive ? 'activated' : 'deactivated';
         this.alertService.toast(`Offer "${offer.name}" ${status}`, offer.isActive ? 'success' : 'warning');
+        this.cdr.markForCheck();
       },
       error: () => {
         offer.isActive = !offer.isActive;
-        this.alertService.error('Failed to update offer status. Please try again.');
+        this.cdr.markForCheck();
       }
     });
   }
@@ -141,27 +149,14 @@ export class Offers implements OnInit {
         next: () => {
           this.offers = this.offers.filter(o => o.id !== offer.id);
           this.alertService.deleted('Offer', offer.name);
-          this.cdr.detectChanges();
+          this.cdr.markForCheck();
         },
-        error: () => this.alertService.error('Failed to delete offer. Please try again.')
+        error: () => {} // Handled globally
       });
     }
   }
 
-  // Wizard Helpers
-  addCondition(type: string) {
-    if (!this.offerForm.conditions) this.offerForm.conditions = [];
-    this.offerForm.conditions.push({
-      id: crypto.randomUUID(),
-      type: type as any,
-      parameters: { serviceIds: [] }
-    });
-  }
-
-  removeCondition(index: number) {
-    this.offerForm.conditions?.splice(index, 1);
-  }
-
+  // Helpers
   addServiceToCondition(cond: OfferCondition, event: any) {
     const serviceId = event.target.value;
     if (!serviceId) return;
@@ -176,18 +171,6 @@ export class Offers implements OnInit {
     if (cond.parameters.serviceIds) {
       cond.parameters.serviceIds = cond.parameters.serviceIds.filter((id: string) => id !== serviceId);
     }
-  }
-
-  getConditionLabel(type: string): string {
-    const labels: any = {
-      'service_includes': 'Must Include Services',
-      'min_spend': 'Minimum Spend Amount',
-      'new_patient': 'New Patients Only',
-      'patient_tag': 'Patient Tag Match',
-      'date_range': 'Date Range',
-      'specific_patient': 'Specific Patients'
-    };
-    return labels[type] || type;
   }
 
   getServiceName(serviceId: string): string {
@@ -238,18 +221,82 @@ export class Offers implements OnInit {
     }
   }
 
+  // Wizard Helpers
   getConditionDescription(offer: Offer): string {
      if (!offer.conditions || offer.conditions.length === 0) return 'Applies to everyone';
-     const cond = offer.conditions[0];
-     switch (cond.type) {
-        case 'new_patient': return 'New Patients Only';
-        case 'min_spend': return `Spend > EGP ${cond.parameters.minAmount}`;
-        case 'service_includes': return `Requires specific services`;
-        case 'patient_tag': return `Tags: ${(cond.parameters.tags || []).join(', ')}`;
-        case 'date_range': return `Date range condition`;
-        case 'specific_patient': return `${(cond.parameters.patientIds || []).length} specific patient(s)`;
-        default: return `${offer.conditions.length} condition(s)`;
-     }
+     return offer.conditions.map(c => this.describeCondition(c)).join(' AND ');
+  }
+
+  describeCondition(cond: OfferCondition): string {
+      switch (cond.type) {
+         case 'group':
+           const children = (cond.children || []).map(c => this.describeCondition(c)).join(` ${cond.logic || 'AND'} `);
+           return children ? `(${children})` : '(Empty Group)';
+         case 'new_patient': return 'New Patients Only';
+         case 'min_spend': return `Spend > EGP ${cond.parameters.minAmount}`;
+         case 'service_includes': return `Requires specific services`;
+         case 'patient_tag': 
+             const op = cond.operator === 'not_contains' ? 'NOT' : ''; 
+             return `Tags ${op}: ${(cond.parameters.tags || []).join(', ')}`;
+         case 'date_range': return `Date range condition`;
+         case 'specific_patient': return `${(cond.parameters.patientIds || []).length} specific patient(s)`;
+         case 'time_range': return `Time: ${cond.parameters.startTime} - ${cond.parameters.endTime}`;
+         case 'day_of_week': return `Days: ${(cond.parameters.daysOfWeek || []).map(d => ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d]).join(', ')}`;
+         case 'customer_attribute': return `Patient ${cond.parameters.attributeName} ${cond.operator} ${cond.parameters.attributeValue}`;
+         case 'visit_count': return `Visits ${cond.operator} ${cond.parameters.attributeValue}`;
+         case 'cart_property': return `Cart ${cond.parameters.attributeName} ${cond.operator} ${cond.parameters.threshold}`;
+         default: return cond.type;
+      }
+  }
+
+  getConditionLabel(type: string): string {
+    const labels: any = {
+      'group': 'Logic Group (AND/OR)',
+      'service_includes': 'Must Include Services',
+      'min_spend': 'Minimum Spend Amount',
+      'new_patient': 'New Patients Only',
+      'patient_tag': 'Patient Tags',
+      'date_range': 'Date Range',
+      'specific_patient': 'Specific Patients',
+      'time_range': 'Time of Day',
+      'day_of_week': 'Days of Week',
+      'customer_attribute': 'Patient Attribute',
+      'cart_property': 'Cart Property'
+    };
+    return labels[type] || type;
+  }
+
+  // Wizard Helpers - Recursive
+  addCondition(parent: OfferCondition | null, type: string) {
+    const newCond: OfferCondition = {
+      id: crypto.randomUUID(),
+      type: type as any,
+      parameters: { serviceIds: [] }
+    };
+
+    if (type === 'group') {
+        newCond.logic = 'AND';
+        newCond.children = [];
+    }
+
+    if (parent && parent.type === 'group') {
+        if (!parent.children) parent.children = [];
+        parent.children.push(newCond);
+    } else {
+        // Root level
+        if (!this.offerForm.conditions) this.offerForm.conditions = [];
+        this.offerForm.conditions.push(newCond);
+    }
+  }
+
+  removeCondition(parent: OfferCondition | null, id: string) {
+      const targetList = parent ? parent.children : this.offerForm.conditions;
+      if (!targetList) return;
+      
+      const idx = targetList.findIndex(c => c.id === id);
+      if (idx > -1) {
+          targetList.splice(idx, 1);
+      }
   }
 
   getEmptyForm(): Partial<Offer> {

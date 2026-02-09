@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { PageHeaderComponent, StatCardComponent } from '../../components/shared';
@@ -55,7 +55,8 @@ interface PatientStats {
   standalone: true,
   imports: [CommonModule, FormsModule, PageHeaderComponent, StatCardComponent],
   templateUrl: './reports.html',
-  styleUrl: './reports.scss'
+  styleUrl: './reports.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class Reports implements OnInit {
   loading = false;
@@ -75,7 +76,8 @@ export class Reports implements OnInit {
 
   constructor(
     private dataService: DataService,
-    private alertService: SweetAlertService
+    private alertService: SweetAlertService,
+    private cdr: ChangeDetectorRef
   ) {
     // Default to last 30 days
     const end = new Date();
@@ -113,9 +115,10 @@ export class Reports implements OnInit {
       this.appointmentStats = aptStats as AppointmentStats;
       this.patientStats = patStats as PatientStats;
       this.loading = false;
+      this.cdr.markForCheck();
     }).catch(() => {
-      this.alertService.error('Failed to load reports');
       this.loading = false;
+      this.cdr.markForCheck();
     });
   }
 

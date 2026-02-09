@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
@@ -143,7 +143,8 @@ import { PageHeaderComponent } from '../../components/shared';
       border-top: 1px solid var(--border-color);
       margin: 1.5rem 0;
     }
-  `]
+  `],
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ManualPage implements OnInit {
   manualHtml: SafeHtml | null = null;
@@ -169,11 +170,12 @@ export class ManualPage implements OnInit {
         const html = await marked.parse(markdown);
         this.manualHtml = this.sanitizer.bypassSecurityTrustHtml(html);
         this.loading = false;
-        this.cdr.detectChanges();
+        this.cdr.markForCheck();
       },
       error: () => {
         this.error = 'Unable to load the manual right now.';
         this.loading = false;
+        this.cdr.markForCheck();
       }
     });
   }

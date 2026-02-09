@@ -43,7 +43,7 @@ export class OfferService {
 
     // 3. Evaluate conditions
     for (const offer of candidates) {
-      if (this.checkConditions(offer, cart, patient)) {
+      if (this.evaluateOfferConditions(offer, cart, patient)) {
         const benefit = this.calculateBenefit(offer, cart);
         if (benefit && (benefit.discountAmount > 0 || benefit.offer.benefits[0]?.type === 'grant_package')) {
           applicableOffers.push(benefit);
@@ -66,47 +66,143 @@ export class OfferService {
     return nonExclusives;
   }
 
-  private checkConditions(offer: Offer, cart: CartItem[], patient: Patient): boolean {
+  private evaluateOfferConditions(offer: Offer, cart: CartItem[], patient: Patient): boolean {
     if (!offer.conditions || offer.conditions.length === 0) return true;
+    // Top level is always implicit AND
+    return offer.conditions.every(cond => this.evaluateCondition(cond, cart, patient));
+  }
 
-    return offer.conditions.every(condition => {
-      switch (condition.type) {
-        case 'service_includes':
-          // Cart must contain specific services
-          if (!condition.parameters.serviceIds) return true;
-          const cartServiceIds = cart.map(i => i.serviceId);
-          // Check if ALL required services are in cart
-          return condition.parameters.serviceIds.every(reqId => cartServiceIds.includes(reqId));
+  private evaluateCondition(condition: OfferCondition, cart: CartItem[], patient: Patient): boolean {
+    switch (condition.type) {
+      case 'group':
+        if (!condition.children || condition.children.length === 0) return true;
+        if (condition.logic === 'OR') {
+          return condition.children.some(child => this.evaluateCondition(child, cart, patient));
+        } else {
+          // Default to AND
+          return condition.children.every(child => this.evaluateCondition(child, cart, patient));
+        }
 
-        case 'min_spend':
-          const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-          return total >= (condition.parameters.minAmount || 0);
+      case 'service_includes':
+        // Cart must contain specific services
+        if (!condition.parameters.serviceIds) return true;
+        const cartServiceIds = cart.map(i => i.serviceId);
+        // Check if ALL required services are in cart
+        return condition.parameters.serviceIds.every(reqId => cartServiceIds.includes(reqId));
 
-        case 'new_patient':
-           const isNew = (new Date().getTime() - new Date(patient.createdAt).getTime()) < (30 * 24 * 60 * 60 * 1000);
-           return isNew;
+      case 'min_spend':
+        const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+        return total >= (condition.parameters.minAmount || 0);
 
-        case 'patient_tag':
-          // Check if patient has any of the required tags (match against notes/skinType)
-          if (!condition.parameters.tags || condition.parameters.tags.length === 0) return true;
-          const patientTags = [patient.skinType, ...(patient.allergies || []), ...(patient.chronicConditions || [])]
-            .filter(Boolean).map(t => String(t).toLowerCase());
-          return condition.parameters.tags.some(tag => patientTags.includes(tag.toLowerCase()));
+      case 'new_patient':
+         const isNew = (new Date().getTime() - new Date(patient.createdAt).getTime()) < (30 * 24 * 60 * 60 * 1000);
+         return isNew;
 
-        case 'date_range':
-          const now = new Date();
-          if (condition.parameters.startDate && new Date(condition.parameters.startDate) > now) return false;
-          if (condition.parameters.endDate && new Date(condition.parameters.endDate) < now) return false;
-          return true;
+      case 'patient_tag':
+        // Check if patient has any of the required tags (match against notes/skinType)
+        if (!condition.parameters.tags || condition.parameters.tags.length === 0) return true;
+        const patientTags = [patient.skinType, ...(patient.allergies || []), ...(patient.chronicConditions || [])]
+          .filter(Boolean).map(t => String(t).toLowerCase());
+        
+        if (condition.operator === 'not_contains' || condition.operator === 'not_in') {
+             return !condition.parameters.tags.some(tag => patientTags.includes(tag.toLowerCase()));
+        }
+        return condition.parameters.tags.some(tag => patientTags.includes(tag.toLowerCase()));
 
-        case 'specific_patient':
-          if (!condition.parameters.patientIds || condition.parameters.patientIds.length === 0) return true;
-          return condition.parameters.patientIds.includes(patient.id);
+      case 'date_range':
+        const now = new Date();
+        if (condition.parameters.startDate && new Date(condition.parameters.startDate) > now) return false;
+        if (condition.parameters.endDate && new Date(condition.parameters.endDate) < now) return false;
+        return true;
 
-        default:
-          return true;
+      case 'specific_patient':
+        if (!condition.parameters.patientIds || condition.parameters.patientIds.length === 0) return true;
+        return condition.parameters.patientIds.includes(patient.id);
+
+      case 'time_range':
+        return this.evaluateTimeRange(condition);
+      
+      case 'day_of_week':
+        return this.evaluateDayOfWeek(condition);
+
+      case 'customer_attribute':
+        return this.evaluateAttribute(condition, patient);
+
+      case 'visit_count':
+        // TODO: This requires checking patient history which is not passed here.
+        // For now, return true or we need to fetch it.
+        // Assuming we might have visit count in Patient object tailored for this?
+        // Or we just skip this check for now.
+        return true; 
+
+      case 'cart_property':
+         return this.evaluateCartProperty(condition, cart);
+
+      default:
+        return true;
+    }
+  }
+
+  private evaluateTimeRange(condition: OfferCondition): boolean {
+      if (!condition.parameters.startTime || !condition.parameters.endTime) return true;
+      const now = new Date();
+      const currentMinutes = now.getHours() * 60 + now.getMinutes();
+      
+      const [startH, startM] = condition.parameters.startTime.split(':').map(Number);
+      const startMinutes = startH * 60 + startM;
+      
+      const [endH, endM] = condition.parameters.endTime.split(':').map(Number);
+      const endMinutes = endH * 60 + endM;
+      
+      return currentMinutes >= startMinutes && currentMinutes <= endMinutes;
+  }
+
+  private evaluateDayOfWeek(condition: OfferCondition): boolean {
+      if (!condition.parameters.daysOfWeek || condition.parameters.daysOfWeek.length === 0) return true;
+      const day = new Date().getDay(); // 0-6
+      return condition.parameters.daysOfWeek.includes(day);
+  }
+
+  private evaluateAttribute(condition: OfferCondition, patient: Patient): boolean {
+      const attr = condition.parameters.attributeName;
+      if (!attr) return true;
+      
+      // Access patient property safely
+      const value = (patient as any)[attr];
+      const target = condition.parameters.attributeValue;
+
+      // TODO: Improve type handling (dates, numbers)
+      
+      switch (condition.operator) {
+          case 'equals': return value == target;
+          case 'not_equals': return value != target;
+          case 'greater_than': return value > target;
+          case 'less_than': return value < target;
+          case 'contains': return String(value).includes(target);
+          case 'not_contains': return !String(value).includes(target);
+          default: return value == target;
       }
-    });
+  }
+
+  private evaluateCartProperty(condition: OfferCondition, cart: CartItem[]): boolean {
+      const prop = condition.parameters.attributeName; // 'totalQuantity', 'totalItems', 'distinctCategories'
+      let value = 0;
+      
+      if (prop === 'totalQuantity') {
+          value = cart.reduce((sum, item) => sum + item.quantity, 0);
+      } else if (prop === 'totalItems') { // Distinct items
+          value = cart.length;
+      }
+      
+      const target = condition.parameters.threshold || 0;
+      
+       switch (condition.operator) {
+          case 'equals': return value == target;
+          case 'not_equals': return value != target;
+          case 'greater_than': return value > target;
+          case 'less_than': return value < target;
+          default: return value >= target;
+      }
   }
 
   private calculateBenefit(offer: Offer, cart: CartItem[]): AppliedOffer | null {

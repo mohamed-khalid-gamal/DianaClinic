@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
@@ -14,7 +14,8 @@ import { Doctor, Room, Patient } from '../../models';
   standalone: true,
   imports: [CommonModule, FormsModule, RouterModule, PageHeaderComponent, CalendarComponent, ModalComponent],
   templateUrl: './calendar.html',
-  styleUrl: './calendar.scss'
+  styleUrl: './calendar.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class CalendarPage implements OnInit {
   // Data
@@ -43,7 +44,8 @@ export class CalendarPage implements OnInit {
     private calendarService: CalendarService,
     private dataService: DataService,
     private alertService: SweetAlertService,
-    private router: Router
+    private router: Router,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit() {
@@ -63,8 +65,9 @@ export class CalendarPage implements OnInit {
         this.rooms = rooms;
         this.patients = patients;
         this.applyFilter();
+        this.cdr.markForCheck();
       },
-      error: () => this.alertService.error('Failed to load calendar data. Please refresh.')
+      error: () => {} // Handled globally
     });
   }
 

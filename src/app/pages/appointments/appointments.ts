@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { forkJoin, of, Observable } from 'rxjs';
@@ -33,7 +33,8 @@ interface BookingSegment {
   standalone: true,
   imports: [CommonModule, FormsModule, PageHeaderComponent, ModalComponent],
   templateUrl: './appointments.html',
-  styleUrl: './appointments.scss'
+  styleUrl: './appointments.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class Appointments implements OnInit {
   appointments: Appointment[] = [];
@@ -171,8 +172,9 @@ export class Appointments implements OnInit {
         this.rooms = rooms;
         this.services = services;
         this.offers = offers;
+        this.cdr.markForCheck();
       },
-      error: () => this.alertService.error('Failed to load data. Please refresh.')
+      error: () => {} // Handled globally
     });
   }
 
@@ -226,8 +228,9 @@ export class Appointments implements OnInit {
           unitsToUse: 0,
           unitType: c.unitType
         }));
+        this.cdr.markForCheck();
       },
-      error: () => this.alertService.error('Failed to load patient credits.')
+      error: () => {} // Handled globally
     });
   }
 
@@ -623,10 +626,9 @@ export class Appointments implements OnInit {
           this.loadData();
           this.closeBookingModal();
           this.alertService.bookingConfirmed(this.bookingSegments.length);
+          this.cdr.markForCheck();
         },
-        error: (err: any) => {
-          this.alertService.toast('Failed to create appointments', 'error');
-        }
+        error: (err: any) => {} // Handled globally
       });
     };
 
@@ -644,10 +646,9 @@ export class Appointments implements OnInit {
         next: (created) => {
           this.patients.push(created);
           doBooking(created.id);
+          this.cdr.markForCheck();
         },
-        error: (err: any) => {
-          this.alertService.toast('Failed to create patient', 'error');
-        }
+        error: (err: any) => {} // Handled globally
       });
     } else {
       doBooking(this.booking.patientId);

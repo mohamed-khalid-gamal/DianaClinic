@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
@@ -29,7 +29,8 @@ interface ActiveSession {
   standalone: true,
   imports: [CommonModule, FormsModule, RouterModule, PageHeaderComponent, ModalComponent, StatCardComponent],
   templateUrl: './sessions.html',
-  styleUrl: './sessions.scss'
+  styleUrl: './sessions.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class Sessions implements OnInit, OnDestroy {
   private intervalId: ReturnType<typeof setInterval> | null = null;
@@ -97,8 +98,9 @@ export class Sessions implements OnInit, OnDestroy {
         this.devices = devices;
         this.inventory = inventory;
         this.buildActiveSessions();
+        this.cdr.markForCheck();
       },
-      error: () => this.alertService.error('Failed to load session data. Please refresh.')
+      error: () => {} // Handled globally
     });
   }
 
@@ -125,6 +127,7 @@ export class Sessions implements OnInit, OnDestroy {
     this.activeSessions.forEach(session => {
       session.elapsedMinutes = Math.round((Date.now() - session.startTime.getTime()) / 60000);
     });
+    this.cdr.markForCheck();
   }
 
   get checkedInAppointments(): Appointment[] {
@@ -170,8 +173,9 @@ export class Sessions implements OnInit, OnDestroy {
         apt.status = 'in-progress';
         this.buildActiveSessions();
         this.alertService.sessionStarted(patientName);
+        this.cdr.markForCheck();
       },
-      error: () => this.alertService.error('Failed to start session. Please try again.')
+      error: () => {} // Handled globally
     });
   }
 
@@ -257,8 +261,9 @@ export class Sessions implements OnInit, OnDestroy {
             unitType: walletCredit?.unitType || credit.unitType || 'unit'
           };
         });
+        this.cdr.markForCheck();
       },
-      error: () => this.alertService.error('Failed to load wallet credits')
+      error: () => {} // Handled globally
     });
 
     this.showEndSessionModal = true;
@@ -390,10 +395,10 @@ export class Sessions implements OnInit, OnDestroy {
 
       this.alertService.success('Photo uploaded successfully');
     } catch (error) {
-      this.alertService.error('Failed to upload photo. Please try again.');
     } finally {
       this.uploadingPhoto = false;
       input.value = ''; // Reset input
+      this.cdr.markForCheck();
     }
   }
 
@@ -542,8 +547,9 @@ export class Sessions implements OnInit, OnDestroy {
         const patientName = `${session.patient.firstName} ${session.patient.lastName}`;
         this.closeEndSessionModal();
         this.alertService.sessionEnded(patientName);
+        this.cdr.markForCheck();
       },
-      error: () => this.alertService.error('Failed to end session. Please try again.')
+      error: () => {} // Handled globally
     });
   }
 }

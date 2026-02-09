@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, NgForm } from '@angular/forms';
 import { forkJoin } from 'rxjs';
@@ -12,7 +12,8 @@ import { Service, ServiceCategory, PricingModel, Doctor, InventoryItem, ServiceC
   standalone: true,
   imports: [CommonModule, FormsModule, PageHeaderComponent, ModalComponent],
   templateUrl: './services.html',
-  styleUrl: './services.scss'
+  styleUrl: './services.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class Services implements OnInit {
   services: Service[] = [];
@@ -67,8 +68,12 @@ export class Services implements OnInit {
         this.doctors = doctors;
         this.inventoryItems = inventory.filter(i => i.category === 'consumable' || i.category === 'drug');
         this.loading = false;
+        this.cdr.markForCheck();
       },
-      error: () => this.alertService.error('Failed to load services. Please refresh.')
+        error: () => {
+           this.loading = false;
+           this.cdr.markForCheck();
+        } // Handled globally
     });
   }
 
@@ -157,8 +162,9 @@ export class Services implements OnInit {
           this.alertService.created('Service', serviceName);
           this.loadData();
           this.closeModal();
+          this.cdr.markForCheck();
         },
-        error: () => this.alertService.error('Failed to create service. Please try again.')
+        error: () => {} // Handled globally
       });
     } else {
       this.dataService.updateService(this.serviceForm as Service).subscribe({
@@ -166,8 +172,9 @@ export class Services implements OnInit {
           this.alertService.updated('Service', serviceName);
           this.loadData();
           this.closeModal();
+          this.cdr.markForCheck();
         },
-        error: () => this.alertService.error('Failed to update service. Please try again.')
+        error: () => {} // Handled globally
       });
     }
   }
@@ -179,9 +186,9 @@ export class Services implements OnInit {
         next: () => {
           this.services = this.services.filter(s => s.id !== service.id);
           this.alertService.deleted('Service', service.name);
-          this.cdr.detectChanges();
+          this.cdr.markForCheck();
         },
-        error: () => this.alertService.error('Failed to delete service. Please try again.')
+        error: () => {} // Handled globally
       });
     }
   }
@@ -310,8 +317,9 @@ export class Services implements OnInit {
         this.categories.push(cat);
         this.newCategoryName = '';
         this.alertService.toast(`Category "${name}" added`);
+        this.cdr.markForCheck();
       },
-      error: () => this.alertService.toast('Failed to add category', 'error')
+      error: () => {} // Handled globally
     });
   }
 
@@ -334,8 +342,9 @@ export class Services implements OnInit {
         cat.name = name;
         this.editingCategoryId = null;
         this.alertService.toast(`Category updated`);
+        this.cdr.markForCheck();
       },
-      error: () => this.alertService.toast('Failed to update category', 'error')
+      error: () => {} // Handled globally
     });
   }
 
@@ -351,9 +360,9 @@ export class Services implements OnInit {
       next: () => {
         this.categories = this.categories.filter(c => c.id !== cat.id);
         this.alertService.toast(`Category "${cat.name}" deleted`);
-        this.cdr.detectChanges();
+        this.cdr.markForCheck();
       },
-      error: () => this.alertService.toast('Failed to delete category', 'error')
+      error: () => {} // Handled globally
     });
   }
 

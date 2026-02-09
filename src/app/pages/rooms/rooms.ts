@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, NgForm } from '@angular/forms';
 import { PageHeaderComponent, DataTableComponent, ModalComponent, TableColumn } from '../../components/shared';
@@ -11,7 +11,8 @@ import { Room } from '../../models';
   standalone: true,
   imports: [CommonModule, FormsModule, PageHeaderComponent, DataTableComponent, ModalComponent],
   templateUrl: './rooms.html',
-  styleUrl: './rooms.scss'
+  styleUrl: './rooms.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class Rooms implements OnInit {
   rooms: Room[] = [];
@@ -46,8 +47,9 @@ export class Rooms implements OnInit {
           ...r,
           status: r.isActive ? 'Available' : 'Unavailable'
         }));
+        this.cdr.markForCheck();
       },
-      error: () => this.alertService.error('Failed to load rooms. Please refresh.')
+      error: () => {} // Handled globally
     });
   }
 
@@ -93,8 +95,9 @@ export class Rooms implements OnInit {
           this.alertService.created('Room', roomName);
           this.loadRooms();
           this.closeModal();
+          this.cdr.markForCheck();
         },
-        error: () => this.alertService.toast('Failed to create room', 'error')
+        error: () => {} // Handled globally
       });
     } else {
       this.dataService.updateRoom(this.roomForm as Room).subscribe({
@@ -102,8 +105,9 @@ export class Rooms implements OnInit {
           this.alertService.updated('Room', roomName);
           this.loadRooms();
           this.closeModal();
+          this.cdr.markForCheck();
         },
-        error: () => this.alertService.toast('Failed to update room', 'error')
+        error: () => {} // Handled globally
       });
     }
   }
@@ -117,7 +121,7 @@ export class Rooms implements OnInit {
           this.alertService.deleted('Room', room.name);
           this.cdr.markForCheck();
         },
-        error: () => this.alertService.toast('Failed to delete room', 'error')
+        error: () => {} // Handled globally
       });
     }
   }

@@ -1,4 +1,4 @@
-import { Component, OnInit, DestroyRef, inject } from '@angular/core';
+import { Component, OnInit, DestroyRef, inject, ChangeDetectorRef, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -17,7 +17,8 @@ import { Appointment, Patient, PatientTransaction, PatientWallet, Service, Offer
   standalone: true,
   imports: [CommonModule, RouterModule, FormsModule, PageHeaderComponent, StatCardComponent, ModalComponent, CalendarComponent],
   templateUrl: './patient-profile.html',
-  styleUrl: './patient-profile.scss'
+  styleUrl: './patient-profile.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class PatientProfile implements OnInit {
   private destroyRef = inject(DestroyRef);
@@ -47,7 +48,8 @@ export class PatientProfile implements OnInit {
     private dataService: DataService,
     private walletService: WalletService,
     private alertService: SweetAlertService,
-    private calendarService: CalendarService
+    private calendarService: CalendarService,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
@@ -82,8 +84,9 @@ export class PatientProfile implements OnInit {
         this.offers = offers.filter(o => o.isActive && o.type === 'package');
         this.pendingPurchases = purchases;
         this.patientEvents = events;
+        this.cdr.markForCheck();
       },
-      error: () => this.alertService.error('Failed to load patient data. Please refresh.')
+      error: () => {} // Handled globally
     });
   }
 
@@ -271,8 +274,9 @@ export class PatientProfile implements OnInit {
         this.alertService.toast(`Package "${this.selectedOffer!.name}" added as pending bill`, 'success');
         this.closeBuyPackageModal();
         this.loadPatient(this.patient!.id);
+        this.cdr.markForCheck();
       },
-      error: () => this.alertService.error('Failed to purchase package. Please try again.')
+      error: () => {} // Handled globally
     });
   }
 
@@ -330,8 +334,9 @@ export class PatientProfile implements OnInit {
         this.alertService.toast(`Payment received! Credits added to wallet.`, 'success');
         this.closePayModal();
         this.loadPatient(patientId);
+        this.cdr.markForCheck();
       },
-      error: () => this.alertService.error('Failed to process payment. Please try again.')
+      error: () => {} // Handled globally
     });
   }
 

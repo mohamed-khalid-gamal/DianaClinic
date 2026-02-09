@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, NgForm } from '@angular/forms';
 import { forkJoin } from 'rxjs';
@@ -12,7 +12,8 @@ import { Doctor } from '../../models';
   standalone: true,
   imports: [CommonModule, FormsModule, PageHeaderComponent, DataTableComponent, ModalComponent],
   templateUrl: './doctors.html',
-  styleUrl: './doctors.scss'
+  styleUrl: './doctors.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class Doctors implements OnInit {
   doctors: Doctor[] = [];
@@ -64,8 +65,9 @@ export class Doctors implements OnInit {
           status: d.isActive ? 'Active' : 'Inactive'
         }));
         this.rooms = rooms;
+        this.cdr.markForCheck();
       },
-      error: () => this.alertService.error('Failed to load doctors. Please refresh.')
+      error: () => {} // Handled globally
     });
   }
 
@@ -135,8 +137,9 @@ export class Doctors implements OnInit {
           this.alertService.updated('Doctor', doctorName);
           this.loadData();
           this.closeModal();
+          this.cdr.markForCheck();
         },
-        error: () => this.alertService.toast('Failed to update doctor', 'error')
+        error: () => {} // Handled globally
       });
     } else {
       this.dataService.addDoctor(this.doctorForm as Doctor).subscribe({
@@ -144,8 +147,9 @@ export class Doctors implements OnInit {
           this.alertService.created('Doctor', doctorName);
           this.loadData();
           this.closeModal();
+          this.cdr.markForCheck();
         },
-        error: () => this.alertService.toast('Failed to create doctor', 'error')
+        error: () => {} // Handled globally
       });
     }
   }
@@ -159,7 +163,7 @@ export class Doctors implements OnInit {
           this.alertService.deleted('Doctor', doctor.name);
           this.cdr.markForCheck();
         },
-        error: () => this.alertService.toast('Failed to delete doctor', 'error')
+        error: () => {} // Handled globally
       });
     }
   }

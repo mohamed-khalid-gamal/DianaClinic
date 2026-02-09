@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, NgForm } from '@angular/forms';
 import { forkJoin, Subscription } from 'rxjs';
@@ -14,7 +14,8 @@ import { getDeviceStatusColor } from '../../utils/status-colors';
   standalone: true,
   imports: [CommonModule, FormsModule, PageHeaderComponent, ModalComponent, StatCardComponent, NotificationsPanelComponent],
   templateUrl: './devices.html',
-  styleUrl: './devices.scss'
+  styleUrl: './devices.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class Devices implements OnInit, OnDestroy {
   devices: Device[] = [];
@@ -45,6 +46,7 @@ export class Devices implements OnInit, OnDestroy {
     this.loadData();
     this.alertSub = this.notificationService.getAlertCount('devices').subscribe(count => {
       this.alertCount = count;
+      this.cdr.markForCheck();
     });
   }
 
@@ -60,8 +62,9 @@ export class Devices implements OnInit, OnDestroy {
       next: ({ devices, rooms }) => {
         this.devices = devices;
         this.rooms = rooms;
+        this.cdr.markForCheck();
       },
-      error: () => this.alertService.error('Failed to load devices. Please refresh.')
+      error: () => {} // Handled globally
     });
   }
 
@@ -121,8 +124,9 @@ export class Devices implements OnInit, OnDestroy {
           this.alertService.created('Device', deviceName);
           this.loadData();
           this.closeModal();
+          this.cdr.markForCheck();
         },
-        error: () => this.alertService.toast('Failed to save device', 'error')
+        error: () => {} // Handled globally
       });
     } else {
       this.dataService.updateDevice(this.deviceForm as Device).subscribe({
@@ -130,8 +134,9 @@ export class Devices implements OnInit, OnDestroy {
           this.alertService.updated('Device', deviceName);
           this.loadData();
           this.closeModal();
+          this.cdr.markForCheck();
         },
-        error: () => this.alertService.toast('Failed to update device', 'error')
+        error: () => {} // Handled globally
       });
     }
   }
@@ -143,9 +148,9 @@ export class Devices implements OnInit, OnDestroy {
         next: () => {
           this.devices = this.devices.filter(d => d.id !== device.id);
           this.alertService.deleted('Device', device.name);
-          this.cdr.detectChanges();
+          this.cdr.markForCheck();
         },
-        error: () => this.alertService.toast('Failed to delete device', 'error')
+        error: () => {} // Handled globally
       });
     }
   }
@@ -182,11 +187,12 @@ export class Devices implements OnInit, OnDestroy {
         this.alertService.toast(`Logged ${usedPulses.toLocaleString()} units for ${this.selectedDevice!.name}`, 'success');
         this.loadData();
         this.closeLogModal();
+        this.cdr.markForCheck();
       },
       error: (err) => {
         console.error('Failed to update device counter:', err);
-        this.alertService.toast('Failed to update device counter', 'error');
-      }
+        this.cdr.markForCheck();
+      } // Handled globally
     });
   }
 

@@ -225,14 +225,32 @@ export interface Offer {
 
 export interface OfferCondition {
   id: string;
-  type: 'service_includes' | 'min_spend' | 'new_patient' | 'patient_tag' | 'date_range' | 'specific_patient';
+  type: 'group' | 'service_includes' | 'min_spend' | 'new_patient' | 'patient_tag' | 'date_range' | 'specific_patient' 
+        | 'time_range' | 'day_of_week' | 'visit_count' | 'customer_attribute' | 'cart_property';
+  logic?: 'AND' | 'OR'; // For 'group' type
+  children?: OfferCondition[]; // For 'group' type
+  
+  // Generic operator for value comparison
+  operator?: 'equals' | 'not_equals' | 'greater_than' | 'less_than' | 'contains' | 'not_contains' | 'in' | 'not_in' | 'one_of' | 'all_of';
+  
   parameters: {
+    // Existing fields
     serviceIds?: string[];
     minAmount?: number;
     tags?: string[];
     patientIds?: string[];
     startDate?: Date;
     endDate?: Date;
+    
+    // New fields
+    startTime?: string; // HH:mm
+    endTime?: string; // HH:mm
+    daysOfWeek?: number[]; // 0-6 (Sun-Sat)
+    minVisits?: number;
+    maxVisits?: number;
+    attributeName?: string; // e.g., 'age', 'gender', 'city'
+    attributeValue?: any;
+    threshold?: number;
   };
 }
 

@@ -1,4 +1,4 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, NgForm } from '@angular/forms';
 import { RouterModule } from '@angular/router';
@@ -15,7 +15,8 @@ import { Patient, PatientWallet, ServiceCredit, Appointment } from '../../models
   standalone: true,
   imports: [CommonModule, FormsModule, RouterModule, PageHeaderComponent, DataTableComponent, ModalComponent],
   templateUrl: './patients.html',
-  styleUrl: './patients.scss'
+  styleUrl: './patients.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class Patients implements OnInit {
   patients: Patient[] = [];
@@ -70,8 +71,12 @@ export class Patients implements OnInit {
           };
         });
         this.loading = false;
+        this.cdr.markForCheck();
       },
-      error: () => this.alertService.error('Failed to load patients. Please refresh.')
+      error: () => {
+        this.loading = false;
+        this.cdr.markForCheck();
+      } // Handled globally
     });
   }
 
@@ -141,8 +146,9 @@ export class Patients implements OnInit {
           this.alertService.updated('Patient', patientName);
           this.loadPatients();
           this.closeModal();
+          this.cdr.markForCheck();
         },
-        error: () => this.alertService.toast('Failed to update patient', 'error')
+        error: () => {} // Handled globally
       });
     } else {
       this.dataService.addPatient({
@@ -154,8 +160,9 @@ export class Patients implements OnInit {
           this.alertService.created('Patient', patientName);
           this.loadPatients();
           this.closeModal();
+          this.cdr.markForCheck();
         },
-        error: () => this.alertService.toast('Failed to create patient', 'error')
+        error: () => {} // Handled globally
       });
     }
   }
@@ -170,7 +177,7 @@ export class Patients implements OnInit {
           this.alertService.deleted('Patient', patientName);
           this.cdr.markForCheck();
         },
-        error: () => this.alertService.toast('Failed to delete patient', 'error')
+        error: () => {} // Handled globally
       });
     }
   }
@@ -179,14 +186,16 @@ export class Patients implements OnInit {
     this.selectedPatient = patient;
     this.showDetailPanel = true;
     this.loadWallet(patient.id);
+    this.cdr.markForCheck();
   }
 
   loadWallet(patientId: string) {
     this.walletService.getWallet(patientId).subscribe({
       next: wallet => {
         this.selectedWallet = wallet;
+        this.cdr.markForCheck();
       },
-      error: () => this.alertService.error('Failed to load wallet data.')
+      error: () => {} // Handled globally
     });
   }
 
@@ -194,6 +203,7 @@ export class Patients implements OnInit {
     this.showDetailPanel = false;
     this.selectedPatient = null;
     this.selectedWallet = null;
+    this.cdr.markForCheck();
   }
 
   // Wallet Actions
@@ -238,8 +248,9 @@ export class Patients implements OnInit {
           this.loadWallet(this.selectedPatient!.id);
           this.alertService.walletTopUp(this.topUpAmount, patientName);
           this.closeTopUpModal();
+          this.cdr.markForCheck();
         },
-        error: () => this.alertService.toast('Failed to top up wallet', 'error')
+        error: () => {} // Handled globally
       });
     }
   }

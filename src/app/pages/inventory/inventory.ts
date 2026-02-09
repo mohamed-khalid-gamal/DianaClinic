@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, NgForm } from '@angular/forms';
 import { forkJoin, Subscription } from 'rxjs';
@@ -13,7 +13,8 @@ import { InventoryItem, InventoryCategory } from '../../models';
   standalone: true,
   imports: [CommonModule, FormsModule, PageHeaderComponent, DataTableComponent, ModalComponent, StatCardComponent, NotificationsPanelComponent],
   templateUrl: './inventory.html',
-  styleUrl: './inventory.scss'
+  styleUrl: './inventory.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class Inventory implements OnInit, OnDestroy {
   items: InventoryItem[] = [];
@@ -77,7 +78,7 @@ export class Inventory implements OnInit, OnDestroy {
         }));
         this.cdr.detectChanges();
       },
-      error: () => this.sweetAlert.error('Failed to load inventory. Please refresh.')
+      error: () => {} // Handled globally
     });
   }
 
@@ -156,7 +157,7 @@ export class Inventory implements OnInit, OnDestroy {
           this.loadData();
           this.closeModal();
         },
-        error: () => this.sweetAlert.error('Failed to create item. Please try again.')
+        error: () => {} // Handled globally
       });
     } else {
       this.dataService.updateInventoryItem(this.itemForm as InventoryItem).subscribe({
@@ -165,7 +166,7 @@ export class Inventory implements OnInit, OnDestroy {
           this.loadData();
           this.closeModal();
         },
-        error: () => this.sweetAlert.error('Failed to update item. Please try again.')
+        error: () => {} // Handled globally
       });
     }
   }
@@ -179,7 +180,7 @@ export class Inventory implements OnInit, OnDestroy {
           this.sweetAlert.deleted('Inventory Item', item.name);
           this.cdr.detectChanges();
         },
-        error: () => this.sweetAlert.error('Failed to delete item. Please try again.')
+        error: () => {} // Handled globally
       });
     }
   }
@@ -237,9 +238,9 @@ export class Inventory implements OnInit, OnDestroy {
         this.categories.push(cat);
         this.newCategoryName = '';
         this.sweetAlert.toast(`Category "${name}" added`);
-        this.cdr.detectChanges();
+        this.cdr.markForCheck();
       },
-      error: () => this.sweetAlert.toast('Failed to add category', 'error')
+      error: () => {} // Handled globally
     });
   }
 
@@ -263,8 +264,9 @@ export class Inventory implements OnInit, OnDestroy {
         this.editingCategoryId = null;
         this.sweetAlert.toast(`Category updated`);
         this.loadData(); // Reload to update category names on items
+        this.cdr.markForCheck();
       },
-      error: () => this.sweetAlert.toast('Failed to update category', 'error')
+      error: () => {} // Handled globally
     });
   }
 
@@ -280,9 +282,9 @@ export class Inventory implements OnInit, OnDestroy {
       next: () => {
         this.categories = this.categories.filter(c => c.id !== cat.id);
         this.sweetAlert.toast(`Category "${cat.name}" deleted`);
-        this.cdr.detectChanges();
+        this.cdr.markForCheck();
       },
-      error: () => this.sweetAlert.toast('Failed to delete category', 'error')
+      error: () => {} // Handled globally
     });
   }
 
