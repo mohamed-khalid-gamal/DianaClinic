@@ -17,6 +17,27 @@ export class SweetAlertService {
   private readonly dangerColor = '#EF4444';
   private readonly infoColor = '#3B82F6';
 
+  constructor() {
+    this.ensureMatchMedia();
+  }
+
+  private ensureMatchMedia() {
+    if (typeof window === 'undefined') return;
+    if (typeof window.matchMedia === 'function') return;
+
+    // Basic matchMedia shim for non-browser test environments
+    (window as any).matchMedia = () => ({
+      matches: false,
+      media: '',
+      onchange: null,
+      addListener: () => {},
+      removeListener: () => {},
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      dispatchEvent: () => false
+    });
+  }
+
   /**
    * Display a success alert with auto-dismiss
    */

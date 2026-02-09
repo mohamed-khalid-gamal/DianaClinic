@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, NgForm } from '@angular/forms';
 import { forkJoin } from 'rxjs';
@@ -46,7 +46,8 @@ export class Services implements OnInit {
 
   constructor(
     private dataService: DataService,
-    private alertService: SweetAlertService
+    private alertService: SweetAlertService,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit() {
@@ -178,6 +179,7 @@ export class Services implements OnInit {
         next: () => {
           this.services = this.services.filter(s => s.id !== service.id);
           this.alertService.deleted('Service', service.name);
+          this.cdr.detectChanges();
         },
         error: () => this.alertService.error('Failed to delete service. Please try again.')
       });
@@ -349,6 +351,7 @@ export class Services implements OnInit {
       next: () => {
         this.categories = this.categories.filter(c => c.id !== cat.id);
         this.alertService.toast(`Category "${cat.name}" deleted`);
+        this.cdr.detectChanges();
       },
       error: () => this.alertService.toast('Failed to delete category', 'error')
     });

@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, NgForm } from '@angular/forms';
 import { forkJoin } from 'rxjs';
@@ -26,7 +26,8 @@ export class Offers implements OnInit {
 
   constructor(
     private dataService: DataService,
-    private alertService: SweetAlertService
+    private alertService: SweetAlertService,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit() {
@@ -140,6 +141,7 @@ export class Offers implements OnInit {
         next: () => {
           this.offers = this.offers.filter(o => o.id !== offer.id);
           this.alertService.deleted('Offer', offer.name);
+          this.cdr.detectChanges();
         },
         error: () => this.alertService.error('Failed to delete offer. Please try again.')
       });

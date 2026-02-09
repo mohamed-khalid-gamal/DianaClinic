@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, NgForm } from '@angular/forms';
 import { forkJoin } from 'rxjs';
@@ -32,7 +32,8 @@ export class Devices implements OnInit {
 
   constructor(
     private dataService: DataService,
-    private alertService: SweetAlertService
+    private alertService: SweetAlertService,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit() {
@@ -130,6 +131,7 @@ export class Devices implements OnInit {
         next: () => {
           this.devices = this.devices.filter(d => d.id !== device.id);
           this.alertService.deleted('Device', device.name);
+          this.cdr.detectChanges();
         },
         error: () => this.alertService.toast('Failed to delete device', 'error')
       });
