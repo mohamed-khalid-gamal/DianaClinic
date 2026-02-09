@@ -1,27 +1,31 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, NgForm } from '@angular/forms';
-import { forkJoin } from 'rxjs';
-import { PageHeaderComponent, ModalComponent, StatCardComponent } from '../../components/shared';
+import { forkJoin, Subscription } from 'rxjs';
+import { PageHeaderComponent, ModalComponent, StatCardComponent, NotificationsPanelComponent } from '../../components/shared';
 import { DataService } from '../../services/data.service';
 import { SweetAlertService } from '../../services/sweet-alert.service';
+import { AlertService } from '../../services/alert.service';
 import { Device, Room } from '../../models';
 import { getDeviceStatusColor } from '../../utils/status-colors';
 
 @Component({
   selector: 'app-devices',
   standalone: true,
-  imports: [CommonModule, FormsModule, PageHeaderComponent, ModalComponent, StatCardComponent],
+  imports: [CommonModule, FormsModule, PageHeaderComponent, ModalComponent, StatCardComponent, NotificationsPanelComponent],
   templateUrl: './devices.html',
   styleUrl: './devices.scss'
 })
-export class Devices implements OnInit {
+export class Devices implements OnInit, OnDestroy {
   devices: Device[] = [];
   rooms: Room[] = [];
   showModal = false;
   showLogModal = false;
   isEditMode = false;
   selectedDevice: Device | null = null;
+  showNotifications = false;
+  alertCount = 0;
+  private alertSub?: Subscription;
 
   deviceForm: Partial<Device> = this.getEmptyForm();
   usageLog = {
@@ -33,11 +37,19 @@ export class Devices implements OnInit {
   constructor(
     private dataService: DataService,
     private alertService: SweetAlertService,
+    private notificationService: AlertService,
     private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit() {
     this.loadData();
+    this.alertSub = this.notificationService.getAlertCount('devices').subscribe(count => {
+      this.alertCount = count;
+    });
+  }
+
+  ngOnDestroy() {
+    this.alertSub?.unsubscribe();
   }
 
   loadData() {

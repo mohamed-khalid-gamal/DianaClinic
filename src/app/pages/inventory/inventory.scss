@@ -77,6 +77,25 @@
 .header-actions {
   display: flex;
   gap: 0.5rem;
+  
+  .notifications-btn {
+    position: relative;
+    
+    .notification-badge {
+      position: absolute;
+      top: -6px;
+      right: -6px;
+      background: var(--danger, #ef4444);
+      color: white;
+      font-size: 0.65rem;
+      font-weight: 600;
+      padding: 0.125rem 0.35rem;
+      border-radius: 9999px;
+      min-width: 16px;
+      text-align: center;
+      line-height: 1.2;
+    }
+  }
 }
 
 // Category management

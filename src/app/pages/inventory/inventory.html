@@ -2,6 +2,10 @@
   title="Inventory & Pharmacy"
   subtitle="Track stock levels, expiry dates, and manage products">
   <div class="header-actions">
+    <button class="btn btn-outline notifications-btn" (click)="showNotifications = !showNotifications">
+      <i class="fa-solid fa-bell"></i>
+      <span *ngIf="alertCount > 0" class="notification-badge">{{ alertCount }}</span>
+    </button>
     <button class="btn btn-outline" (click)="openCategoryModal()">
       <i class="fa-solid fa-tags"></i> Manage Categories
     </button>
@@ -10,6 +14,13 @@
     </button>
   </div>
 </app-page-header>
+
+<!-- Notifications Panel -->
+<app-notifications-panel
+  category="inventory"
+  [isOpen]="showNotifications">
+</app-notifications-panel>
+
 
 <!-- Stats Row -->
 <div class="stats-row">

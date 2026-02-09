@@ -1,0 +1,39 @@
+<div class="notifications-panel" *ngIf="isOpen">
+  <div class="panel-header">
+    <h3><i class="fa-solid fa-bell"></i> Notifications</h3>
+    <span class="count-badge" *ngIf="alerts.length">{{ alerts.length }}</span>
+  </div>
+
+  <div class="alerts-list" *ngIf="alerts.length; else noAlerts">
+    <div class="alert-item" *ngFor="let alert of alerts" [class.critical]="alert.severity === 'critical'">
+      <div class="alert-icon" [class.critical]="alert.severity === 'critical'">
+        <i [class]="getTypeIcon(alert.type)"></i>
+      </div>
+      
+      <div class="alert-content">
+        <div class="alert-title">
+          <i [class]="getSeverityIcon(alert.severity)" class="severity-icon"></i>
+          {{ alert.title }}
+        </div>
+        <p class="alert-message">{{ alert.message }}</p>
+        <span class="alert-item-name">{{ alert.relatedName }}</span>
+      </div>
+      
+      <div class="alert-actions">
+        <button class="btn-icon" title="Snooze for 24 hours" (click)="snoozeAlert(alert)">
+          <i class="fa-solid fa-clock"></i>
+        </button>
+        <button class="btn-icon dismiss" title="Dismiss" (click)="dismissAlert(alert)">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <ng-template #noAlerts>
+    <div class="empty-state">
+      <i class="fa-solid fa-check-circle"></i>
+      <p>All clear! No notifications at this time.</p>
+    </div>
+  </ng-template>
+</div>

@@ -1,25 +1,29 @@
-import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, OnDestroy, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, NgForm } from '@angular/forms';
-import { forkJoin } from 'rxjs';
-import { PageHeaderComponent, DataTableComponent, ModalComponent, StatCardComponent, TableColumn } from '../../components/shared';
+import { forkJoin, Subscription } from 'rxjs';
+import { PageHeaderComponent, DataTableComponent, ModalComponent, StatCardComponent, TableColumn, NotificationsPanelComponent } from '../../components/shared';
 import { DataService } from '../../services/data.service';
 import { SweetAlertService } from '../../services/sweet-alert.service';
+import { AlertService } from '../../services/alert.service';
 import { InventoryItem, InventoryCategory } from '../../models';
 
 @Component({
   selector: 'app-inventory',
   standalone: true,
-  imports: [CommonModule, FormsModule, PageHeaderComponent, DataTableComponent, ModalComponent, StatCardComponent],
+  imports: [CommonModule, FormsModule, PageHeaderComponent, DataTableComponent, ModalComponent, StatCardComponent, NotificationsPanelComponent],
   templateUrl: './inventory.html',
   styleUrl: './inventory.scss'
 })
-export class Inventory implements OnInit {
+export class Inventory implements OnInit, OnDestroy {
   items: InventoryItem[] = [];
   categories: InventoryCategory[] = [];
   showModal = false;
   isEditMode = false;
   activeFilter = 'all';
+  showNotifications = false;
+  alertCount = 0;
+  private alertSub?: Subscription;
 
   // Category management
   showCategoryModal = false;
@@ -43,12 +47,20 @@ export class Inventory implements OnInit {
 
   constructor(
     private dataService: DataService,
-    private alertService: SweetAlertService,
+    private sweetAlert: SweetAlertService,
+    private notificationService: AlertService,
     private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit() {
     this.loadData();
+    this.alertSub = this.notificationService.getAlertCount('inventory').subscribe(count => {
+      this.alertCount = count;
+    });
+  }
+
+  ngOnDestroy() {
+    this.alertSub?.unsubscribe();
   }
 
   loadData() {
@@ -65,7 +77,7 @@ export class Inventory implements OnInit {
         }));
         this.cdr.detectChanges();
       },
-      error: () => this.alertService.error('Failed to load inventory. Please refresh.')
+      error: () => this.sweetAlert.error('Failed to load inventory. Please refresh.')
     });
   }
 
@@ -112,7 +124,7 @@ export class Inventory implements OnInit {
   saveItem(form?: NgForm) {
     if (form && form.invalid) {
       form.form.markAllAsTouched();
-      this.alertService.validationError('Please fill all required fields');
+      this.sweetAlert.validationError('Please fill all required fields');
       return;
     }
 
@@ -120,19 +132,19 @@ export class Inventory implements OnInit {
     const skuValue = this.itemForm.sku?.trim();
 
     if (!nameValue) {
-      this.alertService.validationError('Product name is required');
+      this.sweetAlert.validationError('Product name is required');
       return;
     }
     if (!skuValue) {
-      this.alertService.validationError('SKU is required');
+      this.sweetAlert.validationError('SKU is required');
       return;
     }
     if (!this.itemForm.category) {
-      this.alertService.validationError('Category is required');
+      this.sweetAlert.validationError('Category is required');
       return;
     }
     if (this.itemForm.quantity == null || this.itemForm.quantity < 0) {
-      this.alertService.validationError('Quantity must be 0 or more');
+      this.sweetAlert.validationError('Quantity must be 0 or more');
       return;
     }
 
@@ -140,34 +152,34 @@ export class Inventory implements OnInit {
     if (!this.isEditMode) {
       this.dataService.addInventoryItem(this.itemForm as InventoryItem).subscribe({
         next: () => {
-          this.alertService.created('Inventory Item', itemName);
+          this.sweetAlert.created('Inventory Item', itemName);
           this.loadData();
           this.closeModal();
         },
-        error: () => this.alertService.error('Failed to create item. Please try again.')
+        error: () => this.sweetAlert.error('Failed to create item. Please try again.')
       });
     } else {
       this.dataService.updateInventoryItem(this.itemForm as InventoryItem).subscribe({
         next: () => {
-          this.alertService.updated('Inventory Item', itemName);
+          this.sweetAlert.updated('Inventory Item', itemName);
           this.loadData();
           this.closeModal();
         },
-        error: () => this.alertService.error('Failed to update item. Please try again.')
+        error: () => this.sweetAlert.error('Failed to update item. Please try again.')
       });
     }
   }
 
   async deleteItem(item: InventoryItem) {
-    const confirmed = await this.alertService.confirmDelete(item.name, 'Inventory Item');
+    const confirmed = await this.sweetAlert.confirmDelete(item.name, 'Inventory Item');
     if (confirmed) {
       this.dataService.deleteInventoryItem(item.id).subscribe({
         next: () => {
           this.items = this.items.filter(i => i.id !== item.id);
-          this.alertService.deleted('Inventory Item', item.name);
+          this.sweetAlert.deleted('Inventory Item', item.name);
           this.cdr.detectChanges();
         },
-        error: () => this.alertService.error('Failed to delete item. Please try again.')
+        error: () => this.sweetAlert.error('Failed to delete item. Please try again.')
       });
     }
   }
@@ -224,10 +236,10 @@ export class Inventory implements OnInit {
       next: (cat) => {
         this.categories.push(cat);
         this.newCategoryName = '';
-        this.alertService.toast(`Category "${name}" added`);
+        this.sweetAlert.toast(`Category "${name}" added`);
         this.cdr.detectChanges();
       },
-      error: () => this.alertService.toast('Failed to add category', 'error')
+      error: () => this.sweetAlert.toast('Failed to add category', 'error')
     });
   }
 
@@ -249,28 +261,28 @@ export class Inventory implements OnInit {
       next: () => {
         cat.name = name;
         this.editingCategoryId = null;
-        this.alertService.toast(`Category updated`);
+        this.sweetAlert.toast(`Category updated`);
         this.loadData(); // Reload to update category names on items
       },
-      error: () => this.alertService.toast('Failed to update category', 'error')
+      error: () => this.sweetAlert.toast('Failed to update category', 'error')
     });
   }
 
   async deleteCategory(cat: InventoryCategory) {
     const count = this.getItemCountForCategory(cat.id);
     if (count > 0) {
-      this.alertService.toast('Cannot delete category with existing items', 'error');
+      this.sweetAlert.toast('Cannot delete category with existing items', 'error');
       return;
     }
-    const confirmed = await this.alertService.confirm(`Delete category "${cat.name}"?`, 'This cannot be undone.');
+    const confirmed = await this.sweetAlert.confirm(`Delete category "${cat.name}"?`, 'This cannot be undone.');
     if (!confirmed) return;
     this.dataService.deleteInventoryCategory(cat.id).subscribe({
       next: () => {
         this.categories = this.categories.filter(c => c.id !== cat.id);
-        this.alertService.toast(`Category "${cat.name}" deleted`);
+        this.sweetAlert.toast(`Category "${cat.name}" deleted`);
         this.cdr.detectChanges();
       },
-      error: () => this.alertService.toast('Failed to delete category', 'error')
+      error: () => this.sweetAlert.toast('Failed to delete category', 'error')
     });
   }
 
