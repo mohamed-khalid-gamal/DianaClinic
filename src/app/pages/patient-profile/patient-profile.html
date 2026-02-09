@@ -141,21 +141,43 @@
         <button class="btn btn-outline btn-sm" (click)="openBuyPackageModal()">+ Buy Package</button>
       </div>
       <div class="card-body" *ngIf="wallet?.credits?.length; else noCredits">
-        <div class="credit-row" *ngFor="let credit of wallet?.credits">
-          <div>
-            <div class="title">{{ credit.serviceName }}</div>
-            <div class="sub">
-              <span class="unit-type">{{ credit.unitType | titlecase }}s</span>
-              <span *ngIf="credit.expiresAt"> • Expires: {{ formatDate(credit.expiresAt) }}</span>
+        <ng-container *ngFor="let credit of wallet?.credits">
+          <div class="credit-row clickable" (click)="toggleCreditHistory(credit)">
+            <div>
+              <div class="title">{{ credit.serviceName }}</div>
+              <div class="sub">
+                <span class="unit-type">{{ credit.unitType | titlecase }}s</span>
+                <span *ngIf="credit.expiresAt"> • Expires: {{ formatDate(credit.expiresAt) }}</span>
+              </div>
+            </div>
+            <div class="credit-progress">
+              <div class="progress">
+                <div class="progress-fill" [style.width.%]="(credit.remaining / credit.total) * 100"></div>
+              </div>
+              <span class="count">{{ credit.remaining }} / {{ credit.total }}</span>
+            </div>
+            <div class="expand-icon" style="margin-left: 1rem; color: #666;">
+               <i class="fa-solid" [class.fa-chevron-down]="!isCreditExpanded(credit)" [class.fa-chevron-up]="isCreditExpanded(credit)"></i>
             </div>
           </div>
-          <div class="credit-progress">
-            <div class="progress">
-              <div class="progress-fill" [style.width.%]="(credit.remaining / credit.total) * 100"></div>
-            </div>
-            <span class="count">{{ credit.remaining }} / {{ credit.total }}</span>
+          
+          <!-- Expanded Usage History -->
+          <div class="credit-history" *ngIf="isCreditExpanded(credit)" style="background: #f9f9f9; padding: 10px; border-bottom: 1px solid #eee;">
+              <h5 style="margin: 0 0 10px 0; font-size: 0.9rem; color: #555;">Usage History</h5>
+              <div class="history-list" *ngIf="getUsageHistory(credit).length; else noUsage">
+                  <div class="history-item" *ngFor="let use of getUsageHistory(credit)" style="display: flex; justify-content: space-between; font-size: 0.85rem; padding: 4px 0; border-bottom: 1px dashed #eee;">
+                       <span class="use-date" style="color: #888;">{{ formatDateTime(use.date) }}</span>
+                       <span class="use-desc">{{ use.description }}</span>
+                       <span class="use-link" *ngIf="getRelatedAppointment(use) as appt">
+                          <a [routerLink]="['/appointments']" [queryParams]="{highlight: appt.id}">View Appt</a>
+                       </span>
+                  </div>
+              </div>
+              <ng-template #noUsage>
+                  <div class="mini-empty" style="font-style: italic; color: #999; font-size: 0.85rem;">No usage recorded yet.</div>
+              </ng-template>
           </div>
-        </div>
+        </ng-container>
       </div>
       <ng-template #noCredits>
         <div class="empty">No active credits</div>

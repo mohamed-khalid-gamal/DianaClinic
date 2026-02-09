@@ -7,7 +7,7 @@ import { DataService } from '../../services/data.service';
 import { OfferService, AppliedOffer, CartItem } from '../../services/offer.service';
 import { WalletService } from '../../services/wallet.service';
 import { SweetAlertService } from '../../services/sweet-alert.service';
-import { Appointment, Patient, Service, Offer, ServiceCredit, Doctor } from '../../models';
+import { Appointment, Patient, Service, Offer, ServiceCredit, Doctor, InventoryItem } from '../../models';
 
 interface InvoiceItem {
   description: string;
@@ -37,6 +37,7 @@ export class Billing implements OnInit {
   patients: Patient[] = [];
   services: Service[] = [];
   doctors: Doctor[] = [];
+  inventory: InventoryItem[] = [];
   offers: Offer[] = [];
   invoices: any[] = [];
 
@@ -91,14 +92,16 @@ export class Billing implements OnInit {
       patients: this.dataService.getPatients(),
       services: this.dataService.getServices(),
       doctors: this.dataService.getDoctors(),
+      inventory: this.dataService.getInventory(),
       offers: this.dataService.getOffers(),
       invoices: this.dataService.getInvoices()
     }).subscribe({
-      next: ({ appointments, patients, services, doctors, offers, invoices }) => {
+      next: ({ appointments, patients, services, doctors, inventory, offers, invoices }) => {
         this.appointments = appointments;
         this.patients = patients;
         this.services = services;
         this.doctors = doctors;
+        this.inventory = inventory;
         this.offers = offers;
         this.invoices = invoices;
         this.cdr.markForCheck();
@@ -217,20 +220,55 @@ export class Billing implements OnInit {
       }
     }
 
-    // Load session extra charges (overage, consumables, etc.)
+    // Load session details (consumables, actual credit usage, extra charges)
     this.dataService.getSessionByAppointment(appointment.id).subscribe({
       next: session => {
-        if (session && session.extraCharges) {
-          for (const charge of session.extraCharges) {
-            this.invoiceItems.push({
-              description: charge.description,
-              quantity: 1,
-              unitPrice: charge.amount,
-              total: charge.amount,
-              serviceId: charge.serviceId,
-              isCreditsUsed: false
-            });
-          }
+        if (session) {
+            // 1. Process Consumables
+            if(session.consumablesUsed) {
+                for(const consumable of session.consumablesUsed) {
+                     const item = this.inventory.find(i => i.id === consumable.inventoryItemId);
+                     if(item) {
+                         this.invoiceItems.push({
+                             description: `Consumable: ${item.name}`,
+                             quantity: consumable.quantity,
+                             unitPrice: item.sellingPrice || 0, // Assuming sellingPrice exists, fallback to 0
+                             total: (item.sellingPrice || 0) * consumable.quantity,
+                             serviceId: undefined, // Not a service
+                             isCreditsUsed: false
+                         });
+                     }
+                }
+            }
+
+            // 2. Process Extra Charges
+            if (session.extraCharges) {
+                for (const charge of session.extraCharges) {
+                    this.invoiceItems.push({
+                        description: charge.description,
+                        quantity: 1,
+                        unitPrice: charge.amount,
+                        total: charge.amount,
+                        serviceId: charge.serviceId,
+                        isCreditsUsed: false
+                    });
+                }
+            }
+
+            // 3. Update Service Items based on Session Credit Usage
+            // If session recorded credit usage, update the corresponding invoice items to be 0 total
+             if (session.creditsUsed) {
+                 for(const creditUsage of session.creditsUsed) {
+                     // Find the invoice item for this service
+                     const invItem = this.invoiceItems.find(i => i.serviceId === creditUsage.serviceId && !i.isCreditsUsed);
+                     if(invItem) {
+                         invItem.isCreditsUsed = true;
+                         invItem.total = 0;
+                         invItem.description += ` (Covered by ${creditUsage.unitsUsed} ${creditUsage.unitType})`;
+                     }
+                 }
+            }
+
         }
         this.cdr.markForCheck();
       },

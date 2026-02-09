@@ -285,6 +285,7 @@
                        <label>Attribute</label>
                        <select [(ngModel)]="cond.parameters.attributeName" [ngModelOptions]="{ standalone: true }">
                            <option value="age">Age</option>
+                           <option value="dateOfBirth">Date of Birth (Age check)</option>
                            <option value="gender">Gender</option>
                            <option value="city">City</option>
                            <option value="totalVisits">Total Visits</option>
@@ -313,6 +314,8 @@
                        <select [(ngModel)]="cond.parameters.attributeName" [ngModelOptions]="{ standalone: true }">
                            <option value="totalQuantity">Total Items Count</option>
                            <option value="totalItems">Distinct Items Count</option>
+                           <option value="totalAmount">Total Cart Value (EGP)</option>
+                           <option value="distinctCategories">Distinct Categories Count</option>
                        </select>
                    </div>
                    <div class="form-group">

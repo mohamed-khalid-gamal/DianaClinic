@@ -340,6 +340,40 @@ export class PatientProfile implements OnInit {
     });
   }
 
+  // Usage History Helpers
+  expandedCredits = new Set<string>();
+
+  toggleCreditHistory(credit: ServiceCredit) {
+    // Unique key for credit item
+    const key = this.getCreditKey(credit);
+    if (this.expandedCredits.has(key)) {
+        this.expandedCredits.delete(key);
+    } else {
+        this.expandedCredits.add(key);
+    }
+  }
+
+  isCreditExpanded(credit: ServiceCredit): boolean {
+      return this.expandedCredits.has(this.getCreditKey(credit));
+  }
+
+  private getCreditKey(credit: ServiceCredit): string {
+      return `${credit.serviceId}_${credit.packageId || 'none'}_${credit.unitType}`;
+  }
+
+  getUsageHistory(credit: ServiceCredit): PatientTransaction[] {
+      return this.transactions.filter(tx => 
+          tx.type === 'credit_usage' && 
+          tx.serviceId === credit.serviceId &&
+          (!credit.packageId || tx.packageId === credit.packageId) // Match package if exists
+      );
+  }
+
+  getRelatedAppointment(tx: PatientTransaction): Appointment | undefined {
+      if (!tx.relatedAppointmentId) return undefined;
+      return this.appointments.find(a => a.id === tx.relatedAppointmentId);
+  }
+
   getServiceName(serviceId: string): string {
     return this.services.find(s => s.id === serviceId)?.name || 'Unknown';
   }

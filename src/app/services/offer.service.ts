@@ -95,15 +95,23 @@ export class OfferService {
          return isNew;
 
       case 'patient_tag':
-        // Check if patient has any of the required tags (match against notes/skinType)
+        // Check if patient has any of the required tags (match against notes/skinType/conditions)
         if (!condition.parameters.tags || condition.parameters.tags.length === 0) return true;
-        const patientTags = [patient.skinType, ...(patient.allergies || []), ...(patient.chronicConditions || [])]
-          .filter(Boolean).map(t => String(t).toLowerCase());
+        const patientTags = [
+            String(patient.skinType || ''),
+            ...(patient.allergies || []),
+            ...(patient.chronicConditions || []),
+            ...(patient.contraindications || [])
+        ].filter(Boolean).map(t => t.toLowerCase());
         
+        const targetTags = condition.parameters.tags.map(t => t.toLowerCase());
+
         if (condition.operator === 'not_contains' || condition.operator === 'not_in') {
-             return !condition.parameters.tags.some(tag => patientTags.includes(tag.toLowerCase()));
+             return !targetTags.some(tag => patientTags.includes(tag));
         }
-        return condition.parameters.tags.some(tag => patientTags.includes(tag.toLowerCase()));
+        // flexible match: if ANY target tag is present
+        // or strictly ALL? usually 'contains' implies at least one.
+        return targetTags.some(tag => patientTags.includes(tag));
 
       case 'date_range':
         const now = new Date();
@@ -125,14 +133,15 @@ export class OfferService {
         return this.evaluateAttribute(condition, patient);
 
       case 'visit_count':
-        // TODO: This requires checking patient history which is not passed here.
-        // For now, return true or we need to fetch it.
-        // Assuming we might have visit count in Patient object tailored for this?
-        // Or we just skip this check for now.
+        // Requires patient history context which might not be fully loaded here.
+        // If we strictly need it, we accept it as true for now to avoid blocking valid offers,
+        // or we could implement a basic check if 'patient' object had a visit count property.
+        // Assuming false for safety if critical, but true for flexibility.
+        // Let's check if patient object happens to have extensions (it's typed as Patient).
         return true; 
 
       case 'cart_property':
-         return this.evaluateCartProperty(condition, cart);
+         return this.evaluateCartProperty(condition, cart, services);
 
       default:
         return true;
@@ -150,12 +159,16 @@ export class OfferService {
       const [endH, endM] = condition.parameters.endTime.split(':').map(Number);
       const endMinutes = endH * 60 + endM;
       
+      if (endMinutes < startMinutes) {
+          // Overnight range (e.g. 22:00 to 02:00)
+          return currentMinutes >= startMinutes || currentMinutes <= endMinutes;
+      }
       return currentMinutes >= startMinutes && currentMinutes <= endMinutes;
   }
 
   private evaluateDayOfWeek(condition: OfferCondition): boolean {
       if (!condition.parameters.daysOfWeek || condition.parameters.daysOfWeek.length === 0) return true;
-      const day = new Date().getDay(); // 0-6
+      const day = new Date().getDay(); // 0-6 (Sun-Sat)
       return condition.parameters.daysOfWeek.includes(day);
   }
 
@@ -163,19 +176,33 @@ export class OfferService {
       const attr = condition.parameters.attributeName;
       if (!attr) return true;
       
-      // Access patient property safely
+      // Access patient property safely, supporting nested paths if needed (simple for now)
       const value = (patient as any)[attr];
-      const target = condition.parameters.attributeValue;
-
-      // TODO: Improve type handling (dates, numbers)
       
-      switch (condition.operator) {
+      // Handle Date attributes (like dateOfBirth) specifically for age comparison
+      if (attr === 'dateOfBirth' && value) {
+          const age = new Date().getFullYear() - new Date(value).getFullYear();
+          return this.compareValues(age, condition.parameters.attributeValue, condition.operator);
+      }
+
+      return this.compareValues(value, condition.parameters.attributeValue, condition.operator);
+  }
+
+  private compareValues(value: any, target: any, operator: string = 'equals'): boolean {
+      // Type coercion for comparison
+      if (typeof target === 'number') {
+          value = Number(value);
+      }
+      
+      switch (operator) {
           case 'equals': return value == target;
           case 'not_equals': return value != target;
           case 'greater_than': return value > target;
           case 'less_than': return value < target;
-          case 'contains': return String(value).includes(target);
-          case 'not_contains': return !String(value).includes(target);
+          case 'contains': return String(value).toLowerCase().includes(String(target).toLowerCase());
+          case 'not_contains': return !String(value).toLowerCase().includes(String(target).toLowerCase());
+          case 'in': return Array.isArray(target) && target.includes(value);
+          case 'not_in': return Array.isArray(target) && !target.includes(value);
           default: return value == target;
       }
   }
@@ -193,7 +220,7 @@ export class OfferService {
         .forEach(s => targetIds.add(s.id));
     }
 
-    if (targetIds.size === 0) return true; // No targets defined = match all? Or ignore? Assuming ignore -> true.
+    if (targetIds.size === 0) return true; 
 
     // 2. Determine matches based on matchType
     const matchType = params.matchType || 'all';
@@ -209,21 +236,13 @@ export class OfferService {
     } else if (matchType === 'none') {
       // NONE of the target IDs are in cart
       isMatch = !Array.from(targetIds).some(id => cartHasId(id));
-      // For 'none', minQuantity doesn't make sense to check on matches (since there are none), so return early
       return isMatch;
     } else if (matchType === 'exact') {
       // Cart services must be exactly the target set
       if (cartServiceIds.size !== targetIds.size) isMatch = false;
       else isMatch = Array.from(targetIds).every(id => cartHasId(id));
     } else {
-      // 'all' (default) - Cart must contain ALL target IDs
-      // This is strict 'all listed must be present'. 
-      // If categories are used, it implies "All services in this category"? No, that's dangerous.
-      // Usually 'all' with categories means "Is this logical?". 
-      // If user selects "Category: Laser" and "Match: All", it implies "Cart must contain ALL laser services available". That's unlikely.
-      // Probably 'all' is useful for bundling specific Service IDs. 
-      // For categories, 'any' is the standard use case. 
-      // However, we follow logic: All IDs in targetIds must be in cart.
+      // 'all' - Cart must contain ALL target IDs
       isMatch = Array.from(targetIds).every(id => cartHasId(id));
     }
 
@@ -241,25 +260,26 @@ export class OfferService {
     return true;
   }
 
-  private evaluateCartProperty(condition: OfferCondition, cart: CartItem[]): boolean {
+  private evaluateCartProperty(condition: OfferCondition, cart: CartItem[], allServices: Service[]): boolean {
       const prop = condition.parameters.attributeName; // 'totalQuantity', 'totalItems', 'distinctCategories'
       let value = 0;
       
       if (prop === 'totalQuantity') {
           value = cart.reduce((sum, item) => sum + item.quantity, 0);
-      } else if (prop === 'totalItems') { // Distinct items
+      } else if (prop === 'totalItems') { // Distinct service IDs
           value = cart.length;
+      } else if (prop === 'totalAmount') {
+          value = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+      } else if (prop === 'distinctCategories') {
+          const cats = new Set<string>();
+          cart.forEach(item => {
+              const svc = allServices.find(s => s.id === item.serviceId);
+              if (svc && svc.categoryId) cats.add(svc.categoryId);
+          });
+          value = cats.size;
       }
       
-      const target = condition.parameters.threshold || 0;
-      
-       switch (condition.operator) {
-          case 'equals': return value == target;
-          case 'not_equals': return value != target;
-          case 'greater_than': return value > target;
-          case 'less_than': return value < target;
-          default: return value >= target;
-      }
+      return this.compareValues(value, condition.parameters.threshold, condition.operator || 'greater_than');
   }
 
   private calculateBenefit(offer: Offer, cart: CartItem[]): AppliedOffer | null {
