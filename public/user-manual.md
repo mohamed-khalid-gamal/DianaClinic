@@ -1,5 +1,5 @@
 # Merve Aesthetics Management System
-## User Manual v1.0
+## User Manual v1.1
 
 ---
 
@@ -23,6 +23,7 @@
 16. [Quick Reference](#16-quick-reference)
 17. [Feature Map by Page](#17-feature-map-by-page)
 18. [Complete System Example](#18-complete-system-example)
+19. [Comprehensive Test Flows](#19-comprehensive-test-flows)
 
 ---
 
@@ -1717,513 +1718,460 @@ For technical support or feature requests, contact your system administrator.
 
 ## 19. Comprehensive Test Flows
 
-This section provides complete end-to-end test flows to verify all system features. Follow these scenarios to test the full functionality of Offers, Patients, Appointments, and Billing.
+This section provides complete end-to-end test scenarios to verify all features of Offers, Patients, Appointments, and Billing.
 
 ---
 
-### Test Flow 1: All Offer Types Test Cycle
+### Test Flow 1: Complete Offer Types Verification
 
-This flow tests all 6 offer types with a single test patient.
+This flow tests all 6 offer types in a single comprehensive cycle.
 
 #### Prerequisites
-- At least 2 services exist (e.g., "Laser Hair Removal", "Hydrafacial")
-- At least 1 doctor and 1 room configured
-
-#### 1.1 Create Test Offers
-
-Go to **Offers** → Create each offer:
-
-| Offer Name | Type | Configuration | Condition |
-|------------|------|---------------|-----------|
-| Summer Sale 25% | `percentage` | 25% discount | None (all patients) |
-| Welcome EGP 300 | `fixed_amount` | EGP 300 off | `new_patient` |
-| Beauty Bundle | `bundle` | Facial + Consultation = EGP 1,800 | `service_includes` both |
-| Buy 3 Get 1 | `buyXgetY` | Buy 3, Get 1 Free - Hydrafacial | None |
-| 10 Sessions Pack | `package` | EGP 8,000 → 10 Laser sessions | None |
-| VIP 15% Off | `conditional` | 15% off | `patient_tag` = "VIP" |
-
-**Verification Checklist:**
-- [ ] All 6 offers appear in Offers list
-- [ ] Filter by "Active" shows all 6
-- [ ] Each offer shows correct type badge
+- At least one service exists (e.g., "Laser Hair Removal", "Hydrafacial")
+- At least one doctor, room, and device configured
 
 ---
 
-#### 1.2 Test Percentage Discount
+#### 1.1 Create Percentage Discount Offer
 
-1. Create new patient: "Test Percent"
-2. **Appointments** → **+ New Appointment**
-3. Select patient → Select "Hydrafacial" service
-4. Continue to Step 6 (Offers)
-5. **Verify**: "Summer Sale 25%" appears as applicable
-6. Select the offer → Continue to Confirm
-7. **Verify**: Invoice shows 25% discount on Hydrafacial
+| Step | Action | Expected Result |
+|------|--------|-----------------|
+| 1 | Go to **Offers** → Click **"+ Add Offer"** | Modal opens |
+| 2 | **Step 1**: Name = "Summer Sale 25%", Type = "Percentage Discount" | - |
+| 3 | **Step 2**: No conditions (applies to everyone) | - |
+| 4 | **Step 3**: Percent = 25%, Active = Yes | - |
+| 5 | Click **"Save"** | Offer appears in list with "Active" badge |
 
----
-
-#### 1.3 Test Fixed Amount Discount (New Patient)
-
-1. Create new patient: "Test Fixed" (registered within 30 days)
-2. Book appointment with any service
-3. At Step 6 (Offers):
-   - **Verify**: "Welcome EGP 300" appears (new patient condition met)
-4. Apply offer → Confirm
-5. **Verify**: Invoice shows EGP 300 deducted
+**Verification**: Book any service → In Step 6 (Offers), "Summer Sale 25%" should appear → Apply → Total shows 25% discount.
 
 ---
 
-#### 1.4 Test Bundle Offer
+#### 1.2 Create Fixed Amount Discount (New Patient)
 
-1. Patient: Use existing or create "Test Bundle"
-2. Book appointment with **both**:
-   - Facial treatment
-   - Consultation
-3. At Step 6:
-   - **Verify**: "Beauty Bundle" offer appears
-4. Apply offer → Confirm
-5. **Verify**: Combined price = EGP 1,800 (not sum of individual prices)
+| Step | Action | Expected Result |
+|------|--------|-----------------|
+| 1 | **Offers** → **"+ Add Offer"** | Modal opens |
+| 2 | Name = "Welcome EGP 300 Off", Type = "Fixed Amount" | - |
+| 3 | **Conditions**: Add "New Patient Only" | Condition appears |
+| 4 | **Benefits**: Fixed Amount = 300 | - |
+| 5 | Save | Offer active |
 
----
-
-#### 1.5 Test Buy X Get Y
-
-1. Patient: "Test BuyGet"
-2. Go to **Patient Profile** → **Packages & Credits** → **+ Buy Package**
-3. Select "Buy 3 Get 1" offer
-4. Pay for the package
-5. **Verify**: Patient wallet shows **4 credits** for Hydrafacial (bought 3 + 1 free)
+**Verification**: 
+- Register a NEW patient → Book appointment → Offer auto-appears
+- For EXISTING patients (>30 days old) → Offer should NOT appear
 
 ---
 
-#### 1.6 Test Credit Package
+#### 1.3 Create Bundle Offer
 
-1. Patient: "Test Package"
-2. Profile → **+ Buy Package** → Select "10 Sessions Pack"
-3. Confirm → **Pending Bill** appears
-4. Click **Pay Now** → Pay EGP 8,000 (Cash or Card)
-5. **Verify**:
-   - Pending bill cleared
-   - Wallet shows: "Laser Hair Removal: 10 sessions"
-   - Transaction history shows payment
+| Step | Action | Expected Result |
+|------|--------|-----------------|
+| 1 | **Offers** → **"+ Add Offer"** | - |
+| 2 | Name = "Beauty Bundle", Type = "Bundle" | - |
+| 3 | **Conditions**: Add "Service Includes" → Select "Hydrafacial" + "Consultation" | - |
+| 4 | **Benefits**: Fixed Price = 1,200 (vs normal 1,800) | - |
+| 5 | Save | - |
+
+**Verification**:
+- Book BOTH Hydrafacial AND Consultation together → Bundle price (EGP 1,200) applies
+- Book ONLY Hydrafacial → Bundle does NOT apply (regular price)
 
 ---
 
-#### 1.7 Test Conditional Offer (Patient Tag)
+#### 1.4 Create Buy X Get Y Offer
 
-1. Patient: "Test VIP"
-2. Go to patient profile → Add tag "VIP" (if tag system available, or use backend)
-3. Book appointment with any service
-4. At Step 6:
-   - **Verify**: "VIP 15% Off" appears
-5. Apply → Confirm
-6. **Verify**: 15% discount applied
+| Step | Action | Expected Result |
+|------|--------|-----------------|
+| 1 | **Offers** → **"+ Add Offer"** | - |
+| 2 | Name = "Buy 3 Get 1 Free", Type = "Buy X Get Y" | - |
+| 3 | **Conditions**: Service = "Hydrafacial" | - |
+| 4 | **Benefits**: Buy = 3, Get = 1 Free | - |
+| 5 | Save | - |
+
+**Verification**:
+- Patient buys 3 Hydrafacial sessions via package → Wallet should show 4 credits
+
+---
+
+#### 1.5 Create Credit Package Offer
+
+| Step | Action | Expected Result |
+|------|--------|-----------------|
+| 1 | **Offers** → **"+ Add Offer"** | - |
+| 2 | Name = "10 Laser Sessions", Type = "Package" | - |
+| 3 | **Benefits**: Grant Package | - |
+| 4 | Fixed Price = 8,000, Service = "Laser Hair Removal", Sessions = 10 | - |
+| 5 | Validity = 365 days, Save | Package appears in list |
+
+**Verification Flow**:
+1. Open patient profile → **Packages & Credits** tab → Click **"+ Buy Package"**
+2. Select "10 Laser Sessions" → Confirm
+3. **Pending Bill** alert appears → Click **"Pay Now"**
+4. Pay EGP 8,000 → Confirm
+5. ✅ Wallet now shows: "Laser Hair Removal: 10 sessions (expires in 365 days)"
+
+---
+
+#### 1.6 Create Conditional Offer (VIP)
+
+| Step | Action | Expected Result |
+|------|--------|-----------------|
+| 1 | **Offers** → **"+ Add Offer"** | - |
+| 2 | Name = "VIP 15% Off", Type = "Conditional" | - |
+| 3 | **Conditions**: Add "Patient Tag" → Tag = "VIP" | - |
+| 4 | **Benefits**: Percent = 15% | - |
+| 5 | Save | - |
+
+**Verification**: Only patients tagged "VIP" see this offer during booking.
 
 ---
 
 ### Test Flow 2: Complete Patient Journey with Package
 
-Full patient lifecycle from registration to credit usage.
-
-#### 2.1 Setup Test Data
-
-| Entity | Values |
-|--------|--------|
-| Patient | Name: Nour Test, Phone: +20 100 111 2222, DOB: 1990-01-15, Gender: Female, Skin Type: 3 |
-| Service | "Laser Hair Removal" (Pulse-based, EGP 200 base + EGP 5/pulse) |
-| Package | "5000 Pulses Pack" - EGP 12,000 → 5000 pulse credits |
+This flow tests the complete patient lifecycle from registration to package purchase and usage.
 
 ---
 
-#### 2.2 Register Patient
+#### 2.1 Register New Patient
 
-1. **Patients** → **+ Add Patient**
-2. Fill all fields:
-   - First Name: Nour
-   - Last Name: Test
-   - Phone: +20 100 111 2222
-   - DOB: 1990-01-15
-   - Gender: Female
-   - Skin Type: 3
-   - Allergies: "Latex" (enter to test medical info)
-   - Chronic Conditions: "None"
-   - Contraindications: "None"
-3. Save
-4. **Verify**: Patient appears in list, age calculated correctly
+| Step | Action | Expected Result |
+|------|--------|-----------------|
+| 1 | **Patients** → **"+ Add Patient"** | Modal opens |
+| 2 | First Name = "Test", Last Name = "Patient" | - |
+| 3 | Phone = "+20 100 111 2222" | - |
+| 4 | Date of Birth = 1990-01-15 | - |
+| 5 | Gender = Female | - |
+| 6 | Skin Type = 3 (Fitzpatrick) | - |
+| 7 | Allergies = "Lidocaine" (comma-separated) | - |
+| 8 | Chronic Conditions = "Diabetes" | - |
+| 9 | Contraindications = "Pregnancy" | - |
+| 10 | Notes = "Test patient for verification" | - |
+| 11 | Click **"Save"** | Patient appears in list |
 
----
-
-#### 2.3 Purchase Multi-Service Package
-
-1. Click on "Nour Test" → Profile opens
-2. Go to **Packages & Credits** tab
-3. Click **+ Buy Package**
-4. Select "5000 Pulses Pack"
-5. Confirm Purchase
-6. **Verify**: "Pending Bills" alert appears with package
+**Verify**: Click patient name → Profile shows all entered data correctly.
 
 ---
 
-#### 2.4 Pay with Split Payment
+#### 2.2 Purchase Multi-Service Package
 
-1. Click **Pay Now** on pending bill
-2. Add Payment 1: Card - EGP 7,000
-3. Add Payment 2: Cash - EGP 5,000
-4. Confirm Payment
-5. **Verify**:
-   - Pending bill disappears
-   - Wallet shows: "Laser Hair Removal: 5000 pulses"
-   - Transaction history shows both payments
+Using the "10 Laser Sessions" package created earlier:
 
----
-
-#### 2.5 Top-Up Wallet Cash Balance
-
-1. In patient profile, find "Top Up" button
-2. Enter: EGP 500
-3. Confirm
-4. **Verify**: Cash balance shows EGP 500
+| Step | Action | Expected Result |
+|------|--------|-----------------|
+| 1 | Click **"Test Patient"** to open profile | Profile page opens |
+| 2 | Go to **Packages & Credits** tab | Shows "No credits" |
+| 3 | Click **"+ Buy Package"** | Package selection modal |
+| 4 | Select "10 Laser Sessions - EGP 8,000" | - |
+| 5 | Click **"Confirm Purchase"** | Success message |
+| 6 | **Pending Bill** alert appears | Shows unpaid package |
 
 ---
 
-#### 2.6 Use Credits During Booking
+#### 2.3 Pay with Split Payment
 
-1. **Appointments** → **+ New Appointment**
-2. Select: Nour Test
-3. **Step 2 (Credits)**:
-   - **Verify**: Shows "Laser Hair Removal: 5000 pulses available"
-   - Select: Use 500 pulses for this appointment
-4. Continue through wizard → Confirm
-5. **Verify**: Booking confirmation shows 500 pulses allocated
+| Step | Action | Expected Result |
+|------|--------|-----------------|
+| 1 | On pending bill, click **"Pay Now"** | Payment modal opens |
+| 2 | Add Payment: Card = EGP 5,000 | - |
+| 3 | Add Payment: Cash = EGP 3,000 | Total = 8,000 |
+| 4 | Click **"Confirm Payment"** | Success |
 
----
-
-### Test Flow 3: Complete Appointment Status Workflow
-
-Tests all 7 appointment statuses and transitions.
-
-#### Status Workflow Diagram
-
-```
-[Scheduled] → Check-In → [Checked-In] → Start → [In Progress] → End → [Completed] → Bill → [Billed]
-     ↓                         ↓
- [No-Show]               [Cancelled]
-     ↓
- (Reschedule)
-```
+**Verify**:
+- Pending bill disappears
+- **Packages & Credits** tab shows: "Laser Hair Removal: 10 sessions"
+- **Transactions** tab shows: "Package Purchase - EGP 8,000 (Card + Cash)"
 
 ---
 
-#### 3.1 Create Scheduled Appointment
+#### 2.4 Top-Up Wallet
 
-1. Book appointment for today, 30 minutes from now
-2. Patient: Any test patient
-3. Service: Any service
-4. **Verify**: Status = "Scheduled" (Blue badge)
+| Step | Action | Expected Result |
+|------|--------|-----------------|
+| 1 | In patient profile, click **"Top Up"** | Modal opens |
+| 2 | Enter amount = EGP 500 | - |
+| 3 | Click **"Confirm"** | Success |
 
----
-
-#### 3.2 Transition: Scheduled → Checked-In
-
-1. Go to **Appointments**
-2. Find the scheduled appointment
-3. Click **Check In** button
-4. **Verify**:
-   - Status changes to "Checked-In" (Amber badge)
-   - Patient appears in Sessions "Waiting Queue"
+**Verify**: Wallet balance shows EGP 500.
 
 ---
 
-#### 3.3 Transition: Checked-In → In Progress
+### Test Flow 3: Complete Appointment Workflow
 
-1. Go to **Sessions** module
-2. Find patient in "Waiting Queue"
-3. Click **Start Session**
-4. **Verify**:
-   - Status changes to "In Progress" (Purple badge)
-   - Session card appears with timer running
-   - Elapsed time updates every minute
+Tests all 7 appointment statuses: Scheduled → Checked-In → In Progress → Completed → Billed, plus Cancelled and No-Show.
 
 ---
 
-#### 3.4 Transition: In Progress → Completed
+#### 3.1 Book Appointment Using Credits
 
-1. In **Sessions**, find active session
-2. Click **End Session**
-3. Fill End Session Modal:
-   - Device Usage: Select device, log usage (if applicable)
-   - Consumables: Add any used items
-   - Credits Used: Confirm allocated credits
-   - Notes: "Test session completed"
-4. Click **Complete Session**
-5. **Verify**:
-   - Status changes to "Completed" (Green badge)
-   - Session disappears from active list
-   - Appointment moves to Billing pending
+| Step | Action | Expected Result |
+|------|--------|-----------------|
+| 1 | **Appointments** → **"+ New Appointment"** | Wizard opens |
+| 2 | **Step 1 - Patient**: Search "Test" → Select "Test Patient" | Patient selected |
+| 3 | **Step 2 - Credits**: System shows "Laser Hair Removal: 10 sessions" | - |
+| 4 | Select "Use 1 session" | Credit allocated |
+| 5 | **Step 3 - Services**: Laser Hair Removal pre-selected | ✅ |
+| 6 | Add "Hydrafacial" (no credits, will pay cash) | Two services |
+| 7 | **Step 4 - Group**: Keep as 2 segments | - |
+| 8 | **Step 5 - Schedule**: | |
+| | Segment 1 (Laser): Tomorrow 10:00, Dr. Ahmed, Room 1 | - |
+| | Segment 2 (Facial): Tomorrow 11:00, Dr. Sara, Room 2 | - |
+| 9 | **Step 6 - Offers**: Select "Summer Sale 25%" | Discount applied |
+| 10 | **Step 7 - Confirm**: Review totals | |
+| | Laser: EGP 0 (1 credit) | |
+| | Hydrafacial: EGP 1,500 - 25% = EGP 1,125 | |
+| 11 | Click **"Confirm Booking"** | Appointment created |
 
----
-
-#### 3.5 Transition: Completed → Billed
-
-1. Go to **Billing** → **Pending** tab
-2. Find completed appointment
-3. Click **Create Invoice**
-4. Review invoice:
-   - Services listed correctly
-   - Credits applied if any
-   - Subtotal, discount, tax, total correct
-5. Add Payment → Click **Generate Invoice**
-6. **Verify**:
-   - Status changes to "Billed" (Gray badge)
-   - Appointment moves to Billing "Completed" tab
-   - Transaction appears in patient history
+**Verify**: Appointment appears in calendar with **Scheduled** (Blue) status.
 
 ---
 
-#### 3.6 Test No-Show → Reschedule
+#### 3.2 Check-In Patient
 
-1. Create new scheduled appointment
-2. On appointment card, click **No-Show** icon (user-slash)
-3. Confirmation dialog appears: "Mark as No-Show?"
-4. Click **Confirm**
-5. Dialog asks: "Would you like to reschedule?"
-6. Click **Yes, Reschedule**
-7. Reschedule Modal opens:
-   - **Verify**: Patient name and services pre-filled
-   - Select new date
-   - Select available time slot
-   - Confirm doctor and room
-8. Click **Confirm Reschedule**
-9. **Verify**:
-   - Original appointment shows "No-Show" (Orange badge)
-   - New appointment created with "Scheduled" status
-   - Notes show "Rescheduled from no-show"
+| Step | Action | Expected Result |
+|------|--------|-----------------|
+| 1 | Go to **Appointments** | Find appointment |
+| 2 | Click **"Check In"** button on appointment card | - |
+| 3 | Status changes | **Checked-In** (Amber) |
+
+**Verify**: Appointment moves to "Checked-In" status, visible in Sessions waiting queue.
+
+---
+
+#### 3.3 Start Session
+
+| Step | Action | Expected Result |
+|------|--------|-----------------|
+| 1 | Go to **Sessions** module | - |
+| 2 | Find patient in **Waiting Queue** | Shows "Test Patient" |
+| 3 | Click **"Start Session"** | - |
+| 4 | Status changes | **In Progress** (Purple) |
+
+**Verify**: Session timer starts, session card appears in Active Sessions.
+
+---
+
+#### 3.4 End Session with Full Tracking
+
+| Step | Action | Expected Result |
+|------|--------|-----------------|
+| 1 | Click **"End Session"** on session card | End Session Modal opens |
+| 2 | **Device Usage**: | |
+| | Device = Candela GentleMax | - |
+| | Counter Start = 45,000 | - |
+| | Counter End = 45,500 | 500 pulses used |
+| 3 | **Consumables**: | |
+| | Add "Cooling Gel" = 1 unit | - |
+| | Add "Disposable Cap" = 1 pc | - |
+| 4 | **Credits**: Confirm 1 session used | Pre-filled |
+| 5 | **Extra Charges**: None | - |
+| 6 | **Notes**: "Full legs, patient tolerated well" | - |
+| 7 | Click **"Complete Session"** | Success |
+
+**Verify**:
+- Status changes to **Completed** (Green)
+- Device counter updated to 45,500
+- Inventory reduced: Cooling Gel -1, Disposable Cap -1
+- Patient wallet: 9 Laser sessions remaining
+
+---
+
+#### 3.5 Create Invoice & Complete Billing
+
+| Step | Action | Expected Result |
+|------|--------|-----------------|
+| 1 | Go to **Billing** → **Pending** tab | Completed appointment listed |
+| 2 | Click **"Create Invoice"** | Invoice modal opens |
+| 3 | Review Items: | |
+| | Laser Hair Removal: EGP 0 (credit) | ✅ |
+| | Hydrafacial: EGP 1,500 | ✅ |
+| 4 | Discount (25%): -EGP 375 (on Hydrafacial only) | ✅ |
+| 5 | Total Due: EGP 1,125 | ✅ |
+| 6 | **Payment**: Add Wallet = EGP 500 | From top-up |
+| 7 | Add Cash = EGP 625 | Balance |
+| 8 | Click **"Generate Invoice"** | Success |
+
+**Verify**:
+- Status changes to **Billed** (Gray)
+- Patient wallet: EGP 0 (500 used)
+- Transaction history shows invoice payment
+
+---
+
+#### 3.6 Test No-Show with Reschedule
+
+| Step | Action | Expected Result |
+|------|--------|-----------------|
+| 1 | Book a new appointment for Test Patient | Scheduled |
+| 2 | On appointment card, click **No-Show** icon | Confirmation dialog |
+| 3 | Click **"Yes, Reschedule"** | Reschedule modal opens |
+| 4 | Select new date/time | Available slots shown |
+| 5 | Select doctor/room | - |
+| 6 | Click **"Confirm Reschedule"** | - |
+
+**Verify**:
+- Original appointment: **No-Show** (Orange) status
+- New appointment created: **Scheduled** (Blue)
+- Notes include "Rescheduled from no-show"
 
 ---
 
 #### 3.7 Test Cancellation
 
-1. Create new scheduled appointment
-2. Click **Cancel** (X) icon
-3. Confirm cancellation
-4. **Verify**: Status = "Cancelled" (Red badge)
+| Step | Action | Expected Result |
+|------|--------|-----------------|
+| 1 | Book a new appointment | - |
+| 2 | Click **Cancel (X)** icon on appointment card | Confirmation |
+| 3 | Confirm cancellation | - |
+
+**Verify**: Status changes to **Cancelled** (Red).
 
 ---
 
-### Test Flow 4: Session Management Deep Test
+### Test Flow 4: Session Deep Dive
 
-Tests all session tracking features.
-
-#### Prerequisites
-- Device configured with pulse counter (e.g., "Test Laser - 10,000 pulses")
-- Inventory items (e.g., "Cooling Gel - 50 units")
-- Patient with pulse credits
+Tests all session features including photos, laser settings, and extra charges.
 
 ---
 
-#### 4.1 Start Session with Resources
+#### 4.1 Complete Session with All Features
 
-1. Check-in patient with Laser Hair Removal appointment
-2. Start Session
-3. Note: Device "Test Laser" current counter value (e.g., 10,000)
+| Step | Action | Expected Result |
+|------|--------|-----------------|
+| 1 | Start session for Laser appointment | Session active |
+| 2 | Click session card to open details | Modal opens |
+| 3 | Add clinical notes in-session | Saved |
+| 4 | Click **"End Session"** | End Session Modal |
+| 5 | **Device Usage**: Log 800 pulses | Counter updates |
+| 6 | **Consumables**: Add multiple items | |
+| | Cooling Gel = 2 units | - |
+| | Numbing Cream = 1 unit | - |
+| 7 | **Extra Charges**: Add "Extended treatment" = EGP 200 | Overage |
+| 8 | **Before Photos**: Upload image | Image displays |
+| 9 | **After Photos**: Upload image | Image displays |
+| 10 | **Laser Settings** (if applicable): | |
+| | Wavelength, Fluence, Spot Size, Pulse Duration | Saved |
+| 11 | **Clinical Notes**: "Treatment details..." | - |
+| 12 | Click **"Complete Session"** | Success |
 
----
-
-#### 4.2 Log Device Usage
-
-1. Click **End Session**
-2. In **Device Usage** section:
-   - Select Device: "Test Laser"
-   - Counter Start: 10,000
-   - Counter End: 10,450
-   - **Verify**: Shows "450 pulses used"
-
----
-
-#### 4.3 Log Consumables
-
-1. In **Consumables Used** section:
-   - Click **+ Add Consumable**
-   - Select: "Cooling Gel"
-   - Quantity: 2
-2. Add another:
-   - Select: "Disposable Tip"
-   - Quantity: 1
-
----
-
-#### 4.4 Adjust Credits and Add Overage
-
-1. In **Credits Used** section:
-   - Allocated: 400 pulses
-   - Used: 450 pulses (adjust if needed)
-   - **Verify**: System shows "50 pulse overage"
-2. **Extra Charges** section should auto-calculate:
-   - 50 pulses × EGP 5/pulse = EGP 250
-
----
-
-#### 4.5 Add Clinical Notes
-
-1. In **Notes** field:
-   - Enter: "Full body treatment, patient tolerated well. Settings: 18J, 15mm spot size."
-
----
-
-#### 4.6 Upload Photos (if available)
-
-1. Click **Before Photos** → Upload test image
-2. Click **After Photos** → Upload test image
-
----
-
-#### 4.7 Complete Session
-
-1. Click **Complete Session**
-2. **Verify Post-Completion**:
-   - Device counter updated: 10,450
-   - Inventory reduced: Cooling Gel (48 remaining)
-   - Patient credits: 400 deducted + 50 overage charged
-   - Extra charge: EGP 250 added to pending invoice
+**Verify**:
+- Device counter increased by 800
+- Inventory reduced correctly
+- Extra charge appears in billing
+- Photos saved in patient session history
 
 ---
 
 ### Test Flow 5: Billing Complete Feature Test
 
-Tests all billing features with complex scenario.
-
-#### Scenario Setup
-
-| Item | Detail |
-|------|--------|
-| Patient | Has 2 session credits for "Facial", EGP 300 wallet balance |
-| Appointment | Facial + Consultation + Laser (3 services) |
-| Applicable Offers | "Summer Sale 25%" |
-| Expected | Facial = credit, Consultation = cash, Laser = partial wallet + card |
+Tests all billing features including credits, offers, and split payments.
 
 ---
 
-#### 5.1 Create Multi-Service Invoice
+#### 5.1 Multi-Service Invoice with Mixed Payment
 
-1. Complete appointment with 3 services:
-   - Facial Treatment (EGP 1,500)
-   - Consultation (EGP 500)
-   - Laser HR (EGP 2,000)
-2. Go to **Billing** → **Create Invoice**
+Assuming completed appointment with:
+- Laser Hair Removal (has credit)
+- Hydrafacial (no credit)
+- Extra charge from session (EGP 200)
 
----
+| Step | Action | Expected Result |
+|------|--------|-----------------|
+| 1 | **Billing** → **Pending** → Create Invoice | - |
+| 2 | Review Invoice Items: | |
+| | Laser Hair Removal: EGP 0 (1 credit) | - |
+| | Hydrafacial: EGP 1,500 | - |
+| | Extra: Extended Treatment: EGP 200 | - |
+| | Subtotal: EGP 1,700 | - |
+| 3 | **Apply Offer**: Select "Summer Sale 25%" | Discount -EGP 425 |
+| 4 | **Tax** (14%): EGP 178.50 | - |
+| 5 | **Total Due**: EGP 1,453.50 | - |
+| 6 | **Payments**: | |
+| | Card: EGP 1,000 | - |
+| | Wallet: EGP 200 | - |
+| | Cash: EGP 253.50 | - |
+| 7 | Click **"Generate Invoice"** | Success |
 
-#### 5.2 Apply Service Credit
-
-1. In **Invoice Items**, find "Facial Treatment"
-2. Click **Use Credit** button
-3. **Verify**:
-   - Facial shows "Credit Applied" badge
-   - Facial line item becomes EGP 0
-   - Subtotal recalculated
-
----
-
-#### 5.3 Apply Discount Offer
-
-1. In **Available Offers** section:
-   - Select "Summer Sale 25%"
-2. **Verify**:
-   - Discount line shows 25% of remaining billable amount
-   - Only non-credit items discounted
-
----
-
-#### 5.4 Split Payment with Wallet
-
-1. **Payment Section**:
-   - Add Payment 1: **Wallet** - EGP 300
-   - Add Payment 2: **Card** - Remaining amount
-2. **Verify**: Total paid = Grand total
+**Verify**:
+- All payment amounts correct
+- Patient wallet reduced
+- Credits deducted
+- Transaction history complete
 
 ---
 
-#### 5.5 Complete and Verify
+#### 5.2 View Billing History
 
-1. Click **Generate Invoice**
-2. Check **Patient Profile** → **Transactions**:
-   - [ ] Wallet payment: -EGP 300
-   - [ ] Card payment: Remaining amount
-   - [ ] Credit usage: 1 Facial session
-3. Check **Wallet**:
-   - [ ] Cash balance: EGP 0
-   - [ ] Facial credits: 1 remaining (had 2, used 1)
+| Step | Action | Expected Result |
+|------|--------|-----------------|
+| 1 | Go to **Billing** → **Completed** tab | All billed appointments |
+| 2 | Use date filter | Filter works |
+| 3 | Filter by patient name | Filter works |
+| 4 | Click on billed appointment | View invoice details |
 
 ---
 
-### Test Data Summary
+### Test Completion Checklist
 
-Use this reference for test data consistency:
-
-| Entity | Test Name | Key Values |
-|--------|-----------|------------|
-| Doctor | Dr. Test Ahmed | Dermatology, Sun-Thu 9:00-17:00 |
-| Room | Test Laser Room | Treatment type, Capacity 1 |
-| Device | Test Laser Pro | Pulse counter, Room: Test Laser Room |
-| Inventory | Cooling Gel | 50 qty, EGP 100 cost |
-| Service | Laser Hair Removal | Pulse-based, EGP 200 + EGP 5/pulse |
-| Service | Hydrafacial | Fixed, EGP 1,500 |
-| Service | Consultation | Fixed, EGP 500 |
-| Patient | Nour Test | +20 100 111 2222, Skin Type 3 |
-
----
-
-### Master Verification Checklist
-
-After completing all test flows:
+Use this checklist to verify all features were tested:
 
 #### Offers
-- [ ] Percentage discount applied correctly
-- [ ] Fixed amount discount applied correctly
-- [ ] Bundle pricing works for multiple services
+- [ ] Percentage Discount created and applied
+- [ ] Fixed Amount Discount with New Patient condition
+- [ ] Bundle Offer triggers on service combination
 - [ ] Buy X Get Y grants correct credits
-- [ ] Package purchase adds credits to wallet
-- [ ] Conditional offers respect patient tags
-- [ ] Offer activate/deactivate toggle works
-- [ ] Offer delete with confirmation works
+- [ ] Package purchase activates credits
+- [ ] Conditional offer respects patient tags
 
 #### Patients
-- [ ] Patient creation with all fields
-- [ ] Patient edit and update
-- [ ] Patient delete with confirmation
-- [ ] Profile tabs all load correctly
-- [ ] Wallet shows cash and credits
-- [ ] Transaction history is complete
-- [ ] Appointment history shows all statuses
+- [ ] Full registration with all medical fields
+- [ ] Patient profile displays correctly
+- [ ] Package purchase flow works
+- [ ] Pending bill appears and can be paid
+- [ ] Split payment works
+- [ ] Credits activated after payment
+- [ ] Wallet top-up works
+- [ ] Transaction history records all activity
 
 #### Appointments
 - [ ] 7-step booking wizard completes
-- [ ] Credit selection step works
-- [ ] Offer application step works
-- [ ] Date/time slot selection works
-- [ ] Doctor/room assignment works
-- [ ] All status transitions work
-- [ ] Reschedule from no-show works
+- [ ] Credit selection works in Step 2
+- [ ] Offer selection works in Step 6
+- [ ] Scheduled → Checked-In transition
+- [ ] Checked-In → In Progress transition
+- [ ] In Progress → Completed transition
+- [ ] Completed → Billed transition
+- [ ] No-Show with reschedule option
 - [ ] Cancellation works
 
 #### Sessions
-- [ ] Start session from checked-in
-- [ ] Timer displays and updates
+- [ ] Session starts from checked-in appointment
+- [ ] Timer displays elapsed time
 - [ ] Device usage logging works
 - [ ] Consumables logging works
-- [ ] Credits tracking works
-- [ ] Extra charges for overage
+- [ ] Extra charges can be added
+- [ ] Before/After photos upload
 - [ ] Clinical notes saved
-- [ ] Session completion updates all resources
+- [ ] Session completes and updates inventory
 
 #### Billing
-- [ ] Invoice items display correctly
-- [ ] Credit application works
-- [ ] Offer application works
-- [ ] Multiple payment methods work
+- [ ] Invoice shows correct line items
+- [ ] Credits applied correctly (EGP 0)
+- [ ] Offers apply discounts
+- [ ] Tax calculated correctly
+- [ ] Split payments work
 - [ ] Wallet payment deducts balance
-- [ ] Invoice generation completes
-- [ ] Status changes to billed
-- [ ] All transactions recorded
+- [ ] Invoice generates successfully
+- [ ] History filter works
+
+---
+
+### Test Data Cleanup
+
+After testing, you may want to:
+1. Delete test patient
+2. Deactivate test offers
+3. Reset device counters (if test device)
+4. Restore inventory quantities
 
 ---
 
@@ -2239,4 +2187,3 @@ After completing all test flows:
 ---
 
 *© 2026 Merve Aesthetics Management System. All rights reserved.*
-
