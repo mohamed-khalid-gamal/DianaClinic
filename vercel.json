@@ -3,6 +3,10 @@
     {
       "source": "/api/:path*",
       "destination": "http://merve.runasp.net/api/:path*"
+    },
+    {
+      "source": "/uploads/:path*",
+      "destination": "http://merve.runasp.net/uploads/:path*"
     }
   ]
 }

@@ -1,4 +1,5 @@
 import { Component, OnInit, OnDestroy, ChangeDetectorRef, ChangeDetectionStrategy } from '@angular/core';
+import { environment } from '../../../environments/environment';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
@@ -385,7 +386,7 @@ export class Sessions implements OnInit, OnDestroy {
       }
 
       const data = await response.json();
-      const photoUrl = data.url.startsWith('http') ? data.url : `/api${data.url}`;
+      const photoUrl = data.url.startsWith('http') ? data.url : `${environment.imageBaseUrl}${data.url.replace('/uploads', '')}`;
 
       if (photoType === 'before') {
         this.beforePhotos.push(photoUrl);

@@ -3,5 +3,10 @@
     "target": "http://merve.runasp.net",
     "secure": false,
     "changeOrigin": true
+  },
+  "/uploads": {
+    "target": "http://merve.runasp.net",
+    "secure": false,
+    "changeOrigin": true
   }
 }
