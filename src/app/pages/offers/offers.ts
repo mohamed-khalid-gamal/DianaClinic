@@ -55,7 +55,109 @@ export class Offers implements OnInit {
     });
   }
 
-  // ... (filteredOffers, modal methods, etc.)
+  get filteredOffers(): Offer[] {
+    const now = new Date();
+    if (this.activeFilter === 'active') {
+      return this.offers.filter(o => o.isActive && (!o.validUntil || new Date(o.validUntil) >= now));
+    }
+    if (this.activeFilter === 'expired') {
+      return this.offers.filter(o => !o.isActive || (o.validUntil && new Date(o.validUntil) < now));
+    }
+    return this.offers;
+  }
+
+  openAddModal() {
+    this.isEditMode = false;
+    this.currentStep = 1;
+    this.offerForm = this.getEmptyForm();
+    this.showModal = true;
+  }
+
+  openEditModal(offer: Offer) {
+    this.isEditMode = true;
+    this.currentStep = 1;
+    this.offerForm = JSON.parse(JSON.stringify(offer));
+    this.showModal = true;
+  }
+
+  closeModal() {
+    this.showModal = false;
+  }
+
+  saveOffer(form?: NgForm) {
+    if (form && form.invalid) {
+      form.form.markAllAsTouched();
+      this.alertService.validationError('Please fill all required fields');
+      return;
+    }
+
+    if (!this.offerForm.name) {
+      this.alertService.validationError('Offer Name is required');
+      return;
+    }
+
+    // Default benefits if missing
+    if (!this.offerForm.benefits || this.offerForm.benefits.length === 0) {
+       this.offerForm.benefits = [{
+         id: 'b_' + Date.now(),
+         type: 'percent_off',
+         parameters: { percent: 10 }
+       }];
+    }
+
+    const offerName = this.offerForm.name;
+    if (this.isEditMode && this.offerForm.id) {
+      this.dataService.updateOffer(this.offerForm as Offer).subscribe({
+        next: () => {
+          this.alertService.updated('Offer', offerName);
+          this.loadData();
+          this.closeModal();
+          this.cdr.markForCheck();
+        },
+        error: () => {} // Handled globally
+      });
+    } else {
+      this.dataService.addOffer(this.offerForm as Offer).subscribe({
+        next: () => {
+          this.alertService.created('Offer', offerName);
+          this.loadData();
+          this.closeModal();
+          this.cdr.markForCheck();
+        },
+        error: () => {} // Handled globally
+      });
+    }
+  }
+
+  toggleOfferStatus(offer: Offer, event?: Event) {
+    if(event) event.stopPropagation();
+    offer.isActive = !offer.isActive;
+    this.dataService.updateOffer(offer).subscribe({
+      next: () => {
+        const status = offer.isActive ? 'activated' : 'deactivated';
+        this.alertService.toast(`Offer "${offer.name}" ${status}`, offer.isActive ? 'success' : 'warning');
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        offer.isActive = !offer.isActive;
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  async deleteOffer(offer: Offer) {
+    const confirmed = await this.alertService.confirmDelete(offer.name, 'Offer');
+    if (confirmed) {
+      this.dataService.deleteOffer(offer.id).subscribe({
+        next: () => {
+          this.offers = this.offers.filter(o => o.id !== offer.id);
+          this.alertService.deleted('Offer', offer.name);
+          this.cdr.markForCheck();
+        },
+        error: () => {} // Handled globally
+      });
+    }
+  }
 
   // Helpers
   addServiceToCondition(cond: OfferCondition, event: any) {

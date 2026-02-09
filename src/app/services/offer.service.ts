@@ -240,7 +240,6 @@ export class OfferService {
 
     return true;
   }
-}
 
   private evaluateCartProperty(condition: OfferCondition, cart: CartItem[]): boolean {
       const prop = condition.parameters.attributeName; // 'totalQuantity', 'totalItems', 'distinctCategories'
@@ -310,12 +309,12 @@ export class OfferService {
         const qualifying = targetId
           ? cart.filter(i => i.serviceId === targetId)
           : cart;
-        const totalQty = qualifying.reduce((sum, i) => sum + i.quantity, 0);
+        const totalQty = qualifying.reduce((sum: number, i: CartItem) => sum + i.quantity, 0);
         if (totalQty >= buyQty) {
           const freeItems = Math.floor(totalQty / (buyQty + freeQty)) * freeQty;
           if (freeItems > 0 && qualifying.length > 0) {
             // Use the cheapest qualifying item price for free sessions
-            const cheapest = Math.min(...qualifying.map(i => i.price));
+            const cheapest = Math.min(...qualifying.map((i: CartItem) => i.price));
             discount = freeItems * cheapest;
             description += ` (Buy ${buyQty} Get ${freeQty} Free)`;
           }
