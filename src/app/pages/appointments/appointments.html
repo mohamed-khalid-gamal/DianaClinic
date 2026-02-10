@@ -131,7 +131,7 @@
   [showFooter]="false"
   (closed)="closeBookingModal()">
 
-  <!-- Updated Progress Steps (7 Steps) -->
+  <!-- Updated Progress Steps (5 Steps) -->
   <div class="booking-steps">
     <div class="step" [class.active]="bookingStep >= 1" [class.completed]="bookingStep > 1">
       <span class="step-number">1</span>
@@ -140,31 +140,21 @@
     <div class="step-line" [class.active]="bookingStep > 1"></div>
     <div class="step" [class.active]="bookingStep >= 2" [class.completed]="bookingStep > 2">
       <span class="step-number">2</span>
-      <span class="step-label">Credits</span>
+      <span class="step-label">Services</span>
     </div>
     <div class="step-line" [class.active]="bookingStep > 2"></div>
     <div class="step" [class.active]="bookingStep >= 3" [class.completed]="bookingStep > 3">
       <span class="step-number">3</span>
-      <span class="step-label">Services</span>
+      <span class="step-label">Group</span>
     </div>
     <div class="step-line" [class.active]="bookingStep > 3"></div>
     <div class="step" [class.active]="bookingStep >= 4" [class.completed]="bookingStep > 4">
       <span class="step-number">4</span>
-      <span class="step-label">Group</span>
-    </div>
-    <div class="step-line" [class.active]="bookingStep > 4"></div>
-    <div class="step" [class.active]="bookingStep >= 5" [class.completed]="bookingStep > 5">
-      <span class="step-number">5</span>
       <span class="step-label">Schedule</span>
     </div>
-    <div class="step-line" [class.active]="bookingStep > 5"></div>
-    <div class="step" [class.active]="bookingStep >= 6" [class.completed]="bookingStep > 6">
-      <span class="step-number">6</span>
-      <span class="step-label">Offers</span>
-    </div>
-    <div class="step-line" [class.active]="bookingStep > 6"></div>
-    <div class="step" [class.active]="bookingStep >= 7">
-      <span class="step-number">7</span>
+    <div class="step-line" [class.active]="bookingStep > 4"></div>
+    <div class="step" [class.active]="bookingStep >= 5">
+      <span class="step-number">5</span>
       <span class="step-label">Confirm</span>
     </div>
   </div>
@@ -246,54 +236,11 @@
     </div>
   </div>
 
-  <!-- Step 2: Use Patient Credits -->
+
+
+  <!-- Step 2: Service Selection -->
   <div class="step-content" *ngIf="bookingStep === 2">
-    <h3>Use Patient Credits</h3>
-    <p class="text-muted">Select credits to use from the patient's wallet. Skip if booking without credits.</p>
-
-    <div class="credits-section" *ngIf="patientCredits.length > 0">
-      <div class="credit-card" *ngFor="let credit of patientCredits">
-        <div class="credit-info">
-          <div class="credit-header">
-            <span class="credit-name">{{ credit.serviceName }}</span>
-            <span class="credit-type-badge">{{ credit.unitType | titlecase }}s</span>
-          </div>
-          <div class="credit-available">
-            Available: <strong>{{ credit.remaining }}</strong> / {{ credit.total }}
-          </div>
-          <div class="credit-expiry" *ngIf="credit.expiresAt">
-            Expires: {{ credit.expiresAt | date:'mediumDate' }}
-          </div>
-        </div>
-        <div class="credit-input">
-          <label>Use:</label>
-          <input type="number"
-                 [ngModel]="getCreditSelection(credit.serviceId)?.unitsToUse || 0"
-                 (ngModelChange)="updateCreditSelection(credit.serviceId, $event)"
-                 [max]="credit.remaining"
-                 min="0"
-                 [placeholder]="credit.unitType === 'session' ? '0-' + credit.remaining : '0'">
-          <span class="unit-label">{{ credit.unitType }}(s)</span>
-        </div>
-      </div>
-    </div>
-
-    <div class="empty-credits" *ngIf="patientCredits.length === 0">
-      <i class="fa-solid fa-ticket"></i>
-      <p>This patient has no available credits.</p>
-      <p class="sub">Continue to select services to purchase.</p>
-    </div>
-
-    <div class="credits-summary" *ngIf="hasAnyCreditsSelected()">
-      <i class="fa-solid fa-check-circle"></i>
-      <span>Credits selected will be used for this appointment</span>
-    </div>
-  </div>
-
-  <!-- Step 3: Service Selection -->
-  <div class="step-content" *ngIf="bookingStep === 3">
-    <h3>Select Additional Services</h3>
-    <p class="text-muted" *ngIf="hasAnyCreditsSelected()">Services from credits are already added. Select any additional services to purchase.</p>
+    <h3>Select Services</h3>
     <div class="services-grid">
       <div class="service-card"
            *ngFor="let service of services"
@@ -303,10 +250,7 @@
            <span *ngIf="isServiceSelected(service.id)"><i class="fa-solid fa-check"></i></span>
         </div>
         <div class="service-info">
-          <span class="service-name">
-              {{ service.name }}
-              <i class="fa-solid fa-ticket text-success" *ngIf="getServiceCreditUsage(service.id) > 0" title="Paid with Credits"></i>
-          </span>
+          <span class="service-name">{{ service.name }}</span>
           <span class="service-duration">{{ service.duration }} min</span>
         </div>
         <div class="service-price">
@@ -318,29 +262,26 @@
       <span>{{ booking.allServiceIds.length }} service(s) selected</span>
       <span>Total duration: {{ getTotalDuration() }} min</span>
     </div>
-    <span class="error-text" *ngIf="bookingAttemptedStep3 && booking.allServiceIds.length === 0">Select at least one service</span>
+    <span class="error-text" *ngIf="bookingAttemptedStep2 && booking.allServiceIds.length === 0">Select at least one service</span>
   </div>
 
-  <!-- Step 4: Structure (Grouping) -->
-  <div class="step-content" *ngIf="bookingStep === 4">
+  <!-- Step 3: Structure (Grouping) -->
+  <div class="step-content" *ngIf="bookingStep === 3">
     <div class="section-header">
        <h3>Review & Group Appointments</h3>
        <p class="text-secondary text-sm">Combine compatible services into a single visit, or schedule them separately.</p>
     </div>
 
     <div class="segments-list">
-        <!-- List existing segments -->
         <div class="segment-card" *ngFor="let seg of bookingSegments; let i = index"
              [class.selected]="selectedSegmentIndices.includes(i)"
              [class.merged-bundle]="seg.serviceIds.length > 1">
-
             <div class="segment-selection">
                 <input type="checkbox"
                        [checked]="selectedSegmentIndices.includes(i)"
                        (change)="toggleSegmentSelection(i)"
                        [disabled]="seg.serviceIds.length > 1">
             </div>
-
             <div class="segment-info">
                 <div class="segment-label font-bold">{{ seg.label }}</div>
                 <div class="segment-meta text-sm text-muted">
@@ -348,7 +289,6 @@
                     {{ seg.duration }} mins
                 </div>
             </div>
-
             <div class="segment-actions">
                 <button class="btn btn-outline btn-xs"
                         *ngIf="seg.serviceIds.length > 1"
@@ -358,33 +298,26 @@
             </div>
         </div>
     </div>
-
-    <!-- Grouping Actions -->
     <div class="grouping-toolbar" *ngIf="selectedSegmentIndices.length > 1">
         <button class="btn btn-primary btn-sm w-full"
                 [disabled]="!canMergeSelected()"
                 (click)="mergeSelectedSegments()">
             Merge Selected ({{ selectedSegmentIndices.length }})
         </button>
-        <p class="text-xs text-error mt-1" *ngIf="!canMergeSelected()">
-            Selected services require different doctors or rooms and cannot be merged.
-        </p>
     </div>
   </div>
 
-  <!-- Step 5: Schedule -->
-  <div class="step-content" *ngIf="bookingStep === 5">
+  <!-- Step 4: Schedule -->
+  <div class="step-content" *ngIf="bookingStep === 4">
     <div class="section-header">
        <div class="header-row" style="display: flex; justify-content: space-between; align-items: center;">
           <h3>Choose Date & Time</h3>
        </div>
-
        <p *ngIf="bookingSegments.length > 1" class="text-primary font-bold">
           Step {{ currentSegmentIndex + 1 }} of {{ bookingSegments.length }}: Scheduling {{ getCurrentSegment().label }}
        </p>
     </div>
 
-    <!-- Date Picker -->
     <div class="date-selector mb-6">
         <label class="block text-sm font-medium text-gray-700 mb-2">Date</label>
         <input type="date"
@@ -395,7 +328,6 @@
     </div>
 
     <div class="schedule-wizard">
-      <!-- Slots Grid -->
       <div class="slots-container">
         <div class="slots-grid" *ngIf="availableSlots.length > 0; else noSlots">
           <div class="slot-card"
@@ -410,25 +342,21 @@
             </div>
           </div>
         </div>
-
         <ng-template #noSlots>
           <div class="empty-state">
             <i class="fa-solid fa-calendar-xmark"></i>
-            <p>No available slots found for this date with the required resources.</p>
-            <p class="sub-text">Try selecting a different date.</p>
+            <p>No available slots found for this date.</p>
           </div>
         </ng-template>
       </div>
 
-      <!-- Resource Refinement -->
       <div class="resource-refinement" *ngIf="getCurrentSegment() && getCurrentSegment()!.time && (selectedSlotDoctors.length > 1 || selectedSlotRooms.length > 1)">
           <div class="form-group" *ngIf="selectedSlotDoctors.length > 1">
-             <label>Select Doctor for {{ getCurrentSegment().time }}</label>
+             <label>Select Doctor</label>
              <select [(ngModel)]="getCurrentSegment().doctorId">
                 <option *ngFor="let doc of selectedSlotDoctors" [value]="doc.id">Dr. {{ doc.name }}</option>
              </select>
           </div>
-
           <div class="form-group" *ngIf="selectedSlotRooms.length > 1">
              <label>Select Room</label>
              <select [(ngModel)]="getCurrentSegment().roomId">
@@ -442,80 +370,90 @@
         <textarea [(ngModel)]="booking.notes" rows="2" placeholder="Optional notes..."></textarea>
       </div>
     </div>
-    <span class="error-text" *ngIf="bookingAttemptedStep5 && !isCurrentSegmentComplete()">Select date, time, doctor, and room</span>
+    <span class="error-text" *ngIf="bookingAttemptedStep4 && !isCurrentSegmentComplete()">Select date, time, doctor, and room</span>
   </div>
 
-  <!-- Step 6: Offers -->
-  <div class="step-content" *ngIf="bookingStep === 6">
-    <h3>Exclusive Offers</h3>
-    <p class="text-muted" *ngIf="applicableOffers.length > 0">Select an applicable offer to apply to this booking.</p>
+  <!-- Step 5: Confirm & Pay -->
+  <div class="step-content" *ngIf="bookingStep === 5">
+    <h3>Review & Payment</h3>
 
-    <div class="offers-grid" *ngIf="applicableOffers.length > 0; else noOffers">
-      <!-- Offers List -->
-      <div class="offer-card"
-           *ngFor="let applied of applicableOffers"
-           [class.selected]="booking.offerId === applied.offer.id"
-           (click)="toggleOffer(applied.offer.id)">
-         <div class="offer-icon">
-            <i class="fa-solid fa-tags"></i>
-         </div>
-         <div class="offer-details">
-            <span class="offer-name">{{ applied.offer.name }}</span>
-            <span class="offer-desc">{{ applied.description }}</span>
-         </div>
-         <div class="offer-metrics">
-            <span class="discount-amount">-{{ applied.discountAmount | number }} EGP</span>
-         </div>
-         <div class="selection-indicator">
-            <i class="fa-solid fa-circle-check" *ngIf="booking.offerId === applied.offer.id"></i>
-            <i class="fa-regular fa-circle" *ngIf="booking.offerId !== applied.offer.id"></i>
-         </div>
-      </div>
-    </div>
+    <div class="review-grid">
+       <!-- Invoice Items -->
+       <div class="invoice-summary">
+          <h4>Booking Summary</h4>
+          <div class="summary-item" *ngFor="let item of bookingSummary.items">
+             <div class="item-name">
+                <span class="font-bold">{{ item.serviceName }}</span>
+                <span class="text-xs text-muted block" *ngIf="item.creditAvailable > 0">
+                   {{ item.creditAvailable }} units available
+                </span>
+             </div>
+             <div class="item-actions">
+                <div class="credit-toggle" *ngIf="item.creditAvailable > 0">
+                   <label class="switch">
+                      <input type="checkbox"
+                             [checked]="item.isCreditCovered"
+                             (change)="toggleCreditUsage(item.serviceId)">
+                      <span class="slider round"></span>
+                   </label>
+                   <span class="text-sm ml-2" [class.text-success]="item.isCreditCovered">Use Credit</span>
+                </div>
+             </div>
+             <div class="item-price">
+                 <span *ngIf="!item.isCreditCovered">{{ item.price | number }} EGP</span>
+                 <span *ngIf="item.isCreditCovered" class="text-success font-bold">0 EGP (Credit)</span>
+             </div>
+          </div>
 
-    <ng-template #noOffers>
-      <div class="empty-state">
-         <div class="icon-circle">
-            <i class="fa-solid fa-tag"></i>
-         </div>
-         <h3>No Offers Available</h3>
-         <p>There are no applicable offers for the selected services or patient.</p>
-      </div>
-    </ng-template>
-  </div>
+          <!-- Offers Section inside Invoice -->
+          <div class="offers-section mt-4" *ngIf="bookingSummary.items.length > 0">
+             <div class="offers-trigger" (click)="bookingStep = 5"> <!-- TODO: Toggle Offers Logic/Modal? Or integrated? -->
+                <!-- Simplified: Just show if offers are available or currently applied -->
+                <div *ngIf="applicableOffers.length > 0">
+                   <label class="block mb-2">Available Offers</label>
+                   <select [(ngModel)]="booking.offerId" (change)="calculateBookingSummary()">
+                      <option [ngValue]="undefined">No Offer Selected</option>
+                      <option *ngFor="let app of applicableOffers" [value]="app.offer.id">
+                         {{ app.offer.name }} (-{{ app.discountAmount }} EGP)
+                      </option>
+                   </select>
+                </div>
+             </div>
+          </div>
 
-  <!-- Step 7: Confirmation -->
-  <div class="step-content" *ngIf="bookingStep === 7">
-    <h3>Confirm Booking</h3>
+          <div class="invoice-divider"></div>
+          
+          <div class="invoice-totals">
+             <div class="total-row">
+                <span>Subtotal</span>
+                <span>{{ bookingSummary.totalAmount | number }} EGP</span>
+             </div>
+             <div class="total-row" *ngIf="bookingSummary.discountAmount > 0">
+                <span>Discount</span>
+                <span class="text-success">-{{ bookingSummary.discountAmount | number }} EGP</span>
+             </div>
+              <div class="total-row final">
+                <span>Total to Pay</span>
+                <span>{{ bookingSummary.finalAmount | number }} EGP</span>
+             </div>
+          </div>
+       </div>
 
-    <div class="confirmation-card">
-      <div class="confirm-section">
-        <h4>Patient</h4>
-        <p *ngIf="!booking.isNewPatient">
-          {{ getSelectedPatient()?.firstName }} {{ getSelectedPatient()?.lastName }}
-        </p>
-        <p *ngIf="booking.isNewPatient">
-          {{ booking.newPatient.firstName }} {{ booking.newPatient.lastName }} (New)
-        </p>
-      </div>
-
-      <div class="confirm-section" *ngIf="booking.offerId">
-        <h4>Applied Offer</h4>
-        <p class="text-success">{{ getSelectedOfferName() }}</p>
-      </div>
-
-      <div class="confirm-section">
-        <h4>Schedule Summary</h4>
-        <div class="segment-summary" *ngFor="let seg of bookingSegments; let i = index">
-           <div class="segment-header" *ngIf="bookingSegments.length > 1">
-              <strong>Appointment {{ i + 1 }}:</strong> {{ seg.label }}
-           </div>
-           <p><i class="fa-regular fa-calendar"></i> {{ seg.date | date:'mediumDate' }} at {{ seg.time }}</p>
-           <p><i class="fa-solid fa-user-doctor"></i> {{ getDoctorName(seg.doctorId) }}</p>
-           <p><i class="fa-solid fa-door-open"></i> {{ getRoomName(seg.roomId) }}</p>
-           <div class="divider" *ngIf="i < bookingSegments.length - 1"></div>
-        </div>
-      </div>
+       <!-- Schedule Summary (Compact) -->
+       <div class="schedule-summary-compact">
+          <h4>Schedule</h4>
+          <div class="compact-segment" *ngFor="let seg of bookingSegments">
+             <div class="compact-date">
+                <span class="day">{{ seg.date | date:'d' }}</span>
+                <span class="month">{{ seg.date | date:'MMM' }}</span>
+             </div>
+             <div class="compact-details">
+                <span class="time">{{ seg.time }}</span>
+                <span class="doc">{{ getDoctorName(seg.doctorId) }}</span>
+                <span class="room text-muted text-xs">{{ getRoomName(seg.roomId) }}</span>
+             </div>
+          </div>
+       </div>
     </div>
   </div>
 
@@ -527,17 +465,14 @@
     <div class="spacer"></div>
     <button class="btn btn-outline" (click)="closeBookingModal()">Cancel</button>
     <button class="btn btn-primary"
-            *ngIf="bookingStep < 7"
+            *ngIf="bookingStep < 5"
             (click)="nextStep()">
-      <span *ngIf="bookingStep === 2 && !hasAnyCreditsSelected()">Skip Credits</span>
-      <span *ngIf="bookingStep === 2 && hasAnyCreditsSelected()">Use Credits</span>
-      <span *ngIf="bookingStep === 5 && currentSegmentIndex < bookingSegments.length - 1">Next Appointment</span>
-      <span *ngIf="bookingStep === 6">Skip / Next</span>
-      <span *ngIf="bookingStep !== 2 && bookingStep !== 6 && !(bookingStep === 5 && currentSegmentIndex < bookingSegments.length - 1)">Next</span>
+      <span *ngIf="bookingStep === 4 && currentSegmentIndex < bookingSegments.length - 1">Next Appointment</span>
+      <span *ngIf="!(bookingStep === 4 && currentSegmentIndex < bookingSegments.length - 1)">Next</span>
       <i class="fa-solid fa-arrow-right"></i>
     </button>
     <button class="btn btn-primary"
-            *ngIf="bookingStep === 7"
+            *ngIf="bookingStep === 5"
             (click)="confirmBooking()">
       Confirm Booking
     </button>

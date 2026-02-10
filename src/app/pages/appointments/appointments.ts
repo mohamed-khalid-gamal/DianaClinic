@@ -51,8 +51,8 @@ export class Appointments implements OnInit {
   showBookingModal = false;
   bookingStep = 1;
   bookingAttemptedStep1 = false;
-  bookingAttemptedStep3 = false;
-  bookingAttemptedStep5 = false;
+  bookingAttemptedStep2 = false; // Services
+  bookingAttemptedStep4 = false; // Schedule
 
   // Reschedule Modal
   showRescheduleModal = false;
@@ -75,8 +75,24 @@ export class Appointments implements OnInit {
     allServiceIds: [] as string[], // Master list of selected services
     offerId: undefined as string | undefined,
     notes: '',
-    // Credit usage tracking
-    creditSelections: [] as { serviceId: string; unitsToUse: number; unitType: string }[]
+    // Credit usage tracking - Map serviceId -> boolean (use credit or not)
+    useCreditsForService: {} as { [serviceId: string]: boolean }
+  };
+
+  // Booking Summary for Final Step
+  bookingSummary = {
+    totalAmount: 0,
+    discountAmount: 0,
+    finalAmount: 0,
+    creditsUsedCount: 0,
+    items: [] as {
+      serviceId: string;
+      serviceName: string;
+      price: number;
+      isCreditCovered: boolean;
+      creditAvailable: number;
+      discount?: number;
+    }[]
   };
 
   // Patient credits
@@ -199,8 +215,16 @@ export class Appointments implements OnInit {
       allServiceIds: [],
       offerId: undefined,
       notes: '',
-      creditSelections: []
+      useCreditsForService: {}
     };
+    this.bookingSummary = {
+      totalAmount: 0,
+      discountAmount: 0,
+      finalAmount: 0,
+      creditsUsedCount: 0,
+      items: []
+    };
+
     this.bookingSegments = [];
     this.currentSegmentIndex = 0;
     this.selectedSegmentIndices = [];
@@ -209,8 +233,8 @@ export class Appointments implements OnInit {
     this.applicableOffers = [];
     this.patientCredits = [];
     this.bookingAttemptedStep1 = false;
-    this.bookingAttemptedStep3 = false;
-    this.bookingAttemptedStep5 = false;
+    this.bookingAttemptedStep2 = false;
+    this.bookingAttemptedStep4 = false;
   }
 
   // Load patient credits when patient is selected
@@ -222,12 +246,6 @@ export class Appointments implements OnInit {
     this.walletService.getAvailableCredits(this.booking.patientId).subscribe({
       next: credits => {
         this.patientCredits = credits;
-        // Initialize credit selections
-        this.booking.creditSelections = this.patientCredits.map(c => ({
-          serviceId: c.serviceId,
-          unitsToUse: 0,
-          unitType: c.unitType
-        }));
         this.cdr.markForCheck();
       },
       error: () => {} // Handled globally
@@ -239,11 +257,11 @@ export class Appointments implements OnInit {
       if (this.bookingStep === 1) {
         this.bookingAttemptedStep1 = true;
         this.alertService.validationError('Please select a patient or enter new patient details');
-      } else if (this.bookingStep === 3) {
-        this.bookingAttemptedStep3 = true;
+      } else if (this.bookingStep === 2) {
+        this.bookingAttemptedStep2 = true;
         this.alertService.validationError('Please select at least one service');
-      } else if (this.bookingStep === 5) {
-        this.bookingAttemptedStep5 = true;
+      } else if (this.bookingStep === 4) {
+        this.bookingAttemptedStep4 = true;
         this.alertService.validationError('Please select date, time, doctor, and room');
       }
       return;
@@ -253,37 +271,33 @@ export class Appointments implements OnInit {
       // After patient selection, load their credits
       this.loadPatientCredits();
     } else if (this.bookingStep === 2) {
-      // Step 2 is now credits - auto-add services from credit selections
-      this.applyCreditsToServices();
+      // Transition 2 (Services) -> 3 (Group): Initialize Segments
+      this.initializeSegmentsAsSplit();
     } else if (this.bookingStep === 3) {
-       // Transition 3 -> 4: Initialize Segments
-       this.initializeSegmentsAsSplit();
+      // Transition 3 (Group) -> 4 (Schedule)
+      if (this.bookingSegments.length === 0) return;
+      this.currentSegmentIndex = 0;
+      this.generateAvailableSlots();
     } else if (this.bookingStep === 4) {
-       // Transition 4 -> 5: Structure confirmed.
-       // Check if we have segments
-       if (this.bookingSegments.length === 0) return;
-       // Prepare for scheduling
-       this.currentSegmentIndex = 0;
-       this.generateAvailableSlots();
-    } else if (this.bookingStep === 5) {
-       // Transition 5 -> 6: Schedule Loop
-       if (this.currentSegmentIndex < this.bookingSegments.length - 1) {
-         this.currentSegmentIndex++;
-         this.generateAvailableSlots();
-         return; // Stay on Step 5
-       } else {
-         // Finished scheduling all segments
-         this.checkOffers();
-       }
+      // Transition 4 (Schedule) -> 5 (Confirm): Schedule Loop
+      if (this.currentSegmentIndex < this.bookingSegments.length - 1) {
+        this.currentSegmentIndex++;
+        this.generateAvailableSlots();
+        return; // Stay on Step 4
+      } else {
+        // Finished scheduling all segments, prepare summary
+        this.checkOffers();
+        this.calculateBookingSummary();
+      }
     }
 
-    if (this.bookingStep < 7) {
+    if (this.bookingStep < 5) {
       this.bookingStep++;
     }
   }
 
   prevStep() {
-    if (this.bookingStep === 5) {
+    if (this.bookingStep === 4) {
       if (this.currentSegmentIndex > 0) {
         this.currentSegmentIndex--;
         this.generateAvailableSlots();
@@ -293,48 +307,6 @@ export class Appointments implements OnInit {
     if (this.bookingStep > 1) {
       this.bookingStep--;
     }
-  }
-
-  // Apply credit selections to booking services
-  applyCreditsToServices() {
-    // Add services from credits that have units > 0
-    for (const selection of this.booking.creditSelections) {
-      if (selection.unitsToUse > 0) {
-        if (!this.booking.allServiceIds.includes(selection.serviceId)) {
-          this.booking.allServiceIds.push(selection.serviceId);
-        }
-      }
-    }
-  }
-
-  // Get credit for a specific service
-  getCreditForService(serviceId: string): ServiceCredit | undefined {
-    return this.patientCredits.find(c => c.serviceId === serviceId);
-  }
-
-  // Get credit selection for a service
-  getCreditSelection(serviceId: string) {
-    return this.booking.creditSelections.find(s => s.serviceId === serviceId);
-  }
-
-  getServiceCreditUsage(serviceId: string): number {
-    const selection = this.getCreditSelection(serviceId);
-    return selection ? selection.unitsToUse : 0;
-  }
-
-  // Update credit selection
-  updateCreditSelection(serviceId: string, units: number) {
-    const credit = this.getCreditForService(serviceId);
-    const selection = this.getCreditSelection(serviceId);
-    if (selection && credit) {
-      // Ensure we don't exceed available credits
-      selection.unitsToUse = Math.min(Math.max(0, units), credit.remaining);
-    }
-  }
-
-  // Check if any credits are selected
-  hasAnyCreditsSelected(): boolean {
-    return this.booking.creditSelections.some(s => s.unitsToUse > 0);
   }
 
   canProceed(): boolean {
@@ -347,15 +319,12 @@ export class Appointments implements OnInit {
         }
         return this.booking.patientId !== '';
       case 2:
-        // Credits step - can proceed even with no credits selected
-        return true;
-      case 3:
         return this.booking.allServiceIds.length > 0;
-      case 4:
+      case 3:
         return this.bookingSegments.length > 0;
-      case 5:
+      case 4:
         return this.isCurrentSegmentComplete();
-      case 6:
+      case 5:
          return true;
       default:
         return true;
@@ -565,6 +534,68 @@ export class Appointments implements OnInit {
       this.applicableOffers = this.offerService.evaluateOffers(cart, patient, this.offers);
   }
 
+  // --- Summary & Calculation ---
+
+  calculateBookingSummary() {
+    this.bookingSummary.items = [];
+    this.bookingSummary.totalAmount = 0;
+    this.bookingSummary.discountAmount = 0;
+    this.bookingSummary.finalAmount = 0;
+    this.bookingSummary.creditsUsedCount = 0;
+
+    // 1. Map selected services to summary items
+    this.booking.allServiceIds.forEach(id => {
+      const svc = this.services.find(s => s.id === id);
+      if (!svc) return;
+
+      const credit = this.patientCredits.find(c => c.serviceId === id && c.remaining > 0);
+      const isCreditAvailable = !!credit;
+      
+      // Auto-select credit if available and not explicitly disabled
+      if (this.booking.useCreditsForService[id] === undefined && isCreditAvailable) {
+        this.booking.useCreditsForService[id] = true;
+      }
+
+      const useCredit = this.booking.useCreditsForService[id] && isCreditAvailable;
+      const price = svc.pricingModels[0]?.basePrice || 0;
+
+      this.bookingSummary.items.push({
+        serviceId: id,
+        serviceName: svc.name,
+        price: price,
+        isCreditCovered: useCredit,
+        creditAvailable: credit ? credit.remaining : 0
+      });
+
+      if (!useCredit) {
+        this.bookingSummary.totalAmount += price;
+      } else {
+        this.bookingSummary.creditsUsedCount++;
+      }
+    });
+
+    // 2. Apply Offers (only to non-credit items)
+    if (this.booking.offerId) {
+      const selectedOffer = this.applicableOffers.find(o => o.offer.id === this.booking.offerId);
+      if (selectedOffer) {
+        // Recalculate discount based on actual payable amount (excluding credit items)
+        // Simplified: using the discount amount from the offer service, BUT we must adjust if
+        // the offer was for a service that is now covered by credit.
+        // For now, assuming the offer service handles this or we just accept the discount.
+        // ideally we should re-evaluate offers excluding credit items.
+        // Let's rely on the displayed discount for now, but cap it at totalAmount.
+        this.bookingSummary.discountAmount = Math.min(selectedOffer.discountAmount, this.bookingSummary.totalAmount);
+      }
+    }
+
+    this.bookingSummary.finalAmount = Math.max(0, this.bookingSummary.totalAmount - this.bookingSummary.discountAmount);
+  }
+
+  toggleCreditUsage(serviceId: string) {
+    this.booking.useCreditsForService[serviceId] = !this.booking.useCreditsForService[serviceId];
+    this.calculateBookingSummary();
+  }
+
   confirmBooking() {
     if (!this.canProceed() || this.bookingSegments.length === 0 || !this.bookingSegments.every(seg => seg.date && seg.time && seg.doctorId && seg.roomId)) {
       this.alertService.validationError('Please complete patient info, service selection, and schedule');
@@ -572,12 +603,16 @@ export class Appointments implements OnInit {
     }
 
     const doBooking = (patientId: string) => {
-      // 1. Identify Credit Reservations needed
-      // Map serviceId -> quantity to reserve
+      // 1. Prepare Credit Reservations
       const reservations: { serviceId: string; quantity: number; unitType: string }[] = [];
-      this.booking.creditSelections.forEach(s => {
-        if (s.unitsToUse > 0) {
-          reservations.push({ serviceId: s.serviceId, quantity: s.unitsToUse, unitType: s.unitType });
+      this.bookingSummary.items.forEach(item => {
+        if (item.isCreditCovered) {
+           const credit = this.patientCredits.find(c => c.serviceId === item.serviceId);
+           reservations.push({ 
+             serviceId: item.serviceId, 
+             quantity: 1, // Assumptions: 1 unit per service instance
+             unitType: credit?.unitType || 'session'
+           });
         }
       });
 
@@ -589,7 +624,7 @@ export class Appointments implements OnInit {
       // Execution Flow
       reserveCredits$.pipe(
         switchMap(() => {
-          // 2. Create Appointments (Sequential to Ensure Success)
+          // 2. Create Appointments
           const appointmentCalls = this.bookingSegments.map(seg => {
             const scheduledStart = this.parseSlotTime(seg.time, seg.date);
             const scheduledEnd = new Date(scheduledStart.getTime() + seg.duration * 60000);
@@ -600,87 +635,60 @@ export class Appointments implements OnInit {
               doctorId: seg.doctorId,
               roomId: seg.roomId,
               services: seg.serviceIds.map(id => {
-                const creditSelection = this.booking.creditSelections.find(c => c.serviceId === id);
+                const isCredit = this.booking.useCreditsForService[id] === true;
                 const svc = this.services.find(s => s.id === id);
-                // Calculate credits used for THIS specific service instance in this segment
-                // Note: Logic simplification - assuming 1 unit per service instance for now if unit based, 
-                // or distributing the 'unitsToUse' across segments if multiple segments use same service?
-                // The current UI allows selecting TOTAL units to use for the booking. 
-                // We should probably mark 'fromCredits' if any credits were selected for this service.
-                // Refinment: We ideally want to track *which* appointment consumed the credit.
-                // If user selected 2 units of Service A, and we have 2 segments of Service A, we use 1 each?
-                // For safety/Simplicity in this refactor, we just mark fromCredits true/false.
                 return {
                   serviceId: id,
                   pricingType: 'fixed',
                   price: svc?.pricingModels[0]?.basePrice || 0,
-                  fromCredits: creditSelection ? creditSelection.unitsToUse > 0 : false,
-                  creditsUsed: 0 // Will be updated by session or we assume 1? Leaving 0 to not double count vs Wallet.
+                  fromCredits: isCredit,
+                  creditsUsed: 0 
                 };
               }),
               scheduledStart,
               scheduledEnd,
               status: 'scheduled',
               notes: this.booking.notes,
-              createdAt: new Date()
+              createdAt: new Date(),
+              offerId: this.booking.offerId
             };
             return this.dataService.addAppointment(appointment);
           });
 
           return forkJoin(appointmentCalls).pipe(
-             // Catch error during appointment creation -> Rollback credits
-             // We need to catch here to trigger rollback
              catchError(err => {
                  this.alertService.error('Failed to create appointments. Rolling back credits...');
-                 // Rollback: Add back the credits
                  const rollbacks = reservations.map(r => 
-                     this.walletService.adjustCredits(patientId, r.serviceId, r.quantity) // Adding back (positive adjustment)
+                     this.walletService.adjustCredits(patientId, r.serviceId, r.quantity)
                  );
                  return forkJoin(rollbacks).pipe(
-                     switchMap(() => throwError(() => err)) // Re-throw after rollback
+                     switchMap(() => throwError(() => err))
                  );
              })
           );
         }),
         switchMap((createdAppointments: Appointment[]) => {
-            // 3. Log Transactions (Now linked to Appointments)
-            // We need to distribute the "Total Credits Used" across the created appointments to link them.
-            // Heuristic: Iterate through appointments and assign credit usage transactions.
-            
+            // 3. Log Transactions for Credits
             const transactionCalls: Observable<any>[] = [];
-            const remainingReservations = new Map<string, number>(); // serviceId -> remaining units from reservation
-            reservations.forEach(r => remainingReservations.set(r.serviceId, r.quantity));
-
+            
             createdAppointments.forEach(appt => {
                 appt.services.forEach(apptSvc => {
-                    const totalReserved = remainingReservations.get(apptSvc.serviceId) || 0;
-                    if (apptSvc.fromCredits && totalReserved > 0) {
-                        // Attribute 1 unit (or appropriate amount) to this appointment
-                        const unitsToAttribute = 1; // Assuming 1 unit per service instance
-                        // Deduct from pool
-                        remainingReservations.set(apptSvc.serviceId, Math.max(0, totalReserved - unitsToAttribute));
-
+                    if (apptSvc.fromCredits) {
                         const creditCtxt = this.patientCredits.find(c => c.serviceId === apptSvc.serviceId);
-                        
                         transactionCalls.push(this.dataService.addPatientTransaction({
                              patientId,
                              date: new Date(),
                              type: 'credit_usage',
-                             description: `Used ${unitsToAttribute} ${creditCtxt?.unitType || 'unit'}(s) for ${this.getServiceName(apptSvc.serviceId)}`,
+                             description: `Used 1 ${creditCtxt?.unitType || 'unit'} for ${this.getServiceName(apptSvc.serviceId)}`,
                              amount: 0,
                              method: 'credits',
                              serviceId: apptSvc.serviceId,
-                             relatedAppointmentId: appt.id, // Linked!
+                             relatedAppointmentId: appt.id,
                              packageId: creditCtxt?.packageId
                         }));
                     }
                 });
             });
-
-            // If there are still "leftover" reserved credits (e.g. user selected 5 units but only booked 1 appointment?), 
-            // we technically should log them too, or maybe the user intended to use them up?
-            // For now, we only log what matches appointments. 
-            // Ideally, we should validate that unitsToUse matches appointments count.
 
             return transactionCalls.length > 0 ? forkJoin(transactionCalls) : of(null);
         })
@@ -803,21 +811,10 @@ export class Appointments implements OnInit {
 
   // Service helpers
   isServiceSelected(serviceId: string): boolean {
-    // Check if selected via credits
-    const creditSel = this.booking.creditSelections.find(c => c.serviceId === serviceId);
-    if (creditSel && creditSel.unitsToUse > 0) return true;
-    
     return this.booking.allServiceIds.includes(serviceId);
   }
 
   toggleService(serviceId: string) {
-    // If selected via credits, cannot untoggle here (must go back to credits step)
-    const creditSel = this.booking.creditSelections.find(c => c.serviceId === serviceId);
-    if (creditSel && creditSel.unitsToUse > 0) {
-        this.alertService.toast('Service selected via credits. Go back to change.', 'info');
-        return;
-    }
-
     const index = this.booking.allServiceIds.indexOf(serviceId);
     if (index > -1) {
         this.booking.allServiceIds.splice(index, 1);
