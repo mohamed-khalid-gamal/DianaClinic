@@ -305,7 +305,7 @@
         <div class="service-info">
           <span class="service-name">
               {{ service.name }}
-              <i class="fa-solid fa-ticket text-success" *ngIf="getCreditSelection(service.id)?.unitsToUse > 0" title="Paid with Credits"></i>
+              <i class="fa-solid fa-ticket text-success" *ngIf="getServiceCreditUsage(service.id) > 0" title="Paid with Credits"></i>
           </span>
           <span class="service-duration">{{ service.duration }} min</span>
         </div>

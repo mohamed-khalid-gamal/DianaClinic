@@ -317,6 +317,11 @@ export class Appointments implements OnInit {
     return this.booking.creditSelections.find(s => s.serviceId === serviceId);
   }
 
+  getServiceCreditUsage(serviceId: string): number {
+    const selection = this.getCreditSelection(serviceId);
+    return selection ? selection.unitsToUse : 0;
+  }
+
   // Update credit selection
   updateCreditSelection(serviceId: string, units: number) {
     const credit = this.getCreditForService(serviceId);
