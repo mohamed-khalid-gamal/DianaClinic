@@ -300,10 +300,13 @@
            [class.selected]="isServiceSelected(service.id)"
            (click)="toggleService(service.id)">
         <div class="service-check">
-          <span *ngIf="isServiceSelected(service.id)"><i class="fa-solid fa-check"></i></span>
+           <span *ngIf="isServiceSelected(service.id)"><i class="fa-solid fa-check"></i></span>
         </div>
         <div class="service-info">
-          <span class="service-name">{{ service.name }}</span>
+          <span class="service-name">
+              {{ service.name }}
+              <i class="fa-solid fa-ticket text-success" *ngIf="getCreditSelection(service.id)?.unitsToUse > 0" title="Paid with Credits"></i>
+          </span>
           <span class="service-duration">{{ service.duration }} min</span>
         </div>
         <div class="service-price">

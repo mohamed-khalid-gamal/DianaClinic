@@ -798,10 +798,21 @@ export class Appointments implements OnInit {
 
   // Service helpers
   isServiceSelected(serviceId: string): boolean {
+    // Check if selected via credits
+    const creditSel = this.booking.creditSelections.find(c => c.serviceId === serviceId);
+    if (creditSel && creditSel.unitsToUse > 0) return true;
+    
     return this.booking.allServiceIds.includes(serviceId);
   }
 
   toggleService(serviceId: string) {
+    // If selected via credits, cannot untoggle here (must go back to credits step)
+    const creditSel = this.booking.creditSelections.find(c => c.serviceId === serviceId);
+    if (creditSel && creditSel.unitsToUse > 0) {
+        this.alertService.toast('Service selected via credits. Go back to change.', 'info');
+        return;
+    }
+
     const index = this.booking.allServiceIds.indexOf(serviceId);
     if (index > -1) {
         this.booking.allServiceIds.splice(index, 1);
