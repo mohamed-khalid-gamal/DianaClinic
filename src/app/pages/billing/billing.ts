@@ -41,6 +41,7 @@ export class Billing implements OnInit {
   offers: Offer[] = [];
   invoices: any[] = [];
 
+  loading = true;
   activeTab: 'pending' | 'completed' = 'pending';
   showInvoiceModal = false;
   selectedAppointment: Appointment | null = null;
@@ -63,7 +64,7 @@ export class Billing implements OnInit {
   availableCredits: ServiceCredit[] = [];
 
   discount = 0;
-  taxRate = 14;
+  taxRate = 0; // Default to 0 as per user preference
 
   // Payment
   payments: PaymentMethod[] = [];
@@ -87,6 +88,7 @@ export class Billing implements OnInit {
   }
 
   loadData() {
+    this.loading = true;
     forkJoin({
       appointments: this.dataService.getAppointments(),
       patients: this.dataService.getPatients(),
@@ -104,9 +106,13 @@ export class Billing implements OnInit {
         this.inventory = inventory;
         this.offers = offers;
         this.invoices = invoices;
+        this.loading = false;
         this.cdr.markForCheck();
       },
-      error: () => {} // Handled globally
+      error: () => {
+        this.loading = false;
+        this.cdr.markForCheck();
+      }
     });
   }
 
@@ -224,22 +230,8 @@ export class Billing implements OnInit {
     this.dataService.getSessionByAppointment(appointment.id).subscribe({
       next: session => {
         if (session) {
-            // 1. Process Consumables
-            if(session.consumablesUsed) {
-                for(const consumable of session.consumablesUsed) {
-                     const item = this.inventory.find(i => i.id === consumable.inventoryItemId);
-                     if(item) {
-                         this.invoiceItems.push({
-                             description: `Consumable: ${item.name}`,
-                             quantity: consumable.quantity,
-                             unitPrice: item.sellingPrice || 0, // Assuming sellingPrice exists, fallback to 0
-                             total: (item.sellingPrice || 0) * consumable.quantity,
-                             serviceId: undefined, // Not a service
-                             isCreditsUsed: false
-                         });
-                     }
-                }
-            }
+            // 1. Process Consumables - SKIPPED as per user request (inventory tracking only)
+            // if(session.consumablesUsed) { ... }
 
             // 2. Process Extra Charges
             if (session.extraCharges) {
@@ -272,7 +264,9 @@ export class Billing implements OnInit {
         }
         this.cdr.markForCheck();
       },
-      error: () => {} // Handled globally
+      error: () => {
+        this.cdr.markForCheck();
+      }
     });
 
     // Load available credits for this patient
@@ -282,7 +276,9 @@ export class Billing implements OnInit {
           this.availableCredits = credits;
           this.cdr.markForCheck();
         },
-        error: () => {} // Handled globally
+        error: () => {
+          this.cdr.markForCheck();
+        }
       });
     }
 
@@ -398,8 +394,14 @@ export class Billing implements OnInit {
   }
 
   payFullAmount() {
-    this.newPayment.amount = this.remainingBalance;
+    this.newPayment.amount = Math.round(this.remainingBalance * 100) / 100;
     this.addPayment();
+  }
+
+  validatePaymentAmount() {
+    if (this.newPayment.amount) {
+      this.newPayment.amount = Math.round(this.newPayment.amount * 100) / 100;
+    }
   }
 
   confirmInvoice() {
@@ -455,9 +457,9 @@ export class Billing implements OnInit {
       const benefit = offer.benefits[0];
 
       if (benefit && benefit.type === 'grant_package') {
-        const serviceId = benefit.parameters.packageServiceId;
-        const sessions = benefit.parameters.packageSessions || 1;
-        const validityDays = benefit.parameters.packageValidityDays || 365;
+        const serviceId = benefit.parameters?.packageServiceId;
+        const sessions = benefit.parameters?.packageSessions || 1;
+        const validityDays = benefit.parameters?.packageValidityDays || 365;
 
         if (serviceId) {
           const service = this.services.find(s => s.id === serviceId);
@@ -491,7 +493,7 @@ export class Billing implements OnInit {
             date: new Date(),
             type: 'credit_purchase',
             description: `Granted package: ${sessions} sessions of ${serviceName}`,
-            amount: benefit.parameters.fixedPrice || 0,
+            amount: benefit.parameters?.fixedPrice || 0,
             method: 'card',
             serviceId: serviceId,
             packageId: offer.id,

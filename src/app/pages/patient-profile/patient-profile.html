@@ -10,7 +10,12 @@
   </div>
 </app-page-header>
 
-<div class="profile-container" *ngIf="patient">
+<div class="page-loading" *ngIf="loading" aria-live="polite">
+  <div class="spinner"></div>
+  <span class="loading-text">Loading patient profile...</span>
+</div>
+
+<div class="profile-container" *ngIf="!loading && patient">
   <div class="profile-header">
     <div class="avatar">
       {{ (patient.firstName || '').charAt(0) }}{{ (patient.lastName || '').charAt(0) }}

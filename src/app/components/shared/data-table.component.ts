@@ -48,8 +48,8 @@ export interface TableColumn {
                     {{ row[col.key] }}
                   </span>
                   <div *ngSwitchCase="'actions'" class="actions">
-                    <button class="action-btn" (click)="onEdit(row, $event)" title="Edit"><i class="fa-solid fa-pen"></i></button>
-                    <button class="action-btn delete" (click)="onDelete(row, $event)" title="Delete"><i class="fa-solid fa-trash"></i></button>
+                    <button class="action-btn" (click)="onEdit(row, $event)" title="Edit" aria-label="Edit row"><i class="fa-solid fa-pen"></i></button>
+                    <button class="action-btn delete" (click)="onDelete(row, $event)" title="Delete" aria-label="Delete row"><i class="fa-solid fa-trash"></i></button>
                   </div>
                   <span *ngSwitchDefault>{{ row[col.key] }}</span>
                 </ng-container>

@@ -31,6 +31,7 @@ export class PatientProfile implements OnInit {
   pendingPurchases: PackagePurchase[] = [];
   patientEvents: CalendarEvent[] = [];
 
+  loading = true;
   activeTab: 'overview' | 'credits' | 'appointments' | 'transactions' | 'calendar' = 'overview';
   calendarView: CalendarView = 'timeGridWeek';
 
@@ -63,6 +64,7 @@ export class PatientProfile implements OnInit {
   }
 
   loadPatient(patientId: string): void {
+    this.loading = true;
     forkJoin({
       patient: this.dataService.getPatient(patientId),
       wallet: this.walletService.getWallet(patientId),
@@ -84,9 +86,13 @@ export class PatientProfile implements OnInit {
         this.offers = offers.filter(o => o.isActive && o.type === 'package');
         this.pendingPurchases = purchases;
         this.patientEvents = events;
+        this.loading = false;
         this.cdr.markForCheck();
       },
-      error: () => {} // Handled globally
+      error: () => {
+        this.loading = false;
+        this.cdr.markForCheck();
+      }
     });
   }
 

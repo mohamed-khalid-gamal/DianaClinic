@@ -12,8 +12,20 @@
 </div>
 
 <div class="patients-container" [class.with-panel]="showDetailPanel" *ngIf="!loading">
+  <!-- Empty state when no patients -->
+  <div class="empty-state" *ngIf="patients.length === 0">
+    <div class="icon-circle">
+      <i class="fa-solid fa-user-group"></i>
+    </div>
+    <h3>No patients yet</h3>
+    <p>Add your first patient to get started.</p>
+    <button class="btn btn-primary" (click)="openAddModal()">
+      <i class="fa-solid fa-plus"></i> Add Patient
+    </button>
+  </div>
+
   <!-- Patients Table -->
-  <div class="table-section">
+  <div class="table-section" *ngIf="patients.length > 0">
     <app-data-table
       [data]="patients"
       [columns]="columns"
@@ -127,13 +139,41 @@
         </div>
       </div>
 
+      <!-- Session Notes -->
+      <div class="info-section">
+        <h4>Session Notes</h4>
+        <div class="notes-list" *ngIf="sessionNotes.length; else noNotes">
+          <div class="note-item" *ngFor="let note of sessionNotes">
+            <div class="note-header">
+              <span class="date">{{ note.date | date:'mediumDate' }}</span>
+            </div>
+            <p class="note-content">{{ note.note }}</p>
+          </div>
+        </div>
+        <ng-template #noNotes>
+          <p class="text-muted">No session notes available.</p>
+        </ng-template>
+      </div>
+
+      <!-- Before & After Gallery -->
       <div class="info-section">
         <h4>Before & After Gallery</h4>
-        <div class="gallery-placeholder">
-          <span class="icon"><i class="fa-solid fa-camera"></i></span>
-          <p>No photos uploaded yet</p>
-          <button class="btn btn-outline">Upload Photos</button>
+        <div class="gallery-grid" *ngIf="galleryPhotos.length; else noPhotos">
+          <div class="photo-item" *ngFor="let photo of galleryPhotos">
+            <img [src]="photo.url" [alt]="photo.type" class="photo-img">
+            <div class="photo-badge" [class.before]="photo.type === 'before'" [class.after]="photo.type === 'after'">
+              {{ photo.type | titlecase }}
+            </div>
+            <span class="photo-date">{{ photo.date | date:'shortDate' }}</span>
+          </div>
         </div>
+        <ng-template #noPhotos>
+          <div class="gallery-placeholder">
+            <span class="icon"><i class="fa-solid fa-camera"></i></span>
+            <p>No photos uploaded yet</p>
+            <button class="btn btn-outline" routerLink="/appointments">Book & Upload</button>
+          </div>
+        </ng-template>
       </div>
 
       <div class="panel-actions">
@@ -149,6 +189,7 @@
 <app-modal
   [isOpen]="showModal"
   [title]="isEditMode ? 'Edit Patient' : 'Add New Patient'"
+  [confirmDisabled]="saving"
   (closed)="closeModal()"
   (confirmed)="savePatient(patientFormRef)">
 

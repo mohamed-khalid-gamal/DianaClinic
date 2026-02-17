@@ -7,9 +7,31 @@ import { forkJoin, Observable, of } from 'rxjs';
 import { PageHeaderComponent, ModalComponent, StatCardComponent } from '../../components/shared';
 import { DataService } from '../../services/data.service';
 import { WalletService } from '../../services/wallet.service';
+import { OfferService, AppliedOffer, CartItem } from '../../services/offer.service';
 import { SweetAlertService } from '../../services/sweet-alert.service';
-import { Appointment, Patient, Doctor, Room, Service, Session, Device, InventoryItem, SessionCreditUsage, SessionExtraCharge } from '../../models';
-import { take, switchMap } from 'rxjs/operators';
+import { Appointment, Patient, Doctor, Room, Service, Session, Device, InventoryItem, ServiceCredit, Offer, SessionCreditUsage, SessionExtraCharge, PricingModel } from '../../models';
+import { switchMap } from 'rxjs/operators';
+
+interface ServiceBillingState {
+  serviceId: string;
+  serviceName: string;
+  pricingModels: PricingModel[];
+  selectedModelType: 'fixed' | 'pulse' | 'area' | 'time';
+
+  // Inputs
+  pulsesUsed: number;
+  timeUsed: number; // minutes
+  selectedAreas: { name: string; price: number; isSelected: boolean }[];
+
+  // Credits
+  availableCredits: number;
+  creditUnitType: string; // 'session', 'pulse', 'area', 'time', 'unit'
+
+  // Calculated
+  creditsToDeduct: number;
+  costToPay: number;
+  overageDescription?: string;
+}
 
 interface ActiveSession {
   appointment: Appointment;
@@ -52,6 +74,7 @@ export class Sessions implements OnInit, OnDestroy {
   // Resource tracking for session end
   showEndSessionModal = false;
   endSessionCredits: { serviceId: string; serviceName: string; allocated: number; actual: number; unitType: string }[] = [];
+  endSessionServiceStates: ServiceBillingState[] = []; // NEW: Track complex billing state per service
   endSessionConsumables: { itemId: string; name: string; quantity: number }[] = [];
   endSessionDeviceUsage: { deviceId: string; name: string; unitsUsed: number }[] = [];
   extraCharges: { description: string; amount: number }[] = [];
@@ -61,9 +84,18 @@ export class Sessions implements OnInit, OnDestroy {
   afterPhotos: string[] = [];
   uploadingPhoto = false;
 
+  // Financial state for End Session
+  endSessionPatientCredits: ServiceCredit[] = [];
+  endSessionUseCreditsForService: { [serviceId: string]: boolean } = {};
+  endSessionAvailableOffers: AppliedOffer[] = [];
+  endSessionSelectedOfferId: string | undefined = undefined;
+  offers: Offer[] = [];
+  loading = true;
+
   constructor(
     private dataService: DataService,
     private walletService: WalletService,
+    private offerService: OfferService,
     private alertService: SweetAlertService,
     private cdr: ChangeDetectorRef
   ) {}
@@ -81,6 +113,7 @@ export class Sessions implements OnInit, OnDestroy {
   }
 
   loadData() {
+    this.loading = true;
     forkJoin({
       appointments: this.dataService.getAppointments(),
       patients: this.dataService.getPatients(),
@@ -88,9 +121,10 @@ export class Sessions implements OnInit, OnDestroy {
       rooms: this.dataService.getRooms(),
       services: this.dataService.getServices(),
       devices: this.dataService.getDevices(),
-      inventory: this.dataService.getInventory()
+      inventory: this.dataService.getInventory(),
+      offers: this.dataService.getOffers()
     }).subscribe({
-      next: ({ appointments, patients, doctors, rooms, services, devices, inventory }) => {
+      next: ({ appointments, patients, doctors, rooms, services, devices, inventory, offers }) => {
         this.appointments = appointments;
         this.patients = patients;
         this.doctors = doctors;
@@ -98,10 +132,15 @@ export class Sessions implements OnInit, OnDestroy {
         this.services = services;
         this.devices = devices;
         this.inventory = inventory;
+        this.offers = offers;
         this.buildActiveSessions();
+        this.loading = false;
         this.cdr.markForCheck();
       },
-      error: () => {} // Handled globally
+      error: () => {
+        this.loading = false;
+        this.cdr.markForCheck();
+      }
     });
   }
 
@@ -150,6 +189,10 @@ export class Sessions implements OnInit, OnDestroy {
 
   getServiceNames(apt: Appointment): string[] {
     return apt.services.map(s => this.services.find(svc => svc.id === s.serviceId)?.name || 'Unknown');
+  }
+
+  getServiceNameById(serviceId: string): string {
+    return this.services.find(s => s.id === serviceId)?.name || 'Unknown';
   }
 
   formatTime(date: Date): string {
@@ -214,25 +257,21 @@ export class Sessions implements OnInit, OnDestroy {
     this.cdr.markForCheck();
   }
 
-  // Open end session modal with resource tracking
+  // Open end session modal with resource tracking + financial logic
   openEndSessionModal(session: ActiveSession) {
     this.selectedSession = session;
     this.sessionNotes = session.notes;
     const patientId = session.patient.id;
 
+    // Reset financial state
+    this.endSessionPatientCredits = [];
+    this.endSessionUseCreditsForService = {};
+    this.endSessionAvailableOffers = [];
+    this.endSessionSelectedOfferId = undefined;
+
     // Initialize credit usage tracking
-    this.endSessionCredits = session.appointment.services
-      .filter(s => s.fromCredits)
-      .map(s => {
-        const service = this.services.find(svc => svc.id === s.serviceId);
-        return {
-          serviceId: s.serviceId,
-          serviceName: service?.name || 'Unknown',
-          allocated: s.creditsUsed || 0,
-          actual: s.creditsUsed || 0, // Start with allocated
-          unitType: 'unit' // Will be determined from wallet
-        };
-      });
+    this.endSessionCredits = [];
+    this.endSessionServiceStates = [];
 
     // Initialize device usage
     this.endSessionDeviceUsage = [];
@@ -252,22 +291,284 @@ export class Sessions implements OnInit, OnDestroy {
     // Reset extra charges
     this.extraCharges = [];
 
-    // Resolve unit types from wallet credits
-    this.walletService.getWallet(patientId).pipe(take(1)).subscribe({
-      next: wallet => {
-        this.endSessionCredits = this.endSessionCredits.map(credit => {
-          const walletCredit = wallet.credits.find(c => c.serviceId === credit.serviceId);
-          return {
-            ...credit,
-            unitType: walletCredit?.unitType || credit.unitType || 'unit'
+    // Load patient credits from wallet and determine which services can use credits
+    this.walletService.getAvailableCredits(patientId).subscribe({
+      next: credits => {
+        this.endSessionPatientCredits = credits;
+
+        // Initialize ServiceBillingState for each service
+        for (const apptSvc of session.appointment.services) {
+          const svc = this.services.find(s => s.id === apptSvc.serviceId);
+          if (!svc) continue;
+
+          const credit = credits.find(c => c.serviceId === apptSvc.serviceId && c.remaining > 0);
+          
+          // Determine default model logic
+          // 1. If credit exists, try to match its unitType to a pricing model BUT ONLY if service supports it
+          // 2. Else default to the first pricing model
+          
+          let defaultModelType: 'fixed' | 'pulse' | 'area' | 'time' = svc.pricingModels[0].type;
+          
+          if (credit && svc.pricingModels.length > 0) {
+             // Try to find a pricing model that matches the credit type
+             let matchingModel = null;
+             
+             if (credit.unitType === 'pulse') matchingModel = svc.pricingModels.find(m => m.type === 'pulse');
+             else if (credit.unitType === 'area') matchingModel = svc.pricingModels.find(m => m.type === 'area');
+             else if (credit.unitType === 'time') matchingModel = svc.pricingModels.find(m => m.type === 'time');
+             
+             // If we found a model that matches the credit, use it
+             if (matchingModel) {
+               defaultModelType = matchingModel.type;
+             }
+             // Otherwise keep the default (first model), effectively ignoring the credit if it doesn't apply
+          }
+
+          // Initialize areas if applicable
+          const areas = svc.pricingModels.find(m => m.type === 'area')?.areas?.map(a => ({
+            name: a.name,
+            price: a.price,
+            isSelected: false
+          })) || [];
+
+          const newState: ServiceBillingState = {
+            serviceId: svc.id,
+            serviceName: svc.name,
+            pricingModels: svc.pricingModels || [],
+            selectedModelType: defaultModelType,
+            pulsesUsed: 0,
+            timeUsed: 0,
+            selectedAreas: areas,
+            availableCredits: 0,
+            creditUnitType: 'unit',
+            creditsToDeduct: 0,
+            costToPay: 0
           };
-        });
+
+          // Update credits based on default model
+          this.updateCreditsForMode(newState);
+
+          // Initial Calculation
+          this.calculateBilling(newState);
+          this.endSessionServiceStates.push(newState);
+        }
+
+        // Evaluate applicable offers
+        this.evaluateEndSessionOffers();
         this.cdr.markForCheck();
       },
       error: () => {} // Handled globally
     });
 
     this.showEndSessionModal = true;
+  }
+
+  // Handle change in billing mode (dropdown)
+  onBillingModeChange(state: ServiceBillingState) {
+    // Reset inputs when mode changes
+    state.pulsesUsed = 0;
+    state.timeUsed = 0;
+    state.selectedAreas.forEach(a => a.isSelected = false);
+    
+    // Update available credits for the new mode
+    this.updateCreditsForMode(state);
+    
+    this.calculateBilling(state);
+  }
+
+  // Update available credits based on selected model type
+  updateCreditsForMode(state: ServiceBillingState) {
+    // Find credit that matches the selected model type
+    // mapping: fixed -> session, pulse -> pulse, area -> area, time -> time
+    // unit -> matches any (generic)
+    
+    const targetType = state.selectedModelType === 'fixed' ? 'session' : state.selectedModelType;
+    
+    const credit = this.endSessionPatientCredits.find(c => 
+      c.serviceId === state.serviceId && 
+      c.remaining > 0 && 
+      (c.unitType === targetType || c.unitType === 'unit')
+    );
+
+    state.availableCredits = credit ? credit.remaining : 0;
+    state.creditUnitType = credit ? credit.unitType : 'unit';
+  }
+
+  // Toggle area selection for Area-based pricing
+  toggleAreaSelection(state: ServiceBillingState, areaName: string) {
+    const area = state.selectedAreas.find(a => a.name === areaName);
+    if (area) {
+      area.isSelected = !area.isSelected;
+      this.calculateBilling(state);
+    }
+  }
+
+  // Main calculation logic for billing state
+  calculateBilling(state: ServiceBillingState) {
+    const model = state.pricingModels.find(m => m.type === state.selectedModelType);
+    if (!model) return;
+
+    state.creditsToDeduct = 0;
+    state.costToPay = 0;
+    state.overageDescription = undefined;
+
+    // Check if user has relevant credits for this mode
+    // We assume credit unitType loosely matches or is 'unit'/'session'
+    // If Mode is Pulse, we need Pulse credits (or generic credits used as pulses?)
+    // Implementation assumption: availableCredits applies to the selected mode 
+    // IF the credit unit type matches OR is 'unit'/'session' (generic).
+    // Stricter check: 
+    // - Pulse Mode needs 'pulse' credits
+    // - Area Mode needs 'area' or 'unit' credits
+    // - Time Mode needs 'time' or 'unit' credits
+    // - Fixed Mode needs 'session' or 'unit' credits
+
+    const hasMatchingCredits = state.availableCredits > 0; 
+    // We can refine matching logic here if needed, but for now assuming displayed availableCredits are applicable.
+
+    if (state.selectedModelType === 'pulse') {
+      const pricePerPulse = model.pricePerUnit || 0;
+      if (state.pulsesUsed > 0) {
+        if (state.availableCredits >= state.pulsesUsed) {
+          // Fully covered
+          state.creditsToDeduct = state.pulsesUsed;
+          state.costToPay = 0;
+        } else {
+          // Partial coverage
+          state.creditsToDeduct = state.availableCredits;
+          const overage = state.pulsesUsed - state.availableCredits;
+          state.costToPay = overage * pricePerPulse;
+          state.overageDescription = `Extra ${overage} pulses`;
+        }
+      }
+    } else if (state.selectedModelType === 'area') {
+      const selectedCount = state.selectedAreas.filter(a => a.isSelected).length;
+      if (selectedCount > 0) {
+        // Assumption: 1 Credit = 1 Area
+        if (state.availableCredits >= selectedCount) {
+          state.creditsToDeduct = selectedCount;
+          state.costToPay = 0;
+        } else {
+          state.creditsToDeduct = state.availableCredits;
+          const areasToPay = selectedCount - state.availableCredits;
+          
+          // Which areas to pay for? The most expensive ones or just average?
+          // Strategy: Pay for the remaining ones. We iterate and mark checked ones as paid until credits run out?
+          // Or just sum price of *last* N areas?
+          // Let's assume we pay for the ones *not covered*.
+          // Simplistic approach: Sum price of all selected, subtract (credits * avg price)? No.
+          // Better: We identify exactly which areas are covered?
+          // User requirement: "take what he have and the remaning pay as normal"
+          
+          // Let's calculate total price of selected areas
+          // Then subtract value of credits? 
+          // If 1 Credit = 1 Area, effectively we create a discount equal to the price of the covered areas.
+          // To favor the patient, we cover the MOST EXPENSIVE areas with credits first.
+          
+          const selected = state.selectedAreas.filter(a => a.isSelected).sort((a, b) => b.price - a.price);
+          
+          // First N covered by credits
+          let covered = 0;
+          let toPay = 0;
+          
+          selected.forEach((area, index) => {
+            if (index < state.availableCredits) {
+              covered++;
+            } else {
+              toPay += area.price;
+            }
+          });
+          
+          state.costToPay = toPay;
+          state.overageDescription = `Pay for ${selectedCount - covered} areas`;
+        }
+      }
+    } else if (state.selectedModelType === 'time') {
+       const pricePerMin = model.pricePerUnit || 0;
+       if (state.timeUsed > 0) {
+         if (state.availableCredits >= state.timeUsed) {
+           state.creditsToDeduct = state.timeUsed;
+           state.costToPay = 0;
+         } else {
+           state.creditsToDeduct = state.availableCredits;
+           const overage = state.timeUsed - state.availableCredits;
+           state.costToPay = overage * pricePerMin;
+           state.overageDescription = `Extra ${overage} mins`;
+         }
+       }
+    } else {
+      // Fixed / Session based
+      const price = model.basePrice;
+      // 1 Session = 1 Credit
+      if (state.availableCredits >= 1) {
+        state.creditsToDeduct = 1;
+        state.costToPay = 0;
+      } else {
+        state.creditsToDeduct = 0;
+        state.costToPay = 0;
+        state.overageDescription = undefined;
+      }
+    }
+  }
+
+  getTotalPayable(): number {
+    return this.endSessionServiceStates.reduce((sum, s) => sum + s.costToPay, 0) + 
+           this.extraCharges.reduce((sum, c) => sum + c.amount, 0);
+  }
+
+  // Evaluate offers based on the session's services
+  evaluateEndSessionOffers() {
+    if (!this.selectedSession) return;
+    const patient = this.selectedSession.patient;
+
+    const cart: CartItem[] = this.selectedSession.appointment.services.map(apptSvc => {
+      const svc = this.services.find(s => s.id === apptSvc.serviceId);
+      return {
+        serviceId: apptSvc.serviceId,
+        serviceName: svc?.name || '',
+        price: apptSvc.price || svc?.pricingModels[0]?.basePrice || 0,
+        quantity: 1
+      };
+    });
+
+    this.endSessionAvailableOffers = this.offerService.evaluateOffers(cart, patient, this.offers);
+  }
+
+  // Toggle credit usage for a specific service
+  toggleEndSessionCreditUsage(serviceId: string) {
+    this.endSessionUseCreditsForService[serviceId] = !this.endSessionUseCreditsForService[serviceId];
+
+    // Update the endSessionCredits tracking array
+    if (this.endSessionUseCreditsForService[serviceId]) {
+      // Add to tracking if not already there
+      if (!this.endSessionCredits.find(c => c.serviceId === serviceId)) {
+        const credit = this.endSessionPatientCredits.find(c => c.serviceId === serviceId);
+        const svc = this.services.find(s => s.id === serviceId);
+        if (credit) {
+          this.endSessionCredits.push({
+            serviceId,
+            serviceName: svc?.name || 'Unknown',
+            allocated: 1,
+            actual: 1,
+            unitType: credit.unitType
+          });
+        }
+      }
+    } else {
+      // Remove from tracking
+      this.endSessionCredits = this.endSessionCredits.filter(c => c.serviceId !== serviceId);
+    }
+  }
+
+  // Get credit info for a specific service
+  getEndSessionCreditInfo(serviceId: string): ServiceCredit | undefined {
+    return this.endSessionPatientCredits.find(c => c.serviceId === serviceId && c.remaining > 0);
+  }
+
+  // Get selected offer details
+  getSelectedEndSessionOffer(): AppliedOffer | undefined {
+    if (!this.endSessionSelectedOfferId) return undefined;
+    return this.endSessionAvailableOffers.find(o => o.offer.id === this.endSessionSelectedOfferId);
   }
 
   closeEndSessionModal() {
@@ -282,6 +583,11 @@ export class Sessions implements OnInit, OnDestroy {
     this.endSessionAttempted = false;
     this.beforePhotos = [];
     this.afterPhotos = [];
+    // Reset financial state
+    this.endSessionPatientCredits = [];
+    this.endSessionUseCreditsForService = {};
+    this.endSessionAvailableOffers = [];
+    this.endSessionSelectedOfferId = undefined;
   }
 
   hasInvalidCreditsUsage(): boolean {
@@ -418,11 +724,7 @@ export class Sessions implements OnInit, OnDestroy {
 
     this.endSessionAttempted = true;
 
-    if (this.hasInvalidCreditsUsage()) {
-      this.alertService.validationError('Credits used must be 0 or more');
-      return;
-    }
-
+    // Validation
     if (this.hasInvalidDeviceUsage()) {
       this.alertService.validationError('Device usage must be 0 or more');
       return;
@@ -443,105 +745,80 @@ export class Sessions implements OnInit, OnDestroy {
       return;
     }
 
+    // New Validation for Billing inputs
+    if (this.endSessionServiceStates.some(s => s.selectedModelType === 'pulse' && s.pulsesUsed < 0)) {
+      this.alertService.validationError('Pulses used cannot be negative');
+      return;
+    }
+    if (this.endSessionServiceStates.some(s => s.selectedModelType === 'time' && s.timeUsed < 0)) {
+      this.alertService.validationError('Time used cannot be negative');
+      return;
+    }
+
     const session = this.selectedSession;
     const patientId = session.patient.id;
     session.notes = this.sessionNotes;
 
     // Collect all side-effect observables
-    const sideEffects: Observable<any>[] = [];
-
-    // 1. Adjust credits based on actual usage
-    for (const credit of this.endSessionCredits) {
-      const diff = credit.allocated - credit.actual;
-      if (diff !== 0) {
-        sideEffects.push(this.walletService.adjustCredits(patientId, credit.serviceId, diff));
-      }
-    }
-
-    // 2. Update device counters
-    for (const usage of this.endSessionDeviceUsage) {
-      if (usage.unitsUsed > 0) {
-        const device = this.devices.find(d => d.id === usage.deviceId);
-        if (device) {
-          sideEffects.push(this.dataService.updateDeviceCounter(device.id, device.currentCounter + usage.unitsUsed));
-        }
-      }
-    }
-
-    // 3. Deduct inventory
-    for (const consumable of this.endSessionConsumables) {
-      sideEffects.push(this.dataService.updateInventoryQuantity(consumable.itemId, -consumable.quantity));
-    }
-
-    // 4. Log credit usage transactions
-    for (const credit of this.endSessionCredits) {
-      if (credit.actual > 0) {
-        sideEffects.push(this.dataService.addPatientTransaction({
-          patientId: patientId,
-          date: new Date(),
-          type: 'credit_usage',
-          description: `Used ${credit.actual} ${credit.unitType}(s) for ${credit.serviceName}`,
-          amount: 0,
-          method: 'credits',
-          serviceId: credit.serviceId,
-          relatedAppointmentId: session.appointment.id
-        }));
-      }
-    }
-
-    // 5. Record overage charges for billing
-    const overages = this.getCreditsOverage();
+    // 1. Calculate Extra Charges and Credits Used
     const allExtraCharges: SessionExtraCharge[] = [...this.extraCharges];
-    for (const overage of overages) {
-      const service = this.services.find(s => s.id === overage.serviceId);
-      const pricePerUnit = service?.pricingModels[0]?.pricePerUnit || 0;
-      if (pricePerUnit > 0) {
+    const creditsUsedPayload: any[] = [];
+
+    for (const state of this.endSessionServiceStates) {
+      // Credits to deduct
+      if (state.creditsToDeduct > 0) {
+        creditsUsedPayload.push({
+          serviceId: state.serviceId,
+          serviceName: state.serviceName,
+          unitsUsed: state.creditsToDeduct,
+          unitType: state.creditUnitType
+        });
+      }
+
+      // Extra charges (Overage/Payment)
+      if (state.costToPay > 0) {
         allExtraCharges.push({
-          description: `Extra ${overage.overage} units of ${overage.serviceName}`,
-          amount: overage.overage * pricePerUnit,
-          serviceId: overage.serviceId
+          description: state.overageDescription || `Payment for ${state.serviceName}`,
+          amount: state.costToPay,
+          serviceId: state.serviceId
         });
       }
     }
 
-    // 6. Create session record with all tracking data
-    const creditsUsed: SessionCreditUsage[] = this.endSessionCredits
-      .filter(c => c.actual > 0)
-      .map(c => ({
-        serviceId: c.serviceId,
-        serviceName: c.serviceName,
-        unitsUsed: c.actual,
-        unitType: c.unitType as 'session' | 'pulse' | 'unit'
-      }));
+    // Construct Payload for Atomic Backend Transaction
+    const payload = {
+      appointmentId: session.appointment.id,
+      patientId: patientId,
+      doctorId: session.doctor.id,
+      startTime: session.startTime,
+      endTime: new Date(),
+      notes: this.sessionNotes,
+      consumablesUsed: this.endSessionConsumables.map(c => ({
+        inventoryItemId: c.itemId,
+        quantity: c.quantity
+      })),
+      creditsUsed: creditsUsedPayload,
+      extraCharges: allExtraCharges.map(c => ({
+          serviceId: c.serviceId,
+          description: c.description,
+          amount: c.amount
+      })),
+      deviceUsage: this.endSessionDeviceUsage.map(u => ({
+          deviceId: u.deviceId,
+          name: u.name,
+          unitsUsed: u.unitsUsed
+      })),
+      laserSettings: this.isLaserSession() ? {
+        waveType: this.endSessionLaserSettings.waveType as 'Alexandrite' | 'Nd:YAG',
+        power: this.endSessionLaserSettings.power
+      } : null,
+      beforePhotos: this.beforePhotos,
+      afterPhotos: this.afterPhotos
+    };
 
-    // Wait for all side effects, then create session and update appointment
-    const sideEffects$: Observable<any> = sideEffects.length > 0 ? forkJoin(sideEffects) : of(null);
-
-    sideEffects$.pipe(
-      switchMap(() => this.dataService.addSession({
-        appointmentId: session.appointment.id,
-        patientId: patientId,
-        doctorId: session.doctor.id,
-        startTime: session.startTime,
-        endTime: new Date(),
-        consumablesUsed: this.endSessionConsumables.map(c => ({
-          inventoryItemId: c.itemId,
-          quantity: c.quantity
-        })),
-        creditsUsed: creditsUsed,
-        extraCharges: allExtraCharges,
-        laserSettings: this.isLaserSession() ? {
-          waveType: this.endSessionLaserSettings.waveType as 'Alexandrite' | 'Nd:YAG',
-          power: this.endSessionLaserSettings.power
-        } : undefined,
-        clinicalNotes: this.sessionNotes,
-        beforePhotos: this.beforePhotos,
-        afterPhotos: this.afterPhotos,
-        status: 'completed'
-      } as any)),
-      switchMap(() => this.dataService.updateAppointmentStatus(session.appointment.id, 'completed'))
-    ).subscribe({
-      next: () => {
+    // Call Atomic Endpoint
+    this.dataService.completeSession(payload).subscribe({
+      next: (completedSession) => {
         session.appointment.status = 'completed';
         this.activeSessions = this.activeSessions.filter(s => s.appointment.id !== session.appointment.id);
 
@@ -550,7 +827,10 @@ export class Sessions implements OnInit, OnDestroy {
         this.alertService.sessionEnded(patientName);
         this.cdr.markForCheck();
       },
-      error: () => {} // Handled globally
+      error: (err: any) => {
+        console.error('Session completion failed', err);
+        this.alertService.error('Failed to complete session. Please try again.');
+      }
     });
   }
 }

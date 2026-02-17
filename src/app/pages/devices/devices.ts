@@ -18,6 +18,8 @@ import { getDeviceStatusColor } from '../../utils/status-colors';
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class Devices implements OnInit, OnDestroy {
+  loading = true;
+  saving = false;
   devices: Device[] = [];
   rooms: Room[] = [];
   showModal = false;
@@ -55,6 +57,7 @@ export class Devices implements OnInit, OnDestroy {
   }
 
   loadData() {
+    this.loading = true;
     forkJoin({
       devices: this.dataService.getDevices(),
       rooms: this.dataService.getRooms()
@@ -62,9 +65,13 @@ export class Devices implements OnInit, OnDestroy {
       next: ({ devices, rooms }) => {
         this.devices = devices;
         this.rooms = rooms;
+        this.loading = false;
         this.cdr.markForCheck();
       },
-      error: () => {} // Handled globally
+      error: () => {
+        this.loading = false;
+        this.cdr.markForCheck();
+      }
     });
   }
 
@@ -118,15 +125,20 @@ export class Devices implements OnInit, OnDestroy {
     }
 
     const deviceName = this.deviceForm.name || 'Device';
+    this.saving = true;
     if (!this.isEditMode) {
       this.dataService.addDevice(this.deviceForm as Device).subscribe({
         next: () => {
           this.alertService.created('Device', deviceName);
           this.loadData();
           this.closeModal();
+          this.saving = false;
           this.cdr.markForCheck();
         },
-        error: () => {} // Handled globally
+        error: () => {
+          this.saving = false;
+          this.cdr.markForCheck();
+        }
       });
     } else {
       this.dataService.updateDevice(this.deviceForm as Device).subscribe({
@@ -134,9 +146,13 @@ export class Devices implements OnInit, OnDestroy {
           this.alertService.updated('Device', deviceName);
           this.loadData();
           this.closeModal();
+          this.saving = false;
           this.cdr.markForCheck();
         },
-        error: () => {} // Handled globally
+        error: () => {
+          this.saving = false;
+          this.cdr.markForCheck();
+        }
       });
     }
   }

@@ -6,7 +6,13 @@
   </button>
 </app-page-header>
 
+<div class="page-loading" *ngIf="loading" aria-live="polite">
+  <div class="spinner"></div>
+  <span class="loading-text">Loading rooms...</span>
+</div>
+
 <app-data-table
+  *ngIf="!loading"
   [data]="rooms"
   [columns]="columns"
   (edit)="openEditModal($event)"
@@ -16,6 +22,7 @@
 <app-modal
   [isOpen]="showModal"
   [title]="isEditMode ? 'Edit Room' : 'Add New Room'"
+  [confirmDisabled]="saving"
   (closed)="closeModal()"
   (confirmed)="saveRoom(roomFormRef)">
 
@@ -44,7 +51,8 @@
 
     <div class="form-group">
       <label>Capacity</label>
-      <input type="number" name="capacity" [(ngModel)]="roomForm.capacity" min="1" max="10">
+      <input type="number" name="capacity" [(ngModel)]="roomForm.capacity" min="1" max="10" #capacity="ngModel">
+      <span class="error-text" *ngIf="capacity.invalid && (capacity.touched || capacity.dirty)">Capacity must be between 1 and 10</span>
     </div>
 
     <div class="form-group full-width">

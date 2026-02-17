@@ -6,7 +6,13 @@
   </button>
 </app-page-header>
 
+<div class="page-loading" *ngIf="loading" aria-live="polite">
+  <div class="spinner"></div>
+  <span class="loading-text">Loading doctors...</span>
+</div>
+
 <app-data-table
+  *ngIf="!loading"
   [data]="doctors"
   [columns]="columns"
   (edit)="openEditModal($event)"
@@ -16,6 +22,7 @@
 <app-modal
   [isOpen]="showModal"
   [title]="isEditMode ? 'Edit Doctor' : 'Add New Doctor'"
+  [confirmDisabled]="saving"
   (closed)="closeModal()"
   (confirmed)="saveDoctor(doctorFormRef)">
 

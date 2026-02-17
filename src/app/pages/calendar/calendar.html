@@ -6,6 +6,12 @@
   </button>
 </app-page-header>
 
+<div class="page-loading" *ngIf="loading" aria-live="polite">
+  <div class="spinner"></div>
+  <span class="loading-text">Loading calendar...</span>
+</div>
+
+<div *ngIf="!loading">
 <!-- Tab Navigation -->
 <div class="calendar-tabs">
   <button
@@ -135,6 +141,8 @@
     (dateSelect)="onDateSelect($event)"
     (viewChange)="onViewChange($event)">
   </app-calendar>
+</div>
+
 </div>
 
 <!-- Event Detail Modal -->

@@ -16,6 +16,8 @@ import { Doctor } from '../../models';
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class Doctors implements OnInit {
+  loading = true;
+  saving = false;
   doctors: Doctor[] = [];
   showModal = false;
   isEditMode = false;
@@ -55,6 +57,7 @@ export class Doctors implements OnInit {
   }
 
   loadData() {
+    this.loading = true;
     forkJoin({
       doctors: this.dataService.getDoctors(),
       rooms: this.dataService.getRooms()
@@ -65,9 +68,13 @@ export class Doctors implements OnInit {
           status: d.isActive ? 'Active' : 'Inactive'
         }));
         this.rooms = rooms;
+        this.loading = false;
         this.cdr.markForCheck();
       },
-      error: () => {} // Handled globally
+      error: () => {
+        this.loading = false;
+        this.cdr.markForCheck();
+      }
     });
   }
 
@@ -131,15 +138,20 @@ export class Doctors implements OnInit {
     }
 
     const doctorName = this.doctorForm.name || 'Doctor';
+    this.saving = true;
     if (this.isEditMode) {
       this.dataService.updateDoctor(this.doctorForm as Doctor).subscribe({
         next: () => {
           this.alertService.updated('Doctor', doctorName);
           this.loadData();
           this.closeModal();
+          this.saving = false;
           this.cdr.markForCheck();
         },
-        error: () => {} // Handled globally
+        error: () => {
+          this.saving = false;
+          this.cdr.markForCheck();
+        }
       });
     } else {
       this.dataService.addDoctor(this.doctorForm as Doctor).subscribe({
@@ -147,9 +159,13 @@ export class Doctors implements OnInit {
           this.alertService.created('Doctor', doctorName);
           this.loadData();
           this.closeModal();
+          this.saving = false;
           this.cdr.markForCheck();
         },
-        error: () => {} // Handled globally
+        error: () => {
+          this.saving = false;
+          this.cdr.markForCheck();
+        }
       });
     }
   }

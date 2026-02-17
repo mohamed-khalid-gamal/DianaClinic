@@ -2,7 +2,8 @@ import { Component, OnInit, ChangeDetectionStrategy, ChangeDetectorRef } from '@
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { forkJoin } from 'rxjs';
-import { PageHeaderComponent, StatCardComponent } from '../../components/shared';
+import { PageHeaderComponent } from '../../components/shared/page-header.component';
+import { StatCardComponent } from '../../components/shared/stat-card.component';
 import { DataService } from '../../services/data.service';
 import { SweetAlertService } from '../../services/sweet-alert.service';
 import { Appointment, Alert, Doctor, Room, Patient } from '../../models';
@@ -68,7 +69,10 @@ export class Dashboard implements OnInit {
         this.loading = false;
         this.cdr.markForCheck();
       },
-      error: () => {} // Handled globally
+      error: () => {
+        this.loading = false;
+        this.cdr.markForCheck();
+      }
     });
   }
 
@@ -122,7 +126,9 @@ export class Dashboard implements OnInit {
         this.alertService.success(`Patient checked in successfully`);
         this.cdr.markForCheck();
       },
-      error: () => {} // Handled globally
+      error: () => {
+        this.cdr.markForCheck();
+      }
     });
   }
 
@@ -137,7 +143,9 @@ export class Dashboard implements OnInit {
         this.stats.pendingAlerts = Math.max(0, this.stats.pendingAlerts - 1);
         this.cdr.markForCheck();
       },
-      error: () => {} // Handled globally
+      error: () => {
+        this.cdr.markForCheck();
+      }
     });
   }
 

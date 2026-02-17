@@ -28,6 +28,7 @@ export class Services implements OnInit {
   showModal = false;
   isEditMode = false;
   loading = true;
+  saving = false;
 
   // Category management
   showCategoryModal = false;
@@ -156,15 +157,20 @@ export class Services implements OnInit {
     }
 
     const serviceName = this.serviceForm.name || 'Service';
+    this.saving = true;
     if (!this.isEditMode) {
       this.dataService.addService(this.serviceForm as Service).subscribe({
         next: () => {
           this.alertService.created('Service', serviceName);
           this.loadData();
           this.closeModal();
+          this.saving = false;
           this.cdr.markForCheck();
         },
-        error: () => {} // Handled globally
+        error: () => {
+          this.saving = false;
+          this.cdr.markForCheck();
+        }
       });
     } else {
       this.dataService.updateService(this.serviceForm as Service).subscribe({
@@ -172,9 +178,13 @@ export class Services implements OnInit {
           this.alertService.updated('Service', serviceName);
           this.loadData();
           this.closeModal();
+          this.saving = false;
           this.cdr.markForCheck();
         },
-        error: () => {} // Handled globally
+        error: () => {
+          this.saving = false;
+          this.cdr.markForCheck();
+        }
       });
     }
   }

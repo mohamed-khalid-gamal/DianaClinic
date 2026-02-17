@@ -15,13 +15,18 @@
   </div>
 </app-page-header>
 
+<div class="page-loading" *ngIf="loading" aria-live="polite">
+  <div class="spinner"></div>
+  <span class="loading-text">Loading inventory...</span>
+</div>
+
 <!-- Notifications Panel -->
 <app-notifications-panel
   category="inventory"
   [isOpen]="showNotifications">
 </app-notifications-panel>
 
-
+<div *ngIf="!loading">
 <!-- Stats Row -->
 <div class="stats-row">
   <app-stat-card
@@ -82,10 +87,13 @@
   (delete)="deleteItem($event)">
 </app-data-table>
 
+</div>
+
 <app-modal
   [isOpen]="showModal"
   [title]="isEditMode ? 'Edit Item' : 'Add New Item'"
   maxWidth="700px"
+  [confirmDisabled]="saving"
   (closed)="closeModal()"
   (confirmed)="saveItem(itemFormRef)">
 
@@ -131,17 +139,20 @@
 
     <div class="form-group">
       <label>Reorder Threshold</label>
-      <input type="number" name="reorderThreshold" [(ngModel)]="itemForm.reorderThreshold" min="0">
+      <input type="number" name="reorderThreshold" [(ngModel)]="itemForm.reorderThreshold" min="0" #reorderThreshold="ngModel">
+      <span class="error-text" *ngIf="reorderThreshold.invalid && (reorderThreshold.touched || reorderThreshold.dirty)">Must be 0 or greater</span>
     </div>
 
     <div class="form-group">
       <label>Cost Price (EGP)</label>
-      <input type="number" name="costPrice" [(ngModel)]="itemForm.costPrice" min="0" step="0.01">
+      <input type="number" name="costPrice" [(ngModel)]="itemForm.costPrice" min="0" step="0.01" #costPrice="ngModel">
+      <span class="error-text" *ngIf="costPrice.invalid && (costPrice.touched || costPrice.dirty)">Must be 0 or greater</span>
     </div>
 
     <div class="form-group">
       <label>Selling Price (EGP)</label>
-      <input type="number" name="sellingPrice" [(ngModel)]="itemForm.sellingPrice" min="0" step="0.01">
+      <input type="number" name="sellingPrice" [(ngModel)]="itemForm.sellingPrice" min="0" step="0.01" #sellingPrice="ngModel">
+      <span class="error-text" *ngIf="sellingPrice.invalid && (sellingPrice.touched || sellingPrice.dirty)">Must be 0 or greater</span>
     </div>
 
     <div class="form-group">

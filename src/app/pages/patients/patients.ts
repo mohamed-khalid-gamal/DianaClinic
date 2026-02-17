@@ -4,11 +4,13 @@ import { FormsModule, NgForm } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { switchMap } from 'rxjs/operators';
-import { PageHeaderComponent, DataTableComponent, ModalComponent, TableColumn } from '../../components/shared';
+import { PageHeaderComponent } from '../../components/shared/page-header.component';
+import { DataTableComponent, TableColumn } from '../../components/shared/data-table.component';
+import { ModalComponent } from '../../components/shared/modal.component';
 import { DataService } from '../../services/data.service';
 import { WalletService } from '../../services/wallet.service';
 import { SweetAlertService } from '../../services/sweet-alert.service';
-import { Patient, PatientWallet, ServiceCredit, Appointment } from '../../models';
+import { Patient, PatientWallet, ServiceCredit, Appointment, Session } from '../../models';
 
 @Component({
   selector: 'app-patients',
@@ -21,8 +23,10 @@ import { Patient, PatientWallet, ServiceCredit, Appointment } from '../../models
 export class Patients implements OnInit {
   patients: Patient[] = [];
   loading = true;
+  saving = false;
   selectedPatient: Patient | null = null;
   selectedWallet: PatientWallet | null = null;
+  patientSessions: Session[] = [];
 
   showModal = false;
   showDetailPanel = false;
@@ -140,15 +144,20 @@ export class Patients implements OnInit {
     }
 
     const patientName = `${this.patientForm.firstName} ${this.patientForm.lastName}`;
+    this.saving = true;
     if (this.isEditMode && this.patientForm.id) {
       this.dataService.updatePatient(this.patientForm as Patient).subscribe({
         next: () => {
           this.alertService.updated('Patient', patientName);
           this.loadPatients();
           this.closeModal();
+          this.saving = false;
           this.cdr.markForCheck();
         },
-        error: () => {} // Handled globally
+        error: () => {
+          this.saving = false;
+          this.cdr.markForCheck();
+        }
       });
     } else {
       this.dataService.addPatient({
@@ -160,9 +169,13 @@ export class Patients implements OnInit {
           this.alertService.created('Patient', patientName);
           this.loadPatients();
           this.closeModal();
+          this.saving = false;
           this.cdr.markForCheck();
         },
-        error: () => {} // Handled globally
+        error: () => {
+          this.saving = false;
+          this.cdr.markForCheck();
+        }
       });
     }
   }
@@ -186,7 +199,23 @@ export class Patients implements OnInit {
     this.selectedPatient = patient;
     this.showDetailPanel = true;
     this.loadWallet(patient.id);
+    this.loadSessions(patient.id);
     this.cdr.markForCheck();
+  }
+
+  loadSessions(patientId: string) {
+    this.dataService.getSessions().subscribe({
+      next: (sessions) => {
+        // Filter sessions for this patient and sort by date desc
+        this.patientSessions = sessions
+          .filter(s => s.patientId === patientId)
+          .sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
+        this.cdr.markForCheck();
+      },
+      error: () => {}
+    });
+
+
   }
 
   loadWallet(patientId: string) {
@@ -203,6 +232,7 @@ export class Patients implements OnInit {
     this.showDetailPanel = false;
     this.selectedPatient = null;
     this.selectedWallet = null;
+    this.patientSessions = [];
     this.cdr.markForCheck();
   }
 
@@ -299,5 +329,31 @@ export class Patients implements OnInit {
       6: 'Type VI - Dark'
     };
     return labels[type || 3] || 'Unknown';
+  }
+
+  get sessionNotes() {
+    return this.patientSessions
+      .filter(s => !!s.clinicalNotes)
+      .map(s => ({
+        date: s.startTime,
+        note: s.clinicalNotes
+      }));
+  }
+
+  get galleryPhotos() {
+    const photos: { url: string; type: 'before' | 'after'; date: Date; sessionId: string }[] = [];
+    this.patientSessions.forEach(session => {
+      if (session.beforePhotos?.length) {
+        session.beforePhotos.forEach(url => {
+          photos.push({ url, type: 'before', date: session.startTime, sessionId: session.id });
+        });
+      }
+      if (session.afterPhotos?.length) {
+        session.afterPhotos.forEach(url => {
+          photos.push({ url, type: 'after', date: session.startTime, sessionId: session.id });
+        });
+      }
+    });
+    return photos;
   }
 }

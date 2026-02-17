@@ -15,6 +15,8 @@ import { Room } from '../../models';
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class Rooms implements OnInit {
+  loading = true;
+  saving = false;
   rooms: Room[] = [];
   showModal = false;
   isEditMode = false;
@@ -41,15 +43,20 @@ export class Rooms implements OnInit {
   }
 
   loadRooms() {
+    this.loading = true;
     this.dataService.getRooms().subscribe({
       next: rooms => {
         this.rooms = rooms.map(r => ({
           ...r,
           status: r.isActive ? 'Available' : 'Unavailable'
         }));
+        this.loading = false;
         this.cdr.markForCheck();
       },
-      error: () => {} // Handled globally
+      error: () => {
+        this.loading = false;
+        this.cdr.markForCheck();
+      }
     });
   }
 
@@ -89,15 +96,20 @@ export class Rooms implements OnInit {
     }
 
     const roomName = this.roomForm.name || 'Room';
+    this.saving = true;
     if (!this.isEditMode) {
       this.dataService.addRoom(this.roomForm as Room).subscribe({
         next: () => {
           this.alertService.created('Room', roomName);
           this.loadRooms();
           this.closeModal();
+          this.saving = false;
           this.cdr.markForCheck();
         },
-        error: () => {} // Handled globally
+        error: () => {
+          this.saving = false;
+          this.cdr.markForCheck();
+        }
       });
     } else {
       this.dataService.updateRoom(this.roomForm as Room).subscribe({
@@ -105,9 +117,13 @@ export class Rooms implements OnInit {
           this.alertService.updated('Room', roomName);
           this.loadRooms();
           this.closeModal();
+          this.saving = false;
           this.cdr.markForCheck();
         },
-        error: () => {} // Handled globally
+        error: () => {
+          this.saving = false;
+          this.cdr.markForCheck();
+        }
       });
     }
   }

@@ -6,6 +6,12 @@
   </button>
 </app-page-header>
 
+<div class="page-loading" *ngIf="loading" aria-live="polite">
+  <div class="spinner"></div>
+  <span class="loading-text">Loading offers...</span>
+</div>
+
+<div *ngIf="!loading">
 <div class="filter-tabs">
   <div class="tab" [class.active]="activeFilter === 'all'" (click)="activeFilter = 'all'">All Offers</div>
   <div class="tab" [class.active]="activeFilter === 'active'" (click)="activeFilter = 'active'">Active</div>
@@ -65,11 +71,14 @@
   </div>
 </div>
 
+</div>
+
 <!-- Add/Edit Offer Modal (Wizard) -->
 <app-modal
   [isOpen]="showModal"
   [title]="(isEditMode ? 'Edit Offer' : 'Create New Offer') + ' - Step ' + currentStep + '/3'"
   maxWidth="800px"
+  [confirmDisabled]="saving"
   (closed)="closeModal()"
   (confirmed)="saveOffer(offerFormRef)"
   [showFooter]="currentStep === 3"

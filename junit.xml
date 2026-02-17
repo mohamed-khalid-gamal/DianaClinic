@@ -1,0 +1,350 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<testsuites name="vitest tests" tests="111" failures="8" errors="0" time="1.8426636">
+    <testsuite name="src/app/app.spec.ts" timestamp="2026-02-15T12:24:59.749Z" hostname="DESKTOP-R3HK8LI" tests="2" failures="0" errors="0" skipped="0" time="0.0341154">
+        <testcase classname="src/app/app.spec.ts" name="App &gt; should create the app" time="0.0137318">
+        </testcase>
+        <testcase classname="src/app/app.spec.ts" name="App &gt; should have correct title" time="0.0059482">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/app/utils/status-colors.spec.ts" timestamp="2026-02-15T12:24:59.755Z" hostname="DESKTOP-R3HK8LI" tests="2" failures="0" errors="0" skipped="0" time="0.0085263">
+        <testcase classname="src/app/utils/status-colors.spec.ts" name="Status Colors Utils &gt; should return correct color for known appointment status" time="0.0034148">
+        </testcase>
+        <testcase classname="src/app/utils/status-colors.spec.ts" name="Status Colors Utils &gt; should return default color for unknown status" time="0.0017799">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/app/services/alert.service.spec.ts" timestamp="2026-02-15T12:24:59.760Z" hostname="DESKTOP-R3HK8LI" tests="4" failures="0" errors="0" skipped="0" time="0.0682339">
+        <testcase classname="src/app/services/alert.service.spec.ts" name="AlertService &gt; should be created" time="0.0304279">
+        </testcase>
+        <testcase classname="src/app/services/alert.service.spec.ts" name="AlertService &gt; refreshAlerts should generate alerts for low stock" time="0.0164381">
+        </testcase>
+        <testcase classname="src/app/services/alert.service.spec.ts" name="AlertService &gt; refreshAlerts should generate alerts for expiring items" time="0.0049889">
+        </testcase>
+        <testcase classname="src/app/services/alert.service.spec.ts" name="AlertService &gt; snoozeAlert should hide alert" time="0.0032736">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/app/services/badge.service.spec.ts" timestamp="2026-02-15T12:24:59.764Z" hostname="DESKTOP-R3HK8LI" tests="3" failures="0" errors="0" skipped="0" time="0.0375935">
+        <testcase classname="src/app/services/badge.service.spec.ts" name="BadgeService &gt; should be created" time="0.0191221">
+        </testcase>
+        <testcase classname="src/app/services/badge.service.spec.ts" name="BadgeService &gt; should update badge counts when alert service emits" time="0.004747">
+        </testcase>
+        <testcase classname="src/app/services/badge.service.spec.ts" name="BadgeService &gt; refreshCounts should call alertService.refreshAlerts" time="0.0038574">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/app/services/calendar.service.spec.ts" timestamp="2026-02-15T12:24:59.769Z" hostname="DESKTOP-R3HK8LI" tests="3" failures="0" errors="0" skipped="0" time="0.0718388">
+        <testcase classname="src/app/services/calendar.service.spec.ts" name="CalendarService &gt; should be created" time="0.0156885">
+        </testcase>
+        <testcase classname="src/app/services/calendar.service.spec.ts" name="CalendarService &gt; getAllEvents should map appointments to events" time="0.0349241">
+        </testcase>
+        <testcase classname="src/app/services/calendar.service.spec.ts" name="CalendarService &gt; getRoomEvents should filter by room" time="0.0078367">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/app/services/offer.service.spec.ts" timestamp="2026-02-15T12:24:59.772Z" hostname="DESKTOP-R3HK8LI" tests="4" failures="0" errors="0" skipped="0" time="0.0419601">
+        <testcase classname="src/app/services/offer.service.spec.ts" name="OfferService &gt; should be created" time="0.0104651">
+        </testcase>
+        <testcase classname="src/app/services/offer.service.spec.ts" name="OfferService &gt; evaluateOffers &gt; should filter out inactive offers" time="0.0055351">
+        </testcase>
+        <testcase classname="src/app/services/offer.service.spec.ts" name="OfferService &gt; evaluateOffers &gt; should apply percent off offer" time="0.0050615">
+        </testcase>
+        <testcase classname="src/app/services/offer.service.spec.ts" name="OfferService &gt; evaluateOffers &gt; should handle min_spend condition" time="0.0056035">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/app/services/sweet-alert.service.spec.ts" timestamp="2026-02-15T12:24:59.781Z" hostname="DESKTOP-R3HK8LI" tests="7" failures="0" errors="0" skipped="0" time="0.041194">
+        <testcase classname="src/app/services/sweet-alert.service.spec.ts" name="SweetAlertService &gt; should be created" time="0.0101628">
+        </testcase>
+        <testcase classname="src/app/services/sweet-alert.service.spec.ts" name="SweetAlertService &gt; success should call Swal.fire with success icon" time="0.0091383">
+        </testcase>
+        <testcase classname="src/app/services/sweet-alert.service.spec.ts" name="SweetAlertService &gt; error should call Swal.fire with error icon" time="0.0029943">
+        </testcase>
+        <testcase classname="src/app/services/sweet-alert.service.spec.ts" name="SweetAlertService &gt; confirm should return boolean from Swal result" time="0.001881">
+        </testcase>
+        <testcase classname="src/app/services/sweet-alert.service.spec.ts" name="SweetAlertService &gt; toast should call Swal.mixin and fire" time="0.0013085">
+        </testcase>
+        <testcase classname="src/app/services/sweet-alert.service.spec.ts" name="SweetAlertService &gt; Business Methods &gt; created should show success toast" time="0.005843">
+        </testcase>
+        <testcase classname="src/app/services/sweet-alert.service.spec.ts" name="SweetAlertService &gt; Business Methods &gt; validationError should show warning" time="0.0030383">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/app/services/wallet.service.spec.ts" timestamp="2026-02-15T12:24:59.789Z" hostname="DESKTOP-R3HK8LI" tests="5" failures="0" errors="0" skipped="0" time="0.0620867">
+        <testcase classname="src/app/services/wallet.service.spec.ts" name="WalletService &gt; should be created" time="0.0113746">
+        </testcase>
+        <testcase classname="src/app/services/wallet.service.spec.ts" name="WalletService &gt; getWallet should return hydrated wallet" time="0.0220001">
+        </testcase>
+        <testcase classname="src/app/services/wallet.service.spec.ts" name="WalletService &gt; addCashBalance should post amount" time="0.0065333">
+        </testcase>
+        <testcase classname="src/app/services/wallet.service.spec.ts" name="WalletService &gt; deductCashBalance should post amount" time="0.0028552">
+        </testcase>
+        <testcase classname="src/app/services/wallet.service.spec.ts" name="WalletService &gt; redeemCredit should post serviceId and units" time="0.0045794">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/app/components/shared/calendar.component.spec.ts" timestamp="2026-02-15T12:24:59.794Z" hostname="DESKTOP-R3HK8LI" tests="1" failures="1" errors="0" skipped="0" time="0">
+        <testcase classname="src/app/components/shared/calendar.component.spec.ts" name="src/app/components/shared/calendar.component.spec.ts" time="0">
+            <failure message="Cannot find module &apos;/src/app/test-setup&apos; imported from &apos;D:/Clinic/src/app/components/shared/calendar.component.spec.ts&apos;" type="Error">
+Error: Cannot find module &apos;/src/app/test-setup&apos; imported from &apos;D:/Clinic/src/app/components/shared/calendar.component.spec.ts&apos;
+ ❯ src/app/components/shared/calendar.component.spec.ts:1:1
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { code: &apos;ERR_MODULE_NOT_FOUND&apos; }
+            </failure>
+        </testcase>
+    </testsuite>
+    <testsuite name="src/app/components/shared/data-table.component.spec.ts" timestamp="2026-02-15T12:24:59.809Z" hostname="DESKTOP-R3HK8LI" tests="1" failures="1" errors="0" skipped="0" time="0">
+        <testcase classname="src/app/components/shared/data-table.component.spec.ts" name="src/app/components/shared/data-table.component.spec.ts" time="0">
+            <failure message="Cannot find module &apos;../../test-setup&apos; imported from &apos;D:/Clinic/src/app/components/shared/data-table.component.spec.ts&apos;" type="Error">
+Error: Cannot find module &apos;../../test-setup&apos; imported from &apos;D:/Clinic/src/app/components/shared/data-table.component.spec.ts&apos;
+ ❯ src/app/components/shared/data-table.component.spec.ts:1:1
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { code: &apos;ERR_MODULE_NOT_FOUND&apos; }
+            </failure>
+        </testcase>
+    </testsuite>
+    <testsuite name="src/app/components/shared/modal.component.spec.ts" timestamp="2026-02-15T12:24:59.815Z" hostname="DESKTOP-R3HK8LI" tests="1" failures="1" errors="0" skipped="0" time="0">
+        <testcase classname="src/app/components/shared/modal.component.spec.ts" name="src/app/components/shared/modal.component.spec.ts" time="0">
+            <failure message="Cannot find module &apos;../../test-setup&apos; imported from &apos;D:/Clinic/src/app/components/shared/modal.component.spec.ts&apos;" type="Error">
+Error: Cannot find module &apos;../../test-setup&apos; imported from &apos;D:/Clinic/src/app/components/shared/modal.component.spec.ts&apos;
+ ❯ src/app/components/shared/modal.component.spec.ts:1:1
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { code: &apos;ERR_MODULE_NOT_FOUND&apos; }
+            </failure>
+        </testcase>
+    </testsuite>
+    <testsuite name="src/app/components/shared/page-header.spec.ts" timestamp="2026-02-15T12:24:59.821Z" hostname="DESKTOP-R3HK8LI" tests="1" failures="1" errors="0" skipped="0" time="0.3805103">
+        <testcase classname="src/app/components/shared/page-header.spec.ts" name="PageHeaderComponent &gt; should create" time="0.3745292">
+            <failure message="document is not defined" type="ReferenceError">
+ReferenceError: document is not defined
+ ❯ Object._document [as useFactory] node_modules/@angular/platform-browser/fesm2022/_browser-chunk.mjs:322:16
+ ❯ Object.factory node_modules/@angular/core/fesm2022/_untracked-chunk.mjs:1385:32
+ ❯ node_modules/@angular/core/fesm2022/_untracked-chunk.mjs:1306:35
+ ❯ runInInjectorProfilerContext node_modules/@angular/core/fesm2022/_untracked-chunk.mjs:437:5
+ ❯ R3Injector.hydrate node_modules/@angular/core/fesm2022/_untracked-chunk.mjs:1304:11
+ ❯ R3Injector.get node_modules/@angular/core/fesm2022/_untracked-chunk.mjs:1196:23
+ ❯ R3Injector.get node_modules/@angular/core/fesm2022/_untracked-chunk.mjs:1201:27
+ ❯ R3Injector.retrieve node_modules/@angular/core/fesm2022/_untracked-chunk.mjs:1111:19
+ ❯ injectInjectorOnly node_modules/@angular/core/fesm2022/_untracked-chunk.mjs:665:35
+ ❯ ɵɵinject node_modules/@angular/core/fesm2022/_untracked-chunk.mjs:677:59
+            </failure>
+        </testcase>
+    </testsuite>
+    <testsuite name="src/app/components/shared/stat-card.component.spec.ts" timestamp="2026-02-15T12:24:59.827Z" hostname="DESKTOP-R3HK8LI" tests="1" failures="1" errors="0" skipped="0" time="0">
+        <testcase classname="src/app/components/shared/stat-card.component.spec.ts" name="src/app/components/shared/stat-card.component.spec.ts" time="0">
+            <failure message="Cannot find module &apos;../../test-setup&apos; imported from &apos;D:/Clinic/src/app/components/shared/stat-card.component.spec.ts&apos;" type="Error">
+Error: Cannot find module &apos;../../test-setup&apos; imported from &apos;D:/Clinic/src/app/components/shared/stat-card.component.spec.ts&apos;
+ ❯ src/app/components/shared/stat-card.component.spec.ts:1:1
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { code: &apos;ERR_MODULE_NOT_FOUND&apos; }
+            </failure>
+        </testcase>
+    </testsuite>
+    <testsuite name="src/app/pages/appointments/appointments.spec.ts" timestamp="2026-02-15T12:24:59.832Z" hostname="DESKTOP-R3HK8LI" tests="7" failures="1" errors="0" skipped="0" time="0.1918193">
+        <testcase classname="src/app/pages/appointments/appointments.spec.ts" name="Appointments Component &gt; should initialize and load data" time="0.1172044">
+        </testcase>
+        <testcase classname="src/app/pages/appointments/appointments.spec.ts" name="Appointments Component &gt; filteredAppointments should return filtered results" time="0.0043685">
+        </testcase>
+        <testcase classname="src/app/pages/appointments/appointments.spec.ts" name="Appointments Component &gt; should reset booking state" time="0.0351813">
+            <failure message="expected 2 to be 1 // Object.is equality" type="AssertionError">
+AssertionError: expected 2 to be 1 // Object.is equality
+
+- Expected
++ Received
+
+- 1
++ 2
+
+ ❯ src/app/pages/appointments/appointments.spec.ts:98:35
+ ❯ new ZoneAwarePromise node_modules/zone.js/fesm2015/zone.js:2221:23
+            </failure>
+        </testcase>
+        <testcase classname="src/app/pages/appointments/appointments.spec.ts" name="Appointments Component &gt; should validate step 1 (Patient Selection)" time="0.0027565">
+        </testcase>
+        <testcase classname="src/app/pages/appointments/appointments.spec.ts" name="Appointments Component &gt; should validate step 2 (Service Selection)" time="0.0060303">
+        </testcase>
+        <testcase classname="src/app/pages/appointments/appointments.spec.ts" name="Appointments Component &gt; should generate segments from services" time="0.0061996">
+        </testcase>
+        <testcase classname="src/app/pages/appointments/appointments.spec.ts" name="Appointments Component &gt; should detect conflicts" time="0.0019965">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/app/pages/billing/billing.spec.ts" timestamp="2026-02-15T12:24:59.842Z" hostname="DESKTOP-R3HK8LI" tests="5" failures="0" errors="0" skipped="0" time="0.0392959">
+        <testcase classname="src/app/pages/billing/billing.spec.ts" name="Billing Component &gt; loads data on init" time="0.0173443">
+        </testcase>
+        <testcase classname="src/app/pages/billing/billing.spec.ts" name="Billing Component &gt; filters pending appointments" time="0.0023003">
+        </testcase>
+        <testcase classname="src/app/pages/billing/billing.spec.ts" name="Billing Component &gt; opens invoice modal and populates items" time="0.0051339">
+        </testcase>
+        <testcase classname="src/app/pages/billing/billing.spec.ts" name="Billing Component &gt; calculates totals correctly" time="0.0039949">
+        </testcase>
+        <testcase classname="src/app/pages/billing/billing.spec.ts" name="Billing Component &gt; adds and removes payments" time="0.0028005">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/app/pages/calendar/calendar.spec.ts" timestamp="2026-02-15T12:24:59.848Z" hostname="DESKTOP-R3HK8LI" tests="3" failures="0" errors="0" skipped="0" time="0.0291251">
+        <testcase classname="src/app/pages/calendar/calendar.spec.ts" name="Calendar Page &gt; loads data on init" time="0.0177443">
+        </testcase>
+        <testcase classname="src/app/pages/calendar/calendar.spec.ts" name="Calendar Page &gt; filters events by doctor" time="0.0019995">
+        </testcase>
+        <testcase classname="src/app/pages/calendar/calendar.spec.ts" name="Calendar Page &gt; searches patients" time="0.0015335">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/app/pages/devices/devices.spec.ts" timestamp="2026-02-15T12:24:59.852Z" hostname="DESKTOP-R3HK8LI" tests="6" failures="1" errors="0" skipped="0" time="0.187652">
+        <testcase classname="src/app/pages/devices/devices.spec.ts" name="Devices Component &gt; loads data on init" time="0.034871">
+        </testcase>
+        <testcase classname="src/app/pages/devices/devices.spec.ts" name="Devices Component &gt; validates form before saving" time="0.0032931">
+        </testcase>
+        <testcase classname="src/app/pages/devices/devices.spec.ts" name="Devices Component &gt; adds new device" time="0.006518">
+        </testcase>
+        <testcase classname="src/app/pages/devices/devices.spec.ts" name="Devices Component &gt; updates existing device" time="0.0184797">
+            <failure message="expected &quot;vi.fn()&quot; to be called at least once" type="AssertionError">
+AssertionError: expected &quot;vi.fn()&quot; to be called at least once
+ ❯ src/app/pages/devices/devices.spec.ts:100:42
+ ❯ new ZoneAwarePromise node_modules/zone.js/fesm2015/zone.js:2221:23
+            </failure>
+        </testcase>
+        <testcase classname="src/app/pages/devices/devices.spec.ts" name="Devices Component &gt; logs usage" time="0.1090754">
+        </testcase>
+        <testcase classname="src/app/pages/devices/devices.spec.ts" name="Devices Component &gt; calculates maintenance status" time="0.0024713">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/app/pages/doctors/doctors.spec.ts" timestamp="2026-02-15T12:24:59.862Z" hostname="DESKTOP-R3HK8LI" tests="5" failures="0" errors="0" skipped="0" time="0.0697291">
+        <testcase classname="src/app/pages/doctors/doctors.spec.ts" name="Doctors Component &gt; loads doctors and rooms on init" time="0.0302029">
+        </testcase>
+        <testcase classname="src/app/pages/doctors/doctors.spec.ts" name="Doctors Component &gt; validates form before saving" time="0.0101308">
+        </testcase>
+        <testcase classname="src/app/pages/doctors/doctors.spec.ts" name="Doctors Component &gt; adds new doctor" time="0.0080165">
+        </testcase>
+        <testcase classname="src/app/pages/doctors/doctors.spec.ts" name="Doctors Component &gt; updates existing doctor" time="0.0042747">
+        </testcase>
+        <testcase classname="src/app/pages/doctors/doctors.spec.ts" name="Doctors Component &gt; manages shifts" time="0.0050848">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/app/pages/dashboard/dashboard.spec.ts" timestamp="2026-02-15T12:24:59.867Z" hostname="DESKTOP-R3HK8LI" tests="7" failures="0" errors="0" skipped="0" time="0.0543809">
+        <testcase classname="src/app/pages/dashboard/dashboard.spec.ts" name="Dashboard Component &gt; should create" time="0.0061892">
+        </testcase>
+        <testcase classname="src/app/pages/dashboard/dashboard.spec.ts" name="Dashboard Component &gt; should load dashboard data on init" time="0.0107751">
+        </testcase>
+        <testcase classname="src/app/pages/dashboard/dashboard.spec.ts" name="Dashboard Component &gt; should check in patient" time="0.0174302">
+        </testcase>
+        <testcase classname="src/app/pages/dashboard/dashboard.spec.ts" name="Dashboard Component &gt; should dismiss alert" time="0.0034826">
+        </testcase>
+        <testcase classname="src/app/pages/dashboard/dashboard.spec.ts" name="Dashboard Component &gt; should navigate" time="0.0040427">
+        </testcase>
+        <testcase classname="src/app/pages/dashboard/dashboard.spec.ts" name="Dashboard Component &gt; should return correct room name" time="0.0032676">
+        </testcase>
+        <testcase classname="src/app/pages/dashboard/dashboard.spec.ts" name="Dashboard Component &gt; should check if room is occupied" time="0.0028767">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/app/pages/inventory/inventory.spec.ts" timestamp="2026-02-15T12:24:59.874Z" hostname="DESKTOP-R3HK8LI" tests="6" failures="0" errors="0" skipped="0" time="0.0436545">
+        <testcase classname="src/app/pages/inventory/inventory.spec.ts" name="Inventory Component &gt; loads data and alerts on init" time="0.021685">
+        </testcase>
+        <testcase classname="src/app/pages/inventory/inventory.spec.ts" name="Inventory Component &gt; filters items correctly" time="0.0020207">
+        </testcase>
+        <testcase classname="src/app/pages/inventory/inventory.spec.ts" name="Inventory Component &gt; determines stock status" time="0.0022581">
+        </testcase>
+        <testcase classname="src/app/pages/inventory/inventory.spec.ts" name="Inventory Component &gt; saves new item" time="0.0023327">
+        </testcase>
+        <testcase classname="src/app/pages/inventory/inventory.spec.ts" name="Inventory Component &gt; updates existing item" time="0.0038913">
+        </testcase>
+        <testcase classname="src/app/pages/inventory/inventory.spec.ts" name="Inventory Component &gt; manages categories" time="0.0037292">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/app/pages/offers/offers.spec.ts" timestamp="2026-02-15T12:24:59.880Z" hostname="DESKTOP-R3HK8LI" tests="6" failures="0" errors="0" skipped="1" time="0.0790072">
+        <testcase classname="src/app/pages/offers/offers.spec.ts" name="Offers Component &gt; loads offers and services on init" time="0.0205415">
+        </testcase>
+        <testcase classname="src/app/pages/offers/offers.spec.ts" name="Offers Component &gt; adds default benefit when none provided on create" time="0.0100689">
+        </testcase>
+        <testcase classname="src/app/pages/offers/offers.spec.ts" name="Offers Component &gt; rejects save when name missing" time="0.0049159">
+        </testcase>
+        <testcase classname="src/app/pages/offers/offers.spec.ts" name="Offers Component &gt; updates offer when in edit mode" time="0.0255636">
+        </testcase>
+        <testcase classname="src/app/pages/offers/offers.spec.ts" name="Offers Component &gt; toggles status and toasts on success" time="0.0073834">
+        </testcase>
+        <testcase classname="src/app/pages/offers/offers.spec.ts" name="Offers Component &gt; reverts status and shows error on failure" time="0">
+            <skipped/>
+        </testcase>
+    </testsuite>
+    <testsuite name="src/app/pages/manual/manual.spec.ts" timestamp="2026-02-15T12:24:59.887Z" hostname="DESKTOP-R3HK8LI" tests="2" failures="0" errors="0" skipped="0" time="0.0249295">
+        <testcase classname="src/app/pages/manual/manual.spec.ts" name="Manual Page &gt; loads manual on init" time="0.0150514">
+        </testcase>
+        <testcase classname="src/app/pages/manual/manual.spec.ts" name="Manual Page &gt; handles error loading manual" time="0.0052161">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/app/pages/patients/patients.spec.ts" timestamp="2026-02-15T12:24:59.889Z" hostname="DESKTOP-R3HK8LI" tests="7" failures="0" errors="0" skipped="1" time="0.1254551">
+        <testcase classname="src/app/pages/patients/patients.spec.ts" name="Patients Component &gt; hydrates patients with derived fields on load" time="0.0454138">
+        </testcase>
+        <testcase classname="src/app/pages/patients/patients.spec.ts" name="Patients Component &gt; blocks save when required fields missing" time="0.0074868">
+        </testcase>
+        <testcase classname="src/app/pages/patients/patients.spec.ts" name="Patients Component &gt; creates patient when not in edit mode" time="0.015336">
+        </testcase>
+        <testcase classname="src/app/pages/patients/patients.spec.ts" name="Patients Component &gt; updates patient when in edit mode" time="0.0178016">
+        </testcase>
+        <testcase classname="src/app/pages/patients/patients.spec.ts" name="Patients Component &gt; deletes patient after confirmation" time="0">
+            <skipped/>
+        </testcase>
+        <testcase classname="src/app/pages/patients/patients.spec.ts" name="Patients Component &gt; tops up wallet and logs transaction" time="0.0158289">
+        </testcase>
+        <testcase classname="src/app/pages/patients/patients.spec.ts" name="Patients Component &gt; loads sessions and computes notes and photos" time="0.0066021">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/app/pages/patient-profile/patient-profile.spec.ts" timestamp="2026-02-15T12:24:59.896Z" hostname="DESKTOP-R3HK8LI" tests="4" failures="0" errors="0" skipped="0" time="0.030341">
+        <testcase classname="src/app/pages/patient-profile/patient-profile.spec.ts" name="Patient Profile Page &gt; loads patient data on init" time="0.0161849">
+        </testcase>
+        <testcase classname="src/app/pages/patient-profile/patient-profile.spec.ts" name="Patient Profile Page &gt; calculates total credits" time="0.0015928">
+        </testcase>
+        <testcase classname="src/app/pages/patient-profile/patient-profile.spec.ts" name="Patient Profile Page &gt; handles package purchase" time="0.0039474">
+        </testcase>
+        <testcase classname="src/app/pages/patient-profile/patient-profile.spec.ts" name="Patient Profile Page &gt; confirms payment for pending purchase" time="0.0039654">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/app/pages/reports/reports.spec.ts" timestamp="2026-02-15T12:24:59.900Z" hostname="DESKTOP-R3HK8LI" tests="3" failures="0" errors="0" skipped="0" time="0.0673314">
+        <testcase classname="src/app/pages/reports/reports.spec.ts" name="Reports Component &gt; loads reports on init" time="0.0386472">
+        </testcase>
+        <testcase classname="src/app/pages/reports/reports.spec.ts" name="Reports Component &gt; refreshes reports" time="0.0092834">
+        </testcase>
+        <testcase classname="src/app/pages/reports/reports.spec.ts" name="Reports Component &gt; validates export if no data" time="0.0045226">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/app/pages/rooms/rooms.spec.ts" timestamp="2026-02-15T12:24:59.903Z" hostname="DESKTOP-R3HK8LI" tests="4" failures="0" errors="0" skipped="0" time="0.0348683">
+        <testcase classname="src/app/pages/rooms/rooms.spec.ts" name="Rooms Component &gt; loads rooms on init" time="0.0172517">
+        </testcase>
+        <testcase classname="src/app/pages/rooms/rooms.spec.ts" name="Rooms Component &gt; validates form before saving" time="0.0037191">
+        </testcase>
+        <testcase classname="src/app/pages/rooms/rooms.spec.ts" name="Rooms Component &gt; adds new room" time="0.0038402">
+        </testcase>
+        <testcase classname="src/app/pages/rooms/rooms.spec.ts" name="Rooms Component &gt; updates existing room" time="0.002898">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/app/pages/services/services.spec.ts" timestamp="2026-02-15T12:24:59.908Z" hostname="DESKTOP-R3HK8LI" tests="5" failures="0" errors="0" skipped="0" time="0.0453705">
+        <testcase classname="src/app/pages/services/services.spec.ts" name="Services Component &gt; loads data on init" time="0.0223385">
+        </testcase>
+        <testcase classname="src/app/pages/services/services.spec.ts" name="Services Component &gt; filters services by category" time="0.0035435">
+        </testcase>
+        <testcase classname="src/app/pages/services/services.spec.ts" name="Services Component &gt; validates form before saving" time="0.0048129">
+        </testcase>
+        <testcase classname="src/app/pages/services/services.spec.ts" name="Services Component &gt; adds new service" time="0.0037849">
+        </testcase>
+        <testcase classname="src/app/pages/services/services.spec.ts" name="Services Component &gt; toggles pricing types" time="0.003085">
+        </testcase>
+    </testsuite>
+    <testsuite name="src/app/components/shared/notifications-panel/notifications-panel.component.spec.ts" timestamp="2026-02-15T12:24:59.913Z" hostname="DESKTOP-R3HK8LI" tests="1" failures="1" errors="0" skipped="0" time="0">
+        <testcase classname="src/app/components/shared/notifications-panel/notifications-panel.component.spec.ts" name="src/app/components/shared/notifications-panel/notifications-panel.component.spec.ts" time="0">
+            <failure message="Cannot find module &apos;../../test-setup&apos; imported from &apos;D:/Clinic/src/app/components/shared/notifications-panel/notifications-panel.component.spec.ts&apos;" type="Error">
+Error: Cannot find module &apos;../../test-setup&apos; imported from &apos;D:/Clinic/src/app/components/shared/notifications-panel/notifications-panel.component.spec.ts&apos;
+ ❯ src/app/components/shared/notifications-panel/notifications-panel.component.spec.ts:1:1
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { code: &apos;ERR_MODULE_NOT_FOUND&apos; }
+            </failure>
+        </testcase>
+    </testsuite>
+    <testsuite name="src/app/pages/sessions/sessions.spec.ts" timestamp="2026-02-15T12:24:59.919Z" hostname="DESKTOP-R3HK8LI" tests="5" failures="0" errors="0" skipped="0" time="0.0736448">
+        <testcase classname="src/app/pages/sessions/sessions.spec.ts" name="Sessions Component &gt; loads data and builds active sessions" time="0.0388316">
+        </testcase>
+        <testcase classname="src/app/pages/sessions/sessions.spec.ts" name="Sessions Component &gt; starts session from checked-in appointment" time="0.0110344">
+        </testcase>
+        <testcase classname="src/app/pages/sessions/sessions.spec.ts" name="Sessions Component &gt; calculates billing for pulse based service" time="0.0069624">
+        </testcase>
+        <testcase classname="src/app/pages/sessions/sessions.spec.ts" name="Sessions Component &gt; calculates billing for fixed service" time="0.002923">
+        </testcase>
+        <testcase classname="src/app/pages/sessions/sessions.spec.ts" name="Sessions Component &gt; opens end session modal and initializes state" time="0.00648">
+        </testcase>
+    </testsuite>
+</testsuites>

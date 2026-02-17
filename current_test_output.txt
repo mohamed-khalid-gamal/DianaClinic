@@ -1,0 +1,111 @@
+﻿
+> ccms@0.0.0 test
+> ng test --watch=false
+
+[33mΓ¥»[39m Building...
+[32mΓ£ö[39m Building...
+[1mInitial chunk files[22m                  [2m | [22m[1mNames[22m                             [2m | [22m [1mRaw size[22m
+[32mspec-appointments.js[39m                 [2m | [22m[2mspec-appointments[22m                 [2m | [22m[36m176.21 kB[39m[2m | [22m
+[32mspec-offers.js[39m                       [2m | [22m[2mspec-offers[22m                       [2m | [22m[36m142.66 kB[39m[2m | [22m
+[32mspec-sessions.js[39m                     [2m | [22m[2mspec-sessions[22m                     [2m | [22m[36m135.09 kB[39m[2m | [22m
+[32mspec-billing.js[39m                      [2m | [22m[2mspec-billing[22m                      [2m | [22m[36m107.59 kB[39m[2m | [22m
+[32mstyles.css[39m                           [2m | [22m[2mstyles[22m                            [2m | [22m[36m105.93 kB[39m[2m | [22m
+[32mspec-services.js[39m                     [2m | [22m[2mspec-services[22m                     [2m | [22m[36m103.45 kB[39m[2m | [22m
+[32mspec-patient-profile.js[39m              [2m | [22m[2mspec-patient-profile[22m              [2m | [22m [36m94.32 kB[39m[2m | [22m
+[32mspec-patients.js[39m                     [2m | [22m[2mspec-patients[22m                     [2m | [22m [36m89.48 kB[39m[2m | [22m
+[32mspec-inventory.js[39m                    [2m | [22m[2mspec-inventory[22m                    [2m | [22m [36m64.86 kB[39m[2m | [22m
+[32mspec-calendar.js[39m                     [2m | [22m[2mspec-calendar[22m                     [2m | [22m [36m56.87 kB[39m[2m | [22m
+[32mspec-devices.js[39m                      [2m | [22m[2mspec-devices[22m                      [2m | [22m [36m55.29 kB[39m[2m | [22m
+[32mspec-dashboard.js[39m                    [2m | [22m[2mspec-dashboard[22m                    [2m | [22m [36m53.72 kB[39m[2m | [22m
+[32mspec-doctors.js[39m                      [2m | [22m[2mspec-doctors[22m                      [2m | [22m [36m40.20 kB[39m[2m | [22m
+[32mspec-reports.js[39m                      [2m | [22m[2mspec-reports[22m                      [2m | [22m [36m34.43 kB[39m[2m | [22m
+[32mchunk-YYAUZX4B.js[39m                    [2m | [22m[2m-[22m                                 [2m | [22m [36m26.82 kB[39m[2m | [22m
+[32mchunk-T5IU5OIB.js[39m                    [2m | [22m[2m-[22m                                 [2m | [22m [36m26.07 kB[39m[2m | [22m
+[32mspec-app.js[39m                          [2m | [22m[2mspec-app[22m                          [2m | [22m [36m24.94 kB[39m[2m | [22m
+[32mspec-rooms.js[39m                        [2m | [22m[2mspec-rooms[22m                        [2m | [22m [36m21.30 kB[39m[2m | [22m
+[32mchunk-QBZNE5F6.js[39m                    [2m | [22m[2m-[22m                                 [2m | [22m [36m16.31 kB[39m[2m | [22m
+[32mchunk-AAZEQDCB.js[39m                    [2m | [22m[2m-[22m                                 [2m | [22m [36m14.86 kB[39m[2m | [22m
+[32mspec-manual.js[39m                       [2m | [22m[2mspec-manual[22m                       [2m | [22m [36m12.49 kB[39m[2m | [22m
+[32mchunk-CWYEGLQ4.js[39m                    [2m | [22m[2m-[22m                                 [2m | [22m [36m12.35 kB[39m[2m | [22m
+[32mchunk-4PPVRUJD.js[39m                    [2m | [22m[2m-[22m                                 [2m | [22m [36m11.53 kB[39m[2m | [22m
+[32mchunk-SOOZV2SG.js[39m                    [2m | [22m[2m-[22m                                 [2m | [22m  [36m7.08 kB[39m[2m | [22m
+[32mchunk-SOFKD7M6.js[39m                    [2m | [22m[2m-[22m                                 [2m | [22m  [36m6.76 kB[39m[2m | [22m
+[32mchunk-HOXMRY43.js[39m                    [2m | [22m[2m-[22m                                 [2m | [22m  [36m6.51 kB[39m[2m | [22m
+[32mchunk-OIVMUTLJ.js[39m                    [2m | [22m[2m-[22m                                 [2m | [22m  [36m5.81 kB[39m[2m | [22m
+[32mchunk-37KD7UHW.js[39m                    [2m | [22m[2m-[22m                                 [2m | [22m  [36m5.17 kB[39m[2m | [22m
+[32mchunk-LKWZ7NWB.js[39m                    [2m | [22m[2m-[22m                                 [2m | [22m  [36m3.96 kB[39m[2m | [22m
+[32mchunk-HRLK4L43.js[39m                    [2m | [22m[2m-[22m                                 [2m | [22m  [36m3.67 kB[39m[2m | [22m
+[32mspec-calendar.service.js[39m             [2m | [22m[2mspec-calendar.service[22m             [2m | [22m  [36m2.87 kB[39m[2m | [22m
+[32mspec-offer.service.js[39m                [2m | [22m[2mspec-offer.service[22m                [2m | [22m  [36m2.69 kB[39m[2m | [22m
+[32mspec-alert.service.js[39m                [2m | [22m[2mspec-alert.service[22m                [2m | [22m  [36m2.61 kB[39m[2m | [22m
+[32mspec-sweet-alert.service.js[39m          [2m | [22m[2mspec-sweet-alert.service[22m          [2m | [22m  [36m2.37 kB[39m[2m | [22m
+[32mspec-wallet.service.js[39m               [2m | [22m[2mspec-wallet.service[22m               [2m | [22m  [36m2.14 kB[39m[2m | [22m
+[32mchunk-GJ4VQUPH.js[39m                    [2m | [22m[2m-[22m                                 [2m | [22m  [36m1.79 kB[39m[2m | [22m
+[32mspec-data-table.component.js[39m         [2m | [22m[2mspec-data-table.component[22m         [2m | [22m  [36m1.63 kB[39m[2m | [22m
+[32mspec-badge.service.js[39m                [2m | [22m[2mspec-badge.service[22m                [2m | [22m  [36m1.59 kB[39m[2m | [22m
+[32mspec-notifications-panel.component.js[39m[2m | [22m[2mspec-notifications-panel.component[22m[2m | [22m  [36m1.49 kB[39m[2m | [22m
+[32mspec-calendar.component.js[39m           [2m | [22m[2mspec-calendar.component[22m           [2m | [22m  [36m1.47 kB[39m[2m | [22m
+[32minit-testbed.js[39m                      [2m | [22m[2minit-testbed[22m                      [2m | [22m  [36m1.20 kB[39m[2m | [22m
+[32mspec-stat-card.component.js[39m          [2m | [22m[2mspec-stat-card.component[22m          [2m | [22m  [36m1.17 kB[39m[2m | [22m
+[32mspec-modal.component.js[39m              [2m | [22m[2mspec-modal.component[22m              [2m | [22m[36m884 bytes[39m[2m | [22m
+[32mspec-page-header.js[39m                  [2m | [22m[2mspec-page-header[22m                  [2m | [22m[36m698 bytes[39m[2m | [22m
+[32mchunk-NIMPVJVP.js[39m                    [2m | [22m[2m-[22m                                 [2m | [22m[36m698 bytes[39m[2m | [22m
+[32mspec-status-colors.js[39m                [2m | [22m[2mspec-status-colors[22m                [2m | [22m[36m625 bytes[39m[2m | [22m
+[32mchunk-VTNIOJQU.js[39m                    [2m | [22m[2m-[22m                                 [2m | [22m[36m392 bytes[39m[2m | [22m
+[32mchunk-ZI322W74.js[39m                    [2m | [22m[2m-[22m                                 [2m | [22m [36m43 bytes[39m[2m | [22m
+
+[1m [22m                                    [2m | [22m[1mInitial total[22m                     [2m | [22m  [1m1.49 MB[22m
+
+Application bundle generation complete. [10.186 seconds] - 2026-02-15T12:45:25.357Z
+
+
+[1m[46m RUN [49m[22m [36mv4.0.17 [39m[90mD:/Clinic[39m
+
+ [31mΓ¥»[39m [30m[43m ccms [49m[39m src/app/services/sweet-alert.service.spec.ts [2m([22m[2m0 test[22m[2m)[22m
+ [31mΓ¥»[39m [30m[43m ccms [49m[39m src/app/pages/patient-profile/patient-profile.spec.ts [2m([22m[2m0 test[22m[2m)[22m
+ [31mΓ¥»[39m [30m[43m ccms [49m[39m src/app/pages/billing/billing.spec.ts [2m([22m[2m0 test[22m[2m)[22m
+ [31mΓ¥»[39m [30m[43m ccms [49m[39m src/app/pages/offers/offers.spec.ts [2m([22m[2m0 test[22m[2m)[22m
+ [32mΓ£ô[39m [30m[43m ccms [49m[39m src/app/services/wallet.service.spec.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 28[2mms[22m[39m
+ [32mΓ£ô[39m [30m[43m ccms [49m[39m src/app/pages/reports/reports.spec.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 29[2mms[22m[39m
+ [31mΓ¥»[39m [30m[43m ccms [49m[39m src/app/pages/devices/devices.spec.ts [2m([22m[2m6 tests[22m[2m | [22m[31m1 failed[39m[2m)[22m[32m 135[2mms[22m[39m
+     [32mΓ£ô[39m loads data on init[32m 18[2mms[22m[39m
+     [32mΓ£ô[39m validates form before saving[32m 3[2mms[22m[39m
+     [32mΓ£ô[39m adds new device[32m 15[2mms[22m[39m
+[31m     [31m├ù[31m updates existing device[39m[32m 20[2mms[22m[39m
+     [32mΓ£ô[39m logs usage[32m 68[2mms[22m[39m
+     [32mΓ£ô[39m calculates maintenance status[32m 3[2mms[22m[39m
+ [31mΓ¥»[39m [30m[43m ccms [49m[39m src/app/pages/appointments/appointments.spec.ts [2m([22m[2m7 tests[22m[2m | [22m[31m1 failed[39m[2m)[22m[32m 191[2mms[22m[39m
+     [32mΓ£ô[39m should initialize and load data[32m 129[2mms[22m[39m
+     [32mΓ£ô[39m filteredAppointments should return filtered results[32m 3[2mms[22m[39m
+[31m     [31m├ù[31m should reset booking state[39m[32m 44[2mms[22m[39m
+     [32mΓ£ô[39m should validate step 1 (Patient Selection)[32m 3[2mms[22m[39m
+     [32mΓ£ô[39m should validate step 2 (Service Selection)[32m 2[2mms[22m[39m
+     [32mΓ£ô[39m should generate segments from services[32m 3[2mms[22m[39m
+     [32mΓ£ô[39m should detect conflicts[32m 2[2mms[22m[39m
+ [32mΓ£ô[39m [30m[43m ccms [49m[39m src/app/pages/manual/manual.spec.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 22[2mms[22m[39m
+ [32mΓ£ô[39m [30m[43m ccms [49m[39m src/app/services/badge.service.spec.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+ [32mΓ£ô[39m [30m[43m ccms [49m[39m src/app/services/calendar.service.spec.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 10[2mms[22m[39m
+ [32mΓ£ô[39m [30m[43m ccms [49m[39m src/app/pages/doctors/doctors.spec.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 12[2mms[22m[39m
+ [32mΓ£ô[39m [30m[43m ccms [49m[39m src/app/services/alert.service.spec.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 12[2mms[22m[39m
+ [32mΓ£ô[39m [30m[43m ccms [49m[39m src/app/pages/services/services.spec.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 35[2mms[22m[39m
+ [32mΓ£ô[39m [30m[43m ccms [49m[39m src/app/utils/status-colors.spec.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 3[2mms[22m[39m
+ [32mΓ£ô[39m [30m[43m ccms [49m[39m src/app/components/shared/data-table.component.spec.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 9[2mms[22m[39m
+ [32mΓ£ô[39m [30m[43m ccms [49m[39m src/app/services/offer.service.spec.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 6[2mms[22m[39m
+ [32mΓ£ô[39m [30m[43m ccms [49m[39m src/app/pages/rooms/rooms.spec.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32mΓ£ô[39m [30m[43m ccms [49m[39m src/app/components/shared/modal.component.spec.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 3[2mms[22m[39m
+ [32mΓ£ô[39m [30m[43m ccms [49m[39m src/app/components/shared/stat-card.component.spec.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 3[2mms[22m[39m
+ [32mΓ£ô[39m [30m[43m ccms [49m[39m src/app/components/shared/notifications-panel/notifications-panel.component.spec.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 5[2mms[22m[39m
+ [32mΓ£ô[39m [30m[43m ccms [49m[39m src/app/pages/dashboard/dashboard.spec.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 53[2mms[22m[39m
+ [32mΓ£ô[39m [30m[43m ccms [49m[39m src/app/components/shared/page-header.spec.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 3[2mms[22m[39m
+ [32mΓ£ô[39m [30m[43m ccms [49m[39m src/app/pages/patients/patients.spec.ts [2m([22m[2m7 tests[22m[2m | [22m[33m1 skipped[39m[2m)[22m[32m 65[2mms[22m[39m
+ [32mΓ£ô[39m [30m[43m ccms [49m[39m src/app/app.spec.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 2[2mms[22m[39m
+ [32mΓ£ô[39m [30m[43m ccms [49m[39m src/app/components/shared/calendar.component.spec.ts [2m([22m[2m4 tests[22m[2m)[22m[32m 21[2mms[22m[39m
+ [32mΓ£ô[39m [30m[43m ccms [49m[39m src/app/pages/inventory/inventory.spec.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 44[2mms[22m[39m
+ [32mΓ£ô[39m [30m[43m ccms [49m[39m src/app/pages/sessions/sessions.spec.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 39[2mms[22m[39m
+ [32mΓ£ô[39m [30m[43m ccms [49m[39m src/app/pages/calendar/calendar.spec.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+
+[2m Test Files [22m [1m[31m6 failed[39m[22m[2m | [22m[1m[32m23 passed[39m[22m[90m (29)[39m
+[2m      Tests [22m [1m[31m2 failed[39m[22m[2m | [22m[1m[32m101 passed[39m[22m[2m | [22m[33m1 skipped[39m[90m (104)[39m
+[2m   Start at [22m 14:45:25
+[2m   Duration [22m 19.35s[2m (transform 11.02s, setup 50.85s, import 29.56s, tests 760ms, environment 283.87s)[22m
+

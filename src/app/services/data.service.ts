@@ -180,7 +180,14 @@ export class DataService {
 
   // Offers
   getOffers(): Observable<Offer[]> {
-    return this.http.get<Offer[]>(`${this.apiBase}/offers`);
+    return this.http.get<Offer[]>(`${this.apiBase}/offers`).pipe(
+      map(offers => offers.map(o => ({
+        ...o,
+        validFrom: o.validFrom ? new Date(o.validFrom) : undefined,
+        validUntil: o.validUntil ? new Date(o.validUntil) : undefined,
+        createdAt: new Date(o.createdAt)
+      })))
+    );
   }
 
   addOffer(offer: Offer): Observable<Offer> {
@@ -268,17 +275,34 @@ export class DataService {
 
   // Sessions
   getSessions(): Observable<Session[]> {
-    return this.http.get<Session[]>(`${this.apiBase}/sessions`);
+    return this.http.get<Session[]>(`${this.apiBase}/sessions`).pipe(
+      map(sessions => sessions.map(s => this.hydrateSession(s)))
+    );
   }
 
   getSessionByAppointment(appointmentId: string): Observable<Session | undefined> {
     return this.http.get<Session | null>(`${this.apiBase}/sessions/appointment/${appointmentId}`).pipe(
-      map(s => s ?? undefined)
+      map(s => s ? this.hydrateSession(s) : undefined)
     );
+  }
+
+  private hydrateSession(session: Session): Session {
+    return {
+      ...session,
+      startTime: new Date(session.startTime),
+      endTime: session.endTime ? new Date(session.endTime) : undefined,
+      deviceUsage: session.deviceUsage
+        ? { ...session.deviceUsage, timestamp: new Date(session.deviceUsage.timestamp) }
+        : undefined
+    };
   }
 
   addSession(session: Omit<Session, 'id'>): Observable<Session> {
     return this.http.post<Session>(`${this.apiBase}/sessions`, session);
+  }
+
+  completeSession(payload: any): Observable<Session> {
+    return this.http.post<Session>(`${this.apiBase}/sessions/complete`, payload);
   }
 
   updateSession(sessionId: string, updates: Partial<Session>): Observable<any> {

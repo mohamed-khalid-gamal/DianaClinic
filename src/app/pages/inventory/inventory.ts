@@ -27,6 +27,8 @@ export class Inventory implements OnInit, OnDestroy {
   private alertSub?: Subscription;
 
   // Category management
+  loading = true;
+  saving = false;
   showCategoryModal = false;
   newCategoryName = '';
   editingCategoryId: string | null = null;
@@ -65,6 +67,7 @@ export class Inventory implements OnInit, OnDestroy {
   }
 
   loadData() {
+    this.loading = true;
     forkJoin({
       items: this.dataService.getInventory(),
       categories: this.dataService.getInventoryCategories()
@@ -76,9 +79,13 @@ export class Inventory implements OnInit, OnDestroy {
           stockStatus: this.getStockStatus(item),
           categoryName: this.getCategoryName(item.category)
         }));
+        this.loading = false;
         this.cdr.detectChanges();
       },
-      error: () => {} // Handled globally
+      error: () => {
+        this.loading = false;
+        this.cdr.detectChanges();
+      }
     });
   }
 
@@ -150,14 +157,20 @@ export class Inventory implements OnInit, OnDestroy {
     }
 
     const itemName = this.itemForm.name || 'Item';
+    this.saving = true;
     if (!this.isEditMode) {
       this.dataService.addInventoryItem(this.itemForm as InventoryItem).subscribe({
         next: () => {
           this.sweetAlert.created('Inventory Item', itemName);
           this.loadData();
           this.closeModal();
+          this.saving = false;
+          this.cdr.detectChanges();
         },
-        error: () => {} // Handled globally
+        error: () => {
+          this.saving = false;
+          this.cdr.detectChanges();
+        }
       });
     } else {
       this.dataService.updateInventoryItem(this.itemForm as InventoryItem).subscribe({
@@ -165,8 +178,13 @@ export class Inventory implements OnInit, OnDestroy {
           this.sweetAlert.updated('Inventory Item', itemName);
           this.loadData();
           this.closeModal();
+          this.saving = false;
+          this.cdr.detectChanges();
         },
-        error: () => {} // Handled globally
+        error: () => {
+          this.saving = false;
+          this.cdr.detectChanges();
+        }
       });
     }
   }

@@ -6,7 +6,12 @@
   </button>
 </app-page-header>
 
-<div class="appointments-container">
+<div class="page-loading" *ngIf="loading" aria-live="polite">
+  <div class="spinner"></div>
+  <span class="loading-text">Loading appointments...</span>
+</div>
+
+<div class="appointments-container" *ngIf="!loading">
   <!-- Calendar Navigation -->
   <div class="calendar-header">
     <div class="date-navigation">
@@ -131,7 +136,7 @@
   [showFooter]="false"
   (closed)="closeBookingModal()">
 
-  <!-- Updated Progress Steps (5 Steps) -->
+  <!-- Progress Steps (3 Steps) -->
   <div class="booking-steps">
     <div class="step" [class.active]="bookingStep >= 1" [class.completed]="bookingStep > 1">
       <span class="step-number">1</span>
@@ -143,19 +148,9 @@
       <span class="step-label">Services</span>
     </div>
     <div class="step-line" [class.active]="bookingStep > 2"></div>
-    <div class="step" [class.active]="bookingStep >= 3" [class.completed]="bookingStep > 3">
+    <div class="step" [class.active]="bookingStep >= 3">
       <span class="step-number">3</span>
-      <span class="step-label">Group</span>
-    </div>
-    <div class="step-line" [class.active]="bookingStep > 3"></div>
-    <div class="step" [class.active]="bookingStep >= 4" [class.completed]="bookingStep > 4">
-      <span class="step-number">4</span>
       <span class="step-label">Schedule</span>
-    </div>
-    <div class="step-line" [class.active]="bookingStep > 4"></div>
-    <div class="step" [class.active]="bookingStep >= 5">
-      <span class="step-number">5</span>
-      <span class="step-label">Confirm</span>
     </div>
   </div>
 
@@ -265,50 +260,10 @@
     <span class="error-text" *ngIf="bookingAttemptedStep2 && booking.allServiceIds.length === 0">Select at least one service</span>
   </div>
 
-  <!-- Step 3: Structure (Grouping) -->
+
+
+  <!-- Step 3: Schedule -->
   <div class="step-content" *ngIf="bookingStep === 3">
-    <div class="section-header">
-       <h3>Review & Group Appointments</h3>
-       <p class="text-secondary text-sm">Combine compatible services into a single visit, or schedule them separately.</p>
-    </div>
-
-    <div class="segments-list">
-        <div class="segment-card" *ngFor="let seg of bookingSegments; let i = index"
-             [class.selected]="selectedSegmentIndices.includes(i)"
-             [class.merged-bundle]="seg.serviceIds.length > 1">
-            <div class="segment-selection">
-                <input type="checkbox"
-                       [checked]="selectedSegmentIndices.includes(i)"
-                       (change)="toggleSegmentSelection(i)"
-                       [disabled]="seg.serviceIds.length > 1">
-            </div>
-            <div class="segment-info">
-                <div class="segment-label font-bold">{{ seg.label }}</div>
-                <div class="segment-meta text-sm text-muted">
-                    <span *ngIf="seg.serviceIds.length > 1">{{ seg.serviceIds.length }} Services &bull; </span>
-                    {{ seg.duration }} mins
-                </div>
-            </div>
-            <div class="segment-actions">
-                <button class="btn btn-outline btn-xs"
-                        *ngIf="seg.serviceIds.length > 1"
-                        (click)="splitSegment(i)">
-                    Split
-                </button>
-            </div>
-        </div>
-    </div>
-    <div class="grouping-toolbar" *ngIf="selectedSegmentIndices.length > 1">
-        <button class="btn btn-primary btn-sm w-full"
-                [disabled]="!canMergeSelected()"
-                (click)="mergeSelectedSegments()">
-            Merge Selected ({{ selectedSegmentIndices.length }})
-        </button>
-    </div>
-  </div>
-
-  <!-- Step 4: Schedule -->
-  <div class="step-content" *ngIf="bookingStep === 4">
     <div class="section-header">
        <div class="header-row" style="display: flex; justify-content: space-between; align-items: center;">
           <h3>Choose Date & Time</h3>
@@ -370,91 +325,7 @@
         <textarea [(ngModel)]="booking.notes" rows="2" placeholder="Optional notes..."></textarea>
       </div>
     </div>
-    <span class="error-text" *ngIf="bookingAttemptedStep4 && !isCurrentSegmentComplete()">Select date, time, doctor, and room</span>
-  </div>
-
-  <!-- Step 5: Confirm & Pay -->
-  <div class="step-content" *ngIf="bookingStep === 5">
-    <h3>Review & Payment</h3>
-
-    <div class="review-grid">
-       <!-- Invoice Items -->
-       <div class="invoice-summary">
-          <h4>Booking Summary</h4>
-          <div class="summary-item" *ngFor="let item of bookingSummary.items">
-             <div class="item-name">
-                <span class="font-bold">{{ item.serviceName }}</span>
-                <span class="text-xs text-muted block" *ngIf="item.creditAvailable > 0">
-                   {{ item.creditAvailable }} units available
-                </span>
-             </div>
-             <div class="item-actions">
-                <div class="credit-toggle" *ngIf="item.creditAvailable > 0">
-                   <label class="switch">
-                      <input type="checkbox"
-                             [checked]="item.isCreditCovered"
-                             (change)="toggleCreditUsage(item.serviceId)">
-                      <span class="slider round"></span>
-                   </label>
-                   <span class="text-sm ml-2" [class.text-success]="item.isCreditCovered">Use Credit</span>
-                </div>
-             </div>
-             <div class="item-price">
-                 <span *ngIf="!item.isCreditCovered">{{ item.price | number }} EGP</span>
-                 <span *ngIf="item.isCreditCovered" class="text-success font-bold">0 EGP (Credit)</span>
-             </div>
-          </div>
-
-          <!-- Offers Section inside Invoice -->
-          <div class="offers-section mt-4" *ngIf="bookingSummary.items.length > 0">
-             <div class="offers-trigger" (click)="bookingStep = 5"> <!-- TODO: Toggle Offers Logic/Modal? Or integrated? -->
-                <!-- Simplified: Just show if offers are available or currently applied -->
-                <div *ngIf="applicableOffers.length > 0">
-                   <label class="block mb-2">Available Offers</label>
-                   <select [(ngModel)]="booking.offerId" (change)="calculateBookingSummary()">
-                      <option [ngValue]="undefined">No Offer Selected</option>
-                      <option *ngFor="let app of applicableOffers" [value]="app.offer.id">
-                         {{ app.offer.name }} (-{{ app.discountAmount }} EGP)
-                      </option>
-                   </select>
-                </div>
-             </div>
-          </div>
-
-          <div class="invoice-divider"></div>
-          
-          <div class="invoice-totals">
-             <div class="total-row">
-                <span>Subtotal</span>
-                <span>{{ bookingSummary.totalAmount | number }} EGP</span>
-             </div>
-             <div class="total-row" *ngIf="bookingSummary.discountAmount > 0">
-                <span>Discount</span>
-                <span class="text-success">-{{ bookingSummary.discountAmount | number }} EGP</span>
-             </div>
-              <div class="total-row final">
-                <span>Total to Pay</span>
-                <span>{{ bookingSummary.finalAmount | number }} EGP</span>
-             </div>
-          </div>
-       </div>
-
-       <!-- Schedule Summary (Compact) -->
-       <div class="schedule-summary-compact">
-          <h4>Schedule</h4>
-          <div class="compact-segment" *ngFor="let seg of bookingSegments">
-             <div class="compact-date">
-                <span class="day">{{ seg.date | date:'d' }}</span>
-                <span class="month">{{ seg.date | date:'MMM' }}</span>
-             </div>
-             <div class="compact-details">
-                <span class="time">{{ seg.time }}</span>
-                <span class="doc">{{ getDoctorName(seg.doctorId) }}</span>
-                <span class="room text-muted text-xs">{{ getRoomName(seg.roomId) }}</span>
-             </div>
-          </div>
-       </div>
-    </div>
+    <span class="error-text" *ngIf="bookingAttemptedStep3 && !isCurrentSegmentComplete()">Select date, time, doctor, and room</span>
   </div>
 
   <!-- Navigation Buttons -->
@@ -465,16 +336,15 @@
     <div class="spacer"></div>
     <button class="btn btn-outline" (click)="closeBookingModal()">Cancel</button>
     <button class="btn btn-primary"
-            *ngIf="bookingStep < 5"
+            *ngIf="bookingStep < 3"
             (click)="nextStep()">
-      <span *ngIf="bookingStep === 4 && currentSegmentIndex < bookingSegments.length - 1">Next Appointment</span>
-      <span *ngIf="!(bookingStep === 4 && currentSegmentIndex < bookingSegments.length - 1)">Next</span>
-      <i class="fa-solid fa-arrow-right"></i>
+      Next <i class="fa-solid fa-arrow-right"></i>
     </button>
     <button class="btn btn-primary"
-            *ngIf="bookingStep === 5"
-            (click)="confirmBooking()">
-      Confirm Booking
+            *ngIf="bookingStep === 3"
+            (click)="nextStep()">
+      <span *ngIf="currentSegmentIndex < bookingSegments.length - 1">Next Appointment <i class="fa-solid fa-arrow-right"></i></span>
+      <span *ngIf="currentSegmentIndex >= bookingSegments.length - 1"><i class="fa-solid fa-check"></i> Confirm Booking</span>
     </button>
   </div>
 </app-modal>

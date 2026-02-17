@@ -20,7 +20,12 @@
   </div>
 </app-page-header>
 
-<div class="billing-section">
+<div class="page-loading" *ngIf="loading" aria-live="polite">
+  <div class="spinner"></div>
+  <span class="loading-text">Loading billing...</span>
+</div>
+
+<div class="billing-section" *ngIf="!loading">
   <div class="tabs-container">
     <div class="segmented-control">
       <button class="segment-btn" [class.active]="activeTab === 'pending'" (click)="activeTab = 'pending'">
@@ -273,7 +278,7 @@
             <option value="card">Card</option>
             <option value="wallet">Wallet</option>
           </select>
-          <input type="number" name="paymentAmount" [(ngModel)]="newPayment.amount" placeholder="Amount">
+          <input type="number" name="paymentAmount" [(ngModel)]="newPayment.amount" (change)="validatePaymentAmount()" min="0" placeholder="Amount">
         </div>
         <span class="error-text" *ngIf="!isViewingInvoice && paymentAttempted && (!newPayment.type || newPayment.amount <= 0)">Enter a valid payment method and amount</span>
         <span class="error-text" *ngIf="!isViewingInvoice && paymentAttempted && remainingBalance > 0 && newPayment.amount > remainingBalance">Payment exceeds remaining balance</span>

@@ -16,6 +16,8 @@ import { Offer, Service, OfferCondition, OfferBenefit, PackageCreditItem, Servic
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class Offers implements OnInit {
+  loading = true;
+  saving = false;
   offers: Offer[] = [];
   services: Service[] = [];
   categories: ServiceCategory[] = [];
@@ -37,6 +39,7 @@ export class Offers implements OnInit {
   }
 
   loadData() {
+    this.loading = true;
     forkJoin({
       offers: this.dataService.getOffers(),
       services: this.dataService.getServices(),
@@ -46,9 +49,11 @@ export class Offers implements OnInit {
         this.offers = offers;
         this.services = services;
         this.categories = categories;
+        this.loading = false;
         this.cdr.markForCheck();
       },
       error: () => {
+        this.loading = false;
         this.alertService.error('Failed to load data. Please refresh.');
         this.cdr.markForCheck();
       }
@@ -106,15 +111,20 @@ export class Offers implements OnInit {
     }
 
     const offerName = this.offerForm.name;
+    this.saving = true;
     if (this.isEditMode && this.offerForm.id) {
       this.dataService.updateOffer(this.offerForm as Offer).subscribe({
         next: () => {
           this.alertService.updated('Offer', offerName);
           this.loadData();
           this.closeModal();
+          this.saving = false;
           this.cdr.markForCheck();
         },
-        error: () => {} // Handled globally
+        error: () => {
+          this.saving = false;
+          this.cdr.markForCheck();
+        }
       });
     } else {
       this.dataService.addOffer(this.offerForm as Offer).subscribe({
@@ -122,9 +132,13 @@ export class Offers implements OnInit {
           this.alertService.created('Offer', offerName);
           this.loadData();
           this.closeModal();
+          this.saving = false;
           this.cdr.markForCheck();
         },
-        error: () => {} // Handled globally
+        error: () => {
+          this.saving = false;
+          this.cdr.markForCheck();
+        }
       });
     }
   }
@@ -140,6 +154,7 @@ export class Offers implements OnInit {
       },
       error: () => {
         offer.isActive = !offer.isActive;
+        this.alertService.error('Failed to update status');
         this.cdr.markForCheck();
       }
     });

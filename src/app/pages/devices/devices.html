@@ -12,13 +12,18 @@
   </div>
 </app-page-header>
 
+<div class="page-loading" *ngIf="loading" aria-live="polite">
+  <div class="spinner"></div>
+  <span class="loading-text">Loading devices...</span>
+</div>
+
 <!-- Notifications Panel -->
 <app-notifications-panel
   category="devices"
   [isOpen]="showNotifications">
 </app-notifications-panel>
 
-
+<div *ngIf="!loading">
 <!-- Stats Row -->
 <div class="stats-row">
   <app-stat-card
@@ -103,10 +108,13 @@
   </div>
 </div>
 
+</div>
+
 <!-- Add/Edit Device Modal -->
 <app-modal
   [isOpen]="showModal"
   [title]="isEditMode ? 'Edit Device' : 'Add New Device'"
+  [confirmDisabled]="saving"
   (closed)="closeModal()"
   (confirmed)="saveDevice(deviceFormRef)">
 
@@ -149,7 +157,8 @@
 
     <div class="form-group">
       <label>Current Counter</label>
-      <input type="number" name="currentCounter" [(ngModel)]="deviceForm.currentCounter" min="0">
+      <input type="number" name="currentCounter" [(ngModel)]="deviceForm.currentCounter" min="0" #currentCounter="ngModel">
+      <span class="error-text" *ngIf="currentCounter.invalid && (currentCounter.touched || currentCounter.dirty)">Counter must be 0 or greater</span>
     </div>
 
     <div class="form-group">

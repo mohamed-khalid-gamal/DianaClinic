@@ -18,6 +18,7 @@ import { Doctor, Room, Patient } from '../../models';
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class CalendarPage implements OnInit {
+  loading = true;
   // Data
   events: CalendarEvent[] = [];
   filteredEvents: CalendarEvent[] = [];
@@ -53,6 +54,7 @@ export class CalendarPage implements OnInit {
   }
 
   loadData() {
+    this.loading = true;
     forkJoin({
       events: this.calendarService.getAllEvents(),
       doctors: this.dataService.getDoctors(),
@@ -65,9 +67,13 @@ export class CalendarPage implements OnInit {
         this.rooms = rooms;
         this.patients = patients;
         this.applyFilter();
+        this.loading = false;
         this.cdr.markForCheck();
       },
-      error: () => {} // Handled globally
+      error: () => {
+        this.loading = false;
+        this.cdr.markForCheck();
+      }
     });
   }
 

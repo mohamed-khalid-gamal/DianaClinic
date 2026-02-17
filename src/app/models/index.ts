@@ -31,7 +31,7 @@ export interface ServiceCredit {
   total: number;
   expiresAt?: Date;
   packageId?: string;
-  unitType: 'session' | 'pulse' | 'unit'; // Type of credit unit
+  unitType: 'session' | 'pulse' | 'area' | 'time' | 'unit'; // Type of credit unit
 }
 
 // Package/Offer purchase that creates pending bill
