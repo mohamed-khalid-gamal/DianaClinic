@@ -203,6 +203,10 @@ export class DataService {
     return this.http.delete<void>(`${this.apiBase}/offers/${id}`);
   }
 
+  getOfferUsage(patientId: string): Observable<{ offerId: string, patientCount: number, globalCount: number }[]> {
+    return this.http.get<{ offerId: string, patientCount: number, globalCount: number }[]>(`${this.apiBase}/offers/usage/${patientId}`);
+  }
+
   // Appointments
   getAppointments(): Observable<Appointment[]> {
     return this.http.get<Appointment[]>(`${this.apiBase}/appointments`).pipe(

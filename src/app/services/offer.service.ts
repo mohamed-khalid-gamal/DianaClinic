@@ -26,19 +26,32 @@ export class OfferService {
   /**
    * Main entry point: Evaluate all available offers against the current cart and patient.
    */
-  evaluateOffers(cart: CartItem[], patient: Patient, allOffers: Offer[], services: Service[] = []): AppliedOffer[] {
+  evaluateOffers(cart: CartItem[], patient: Patient, allOffers: Offer[], services: Service[] = [], usageStats?: { offerId: string, patientCount: number, globalCount: number }[]): AppliedOffer[] {
     const applicableOffers: AppliedOffer[] = [];
     const today = new Date();
 
     // 1. Filter active and valid date
-    const candidates = allOffers.filter(o => {
+    let candidates = allOffers.filter(o => {
       if (!o.isActive) return false;
       if (o.validFrom && new Date(o.validFrom) > today) return false;
       if (o.validUntil && new Date(o.validUntil) < today) return false;
       return true;
     });
 
-    // 2. Sort by priority
+    // 2. Filter by Usage Limits
+    if (usageStats) {
+      candidates = candidates.filter(o => {
+        const stats = usageStats.find(s => s.offerId === o.id);
+        if (!stats) return true;
+
+        if (o.usageLimitPerPatient && stats.patientCount >= o.usageLimitPerPatient) return false;
+        if (o.totalUsageLimit && stats.globalCount >= o.totalUsageLimit) return false;
+        
+        return true;
+      });
+    }
+
+    // 3. Sort by priority
     candidates.sort((a, b) => (b.priority || 0) - (a.priority || 0));
 
     // 3. Evaluate conditions

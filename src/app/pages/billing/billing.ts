@@ -271,19 +271,23 @@ export class Billing implements OnInit {
 
     // Load available credits for this patient
     if (this.selectedPatient) {
-      this.walletService.getAvailableCredits(this.selectedPatient.id).subscribe({
-        next: credits => {
+      forkJoin({
+        credits: this.walletService.getAvailableCredits(this.selectedPatient.id),
+        usage: this.dataService.getOfferUsage(this.selectedPatient.id)
+      }).subscribe({
+        next: ({ credits, usage }) => {
           this.availableCredits = credits;
+          this.recalculateOffers(usage);
           this.cdr.markForCheck();
         },
         error: () => {
           this.cdr.markForCheck();
         }
       });
+    } else {
+      this.recalculateOffers();
+      this.showInvoiceModal = true;
     }
-
-    this.recalculateOffers();
-    this.showInvoiceModal = true;
   }
 
   closeInvoiceModal() {
@@ -296,7 +300,7 @@ export class Billing implements OnInit {
   }
 
   // Offer Calculation
-  recalculateOffers() {
+  recalculateOffers(usageStats?: { offerId: string, patientCount: number, globalCount: number }[]) {
     if (!this.selectedPatient) return;
 
     const cart: CartItem[] = this.invoiceItems.map(item => ({
@@ -306,7 +310,7 @@ export class Billing implements OnInit {
       quantity: item.quantity
     }));
 
-    this.availableOffers = this.offerService.evaluateOffers(cart, this.selectedPatient, this.offers);
+    this.availableOffers = this.offerService.evaluateOffers(cart, this.selectedPatient, this.offers, this.services, usageStats);
 
     if (this.availableOffers.length > 0 && !this.selectedAppliedOffer) {
        this.selectedAppliedOffer = this.availableOffers[0];
@@ -508,6 +512,7 @@ export class Billing implements OnInit {
       patientId: this.selectedPatient?.id ?? '',
       appointmentId: this.selectedAppointment?.id ?? '',
       sessionId: null as string | null,
+      appliedOfferId: this.selectedAppliedOffer?.offer.id || null, // Add this line
       items: this.invoiceItems.map(item => ({
         description: item.description,
         quantity: item.quantity,
