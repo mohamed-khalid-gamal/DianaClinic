@@ -3,7 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable, of, forkJoin } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 import {
-  Patient, Doctor, Room, Device, InventoryItem, InventoryCategory,
+  Patient, Doctor, Room, RoomType, Device, InventoryItem, InventoryCategory,
   ServiceCategory, Service, Offer, Appointment, Alert, PatientWallet, PatientTransaction, PackagePurchase, Session, Invoice
 } from '../models';
 
@@ -176,6 +176,23 @@ export class DataService {
 
   deleteCategory(id: string): Observable<void> {
     return this.http.delete<void>(`${this.apiBase}/services/categories/${id}`);
+  }
+
+  // Room Types
+  getRoomTypes(): Observable<RoomType[]> {
+    return this.http.get<RoomType[]>(`${this.apiBase}/rooms/types`);
+  }
+
+  addRoomType(roomType: RoomType): Observable<RoomType> {
+    return this.http.post<RoomType>(`${this.apiBase}/rooms/types`, roomType);
+  }
+
+  updateRoomType(roomType: RoomType): Observable<RoomType> {
+    return this.http.put<RoomType>(`${this.apiBase}/rooms/types/${roomType.id}`, roomType);
+  }
+
+  deleteRoomType(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.apiBase}/rooms/types/${id}`);
   }
 
   // Offers

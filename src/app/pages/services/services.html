@@ -1,14 +1,15 @@
 <app-page-header
   title="Services"
   subtitle="Manage service menu and pricing configurations">
-  <div class="header-actions">
-    <button class="btn btn-outline" (click)="openCategoryModal()">
-      <i class="fa-solid fa-tags"></i> Manage Categories
-    </button>
-    <button class="btn btn-primary" (click)="openAddModal()">
-      + Add Service
-    </button>
-  </div>
+  <button class="btn btn-outline" (click)="openCategoryModal()">
+    <i class="fa-solid fa-layer-group"></i> Manage Categories
+  </button>
+  <button class="btn btn-outline" (click)="openRoomTypeModal()">
+    <i class="fa-solid fa-tags"></i> Manage Room Types
+  </button>
+  <button class="btn btn-primary" (click)="openAddModal()">
+    + Add Service
+  </button>
 </app-page-header>
 
 <div class="page-loading" *ngIf="loading">
@@ -134,9 +135,10 @@
         <div class="tags-selector">
           <div class="tag-option"
                *ngFor="let type of roomTypes"
-               [class.selected]="hasRoomType(type)"
-               (click)="toggleRoomType(type)">
-            {{ type | titlecase }}
+               [class.selected]="hasRoomType(type.name)"
+               (click)="toggleRoomType(type.name)"
+               [hidden]="type.name.toLowerCase() === 'storage'">
+            {{ type.name | titlecase }}
           </div>
         </div>
       </div>
@@ -302,6 +304,53 @@
     </div>
     <ng-template #noCats>
       <div class="empty-state"><p>No categories yet. Add one above.</p></div>
+    </ng-template>
+  </div>
+</app-modal>
+
+<!-- Room Type Management Modal -->
+<app-modal
+  [isOpen]="showRoomTypeModal"
+  title="Manage Room Types"
+  maxWidth="550px"
+  (closed)="closeRoomTypeModal()"
+  [showFooter]="false">
+
+  <div class="category-manager">
+    <div class="category-add-form">
+      <input type="text" [(ngModel)]="newRoomTypeName" placeholder="New room type..." class="category-input" minlength="2">
+      <button class="btn btn-primary btn-sm" (click)="addNewRoomType()" [disabled]="!newRoomTypeName.trim() || newRoomTypeName.trim().length < 2">
+        <i class="fa-solid fa-plus"></i> Add
+      </button>
+    </div>
+    <span class="error-text" *ngIf="newRoomTypeName.trim().length > 0 && newRoomTypeName.trim().length < 2">Name must be at least 2 characters</span>
+
+    <div class="category-list" *ngIf="roomTypes.length; else noTypes">
+      <div class="category-item" *ngFor="let rt of roomTypes">
+        <div class="category-info" *ngIf="editingRoomTypeId !== rt.id">
+          <span class="cat-name">{{ rt.name }}</span>
+        </div>
+        <div class="category-edit" *ngIf="editingRoomTypeId === rt.id">
+          <input type="text" [(ngModel)]="editingRoomTypeName" class="category-input">
+        </div>
+        <div class="category-actions">
+          <button *ngIf="editingRoomTypeId !== rt.id" class="btn btn-outline btn-sm" (click)="startEditRoomType(rt)">
+            <i class="fa-solid fa-pen"></i>
+          </button>
+          <button *ngIf="editingRoomTypeId === rt.id" class="btn btn-primary btn-sm" (click)="saveRoomType(rt)">
+            <i class="fa-solid fa-check"></i>
+          </button>
+          <button *ngIf="editingRoomTypeId === rt.id" class="btn btn-outline btn-sm" (click)="cancelEditRoomType()">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+          <button *ngIf="editingRoomTypeId !== rt.id" class="btn btn-outline btn-sm btn-danger" (click)="deleteRoomType(rt)">
+            <i class="fa-solid fa-trash"></i>
+          </button>
+        </div>
+      </div>
+    </div>
+    <ng-template #noTypes>
+      <div class="empty-state"><p>No room types yet. Add one above.</p></div>
     </ng-template>
   </div>
 </app-modal>

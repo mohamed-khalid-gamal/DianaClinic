@@ -109,6 +109,11 @@ export interface MaintenanceWindow {
   reason: string;
 }
 
+export interface RoomType {
+  id: string;
+  name: string;
+}
+
 // Device
 export interface Device {
   id: string;

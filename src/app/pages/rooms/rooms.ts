@@ -2,11 +2,12 @@ import { Component, OnInit, ChangeDetectorRef, ChangeDetectionStrategy } from '@
 import { CommonModule } from '@angular/common';
 import { FormsModule, NgForm } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
+import { forkJoin } from 'rxjs';
 import { PageHeaderComponent, DataTableComponent, ModalComponent, TableColumn } from '../../components/shared';
 import { DataService } from '../../services/data.service';
 import { SweetAlertService } from '../../services/sweet-alert.service';
 import { FormErrorService } from '../../services/form-error.service';
-import { Room } from '../../models';
+import { Room, RoomType } from '../../models';
 
 @Component({
   selector: 'app-rooms',
@@ -20,8 +21,13 @@ export class Rooms implements OnInit {
   loading = true;
   saving = false;
   rooms: Room[] = [];
+  roomTypes: RoomType[] = [];
   showModal = false;
   isEditMode = false;
+  showRoomTypeModal = false;
+  newRoomTypeName = '';
+  editingRoomTypeId: string | null = null;
+  editingRoomTypeName = '';
 
   columns: TableColumn[] = [
     { key: 'name', label: 'Room Name' },
@@ -42,22 +48,38 @@ export class Rooms implements OnInit {
   ) {}
 
   ngOnInit() {
-    this.loadRooms();
+    this.loadData();
+  }
+
+  loadData() {
+    this.loading = true;
+    forkJoin({
+      rooms: this.dataService.getRooms(),
+      roomTypes: this.dataService.getRoomTypes()
+    }).subscribe({
+      next: ({ rooms, roomTypes }) => {
+        this.rooms = rooms.map(r => ({
+          ...r,
+          status: r.isActive ? 'Available' : 'Unavailable'
+        }));
+        this.roomTypes = roomTypes;
+        this.loading = false;
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.loading = false;
+        this.cdr.markForCheck();
+      }
+    });
   }
 
   loadRooms() {
-    this.loading = true;
     this.dataService.getRooms().subscribe({
       next: rooms => {
         this.rooms = rooms.map(r => ({
           ...r,
           status: r.isActive ? 'Available' : 'Unavailable'
         }));
-        this.loading = false;
-        this.cdr.markForCheck();
-      },
-      error: () => {
-        this.loading = false;
         this.cdr.markForCheck();
       }
     });
@@ -164,6 +186,76 @@ export class Rooms implements OnInit {
       capacity: 1,
       isActive: true
     };
+  }
+
+  // Room Type management
+  openRoomTypeModal() {
+    this.showRoomTypeModal = true;
+    this.newRoomTypeName = '';
+    this.editingRoomTypeId = null;
+  }
+
+  closeRoomTypeModal() {
+    this.showRoomTypeModal = false;
+    this.editingRoomTypeId = null;
+  }
+
+  addNewRoomType() {
+    const name = this.newRoomTypeName.trim();
+    if (!name) return;
+    this.dataService.addRoomType({ name } as RoomType).subscribe({
+      next: (rt) => {
+        this.roomTypes.push(rt);
+        this.newRoomTypeName = '';
+        this.alertService.toast(`Room type "${name}" added`);
+        this.cdr.markForCheck();
+      },
+      error: () => {} // Handled globally
+    });
+  }
+
+  startEditRoomType(rt: RoomType) {
+    this.editingRoomTypeId = rt.id;
+    this.editingRoomTypeName = rt.name;
+  }
+
+  cancelEditRoomType() {
+    this.editingRoomTypeId = null;
+    this.editingRoomTypeName = '';
+  }
+
+  saveRoomType(rt: RoomType) {
+    const name = this.editingRoomTypeName.trim();
+    if (!name) return;
+    const updated = { ...rt, name };
+    this.dataService.updateRoomType(updated).subscribe({
+      next: () => {
+        rt.name = name;
+        this.editingRoomTypeId = null;
+        this.alertService.toast(`Room type updated`);
+        this.cdr.markForCheck();
+      },
+      error: () => {} // Handled globally
+    });
+  }
+
+  async deleteRoomType(rt: RoomType) {
+    // Check if any rooms are using this type
+    const count = this.rooms.filter(r => r.type === rt.name).length;
+    if (count > 0) {
+      this.alertService.toast('Cannot delete room type with existing rooms', 'error');
+      return;
+    }
+    const confirmed = await this.alertService.confirm(`Delete room type "${rt.name}"?`, 'This cannot be undone.');
+    if (!confirmed) return;
+    this.dataService.deleteRoomType(rt.id).subscribe({
+      next: () => {
+        this.roomTypes = this.roomTypes.filter(r => r.id !== rt.id);
+        this.alertService.toast(`Room type "${rt.name}" deleted`);
+        this.cdr.markForCheck();
+      },
+      error: () => {} // Handled globally
+    });
   }
 
   joinArray(arr?: string[]): string {

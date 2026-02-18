@@ -7,7 +7,7 @@ import { PageHeaderComponent, ModalComponent } from '../../components/shared';
 import { DataService } from '../../services/data.service';
 import { SweetAlertService } from '../../services/sweet-alert.service';
 import { FormErrorService } from '../../services/form-error.service';
-import { Service, ServiceCategory, PricingModel, Doctor, InventoryItem, ServiceConsumable } from '../../models';
+import { Service, ServiceCategory, RoomType, PricingModel, Doctor, InventoryItem, ServiceConsumable } from '../../models';
 
 @Component({
   selector: 'app-services',
@@ -22,9 +22,13 @@ export class Services implements OnInit {
   categories: ServiceCategory[] = [];
   doctors: Doctor[] = [];
   inventoryItems: InventoryItem[] = [];
+  roomTypes: RoomType[] = [];
 
-  // Available types derived from rooms/system config
-  roomTypes = ['treatment', 'consultation', 'laser', 'surgery', 'facial'];
+  // Room Type management state
+  showRoomTypeModal = false;
+  newRoomTypeName = '';
+  editingRoomTypeId: string | null = null;
+  editingRoomTypeName = '';
 
   selectedCategory: string = 'all';
   showModal = false;
@@ -65,12 +69,14 @@ export class Services implements OnInit {
       categories: this.dataService.getCategories(),
       doctors: this.dataService.getDoctors(),
       inventory: this.dataService.getInventory(),
-      inventoryCategories: this.dataService.getInventoryCategories()
+      inventoryCategories: this.dataService.getInventoryCategories(),
+      roomTypes: this.dataService.getRoomTypes()
     }).subscribe({
-      next: ({ services, categories, doctors, inventory, inventoryCategories }) => {
+      next: ({ services, categories, doctors, inventory, inventoryCategories, roomTypes }) => {
         this.services = services;
         this.categories = categories;
         this.doctors = doctors;
+        this.roomTypes = roomTypes;
         
         this.inventoryItems = inventory;
         this.loading = false;
@@ -389,5 +395,74 @@ export class Services implements OnInit {
 
   getServiceCountForCategory(categoryId: string): number {
     return this.services.filter(s => s.categoryId === categoryId).length;
+  }
+
+  // Room Type management
+  openRoomTypeModal() {
+    this.showRoomTypeModal = true;
+    this.newRoomTypeName = '';
+    this.editingRoomTypeId = null;
+  }
+
+  closeRoomTypeModal() {
+    this.showRoomTypeModal = false;
+    this.editingRoomTypeId = null;
+  }
+
+  addNewRoomType() {
+    const name = this.newRoomTypeName.trim();
+    if (!name) return;
+    this.dataService.addRoomType({ name } as RoomType).subscribe({
+      next: (rt) => {
+        this.roomTypes.push(rt);
+        this.newRoomTypeName = '';
+        this.alertService.toast(`Room type "${name}" added`);
+        this.cdr.markForCheck();
+      },
+      error: () => {} // Handled globally
+    });
+  }
+
+  startEditRoomType(rt: RoomType) {
+    this.editingRoomTypeId = rt.id;
+    this.editingRoomTypeName = rt.name;
+  }
+
+  cancelEditRoomType() {
+    this.editingRoomTypeId = null;
+    this.editingRoomTypeName = '';
+  }
+
+  saveRoomType(rt: RoomType) {
+    const name = this.editingRoomTypeName.trim();
+    if (!name) return;
+    const updated = { ...rt, name };
+    this.dataService.updateRoomType(updated).subscribe({
+      next: () => {
+        rt.name = name;
+        this.editingRoomTypeId = null;
+        this.alertService.toast(`Room type updated`);
+        this.cdr.markForCheck();
+      },
+      error: () => {} // Handled globally
+    });
+  }
+
+  async deleteRoomType(rt: RoomType) {
+    const count = this.services.filter(s => s.requiredRoomTypes?.includes(rt.name)).length;
+    if (count > 0) {
+      this.alertService.toast('Cannot delete room type referenced by services', 'error');
+      return;
+    }
+    const confirmed = await this.alertService.confirm(`Delete room type "${rt.name}"?`, 'This cannot be undone.');
+    if (!confirmed) return;
+    this.dataService.deleteRoomType(rt.id).subscribe({
+      next: () => {
+        this.roomTypes = this.roomTypes.filter(r => r.id !== rt.id);
+        this.alertService.toast(`Room type "${rt.name}" deleted`);
+        this.cdr.markForCheck();
+      },
+      error: () => {} // Handled globally
+    });
   }
 }
