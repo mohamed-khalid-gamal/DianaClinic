@@ -54,7 +54,7 @@ describe('Offers Component', () => {
       markForCheck: vi.fn()
     };
 
-    component = new Offers(dataServiceMock, alertServiceMock, cdrMock);
+    component = new Offers(dataServiceMock, alertServiceMock, {} as any, cdrMock);
   });
 
   it('loads offers and services on init', () => {

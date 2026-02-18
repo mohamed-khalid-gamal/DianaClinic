@@ -48,7 +48,7 @@ describe('Doctors Component', () => {
       markForCheck: vi.fn()
     };
 
-    component = new Doctors(dataServiceMock, alertServiceMock, cdrMock);
+    component = new Doctors(dataServiceMock, alertServiceMock, {} as any, cdrMock);
   });
 
   it('loads doctors and rooms on init', () => {

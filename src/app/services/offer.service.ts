@@ -95,9 +95,11 @@ export class OfferService {
          return isNew;
 
       case 'patient_tag':
-        // Check if patient has any of the required tags (match against notes/skinType/conditions)
+        // Check if patient has any of the required tags (match against real tags + medical fields)
         if (!condition.parameters.tags || condition.parameters.tags.length === 0) return true;
+        
         const patientTags = [
+            ...(patient.tags || []),            // Real marketing tags
             String(patient.skinType || ''),
             ...(patient.allergies || []),
             ...(patient.chronicConditions || []),
@@ -110,7 +112,6 @@ export class OfferService {
              return !targetTags.some(tag => patientTags.includes(tag));
         }
         // flexible match: if ANY target tag is present
-        // or strictly ALL? usually 'contains' implies at least one.
         return targetTags.some(tag => patientTags.includes(tag));
 
       case 'date_range':
@@ -133,12 +134,8 @@ export class OfferService {
         return this.evaluateAttribute(condition, patient);
 
       case 'visit_count':
-        // Requires patient history context which might not be fully loaded here.
-        // If we strictly need it, we accept it as true for now to avoid blocking valid offers,
-        // or we could implement a basic check if 'patient' object had a visit count property.
-        // Assuming false for safety if critical, but true for flexibility.
-        // Let's check if patient object happens to have extensions (it's typed as Patient).
-        return true; 
+        // Now using real visit count from backend
+        return this.compareValues(patient.visitCount || 0, condition.parameters.threshold || 0, condition.operator || 'greater_than'); 
 
       case 'cart_property':
          return this.evaluateCartProperty(condition, cart, services);

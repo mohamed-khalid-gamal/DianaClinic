@@ -86,5 +86,46 @@ describe('OfferService', () => {
       const result2 = service.evaluateOffers(mockCart, mockPatient, [offer], [mockService]);
       expect(result2.length).toBe(0);
     });
+
+    it('should handle patient_tag condition', () => {
+      const patientWithTags = { ...mockPatient, tags: ['VIP', 'Loyal'] };
+      const offer: Offer = {
+        id: 'o4',
+        name: 'VIP Only',
+        isActive: true,
+        priority: 1,
+        conditions: [{ type: 'patient_tag', parameters: { tags: ['VIP'] }, operator: 'contains' }],
+        benefits: [{ type: 'percent_off', parameters: { percent: 20 } }]
+      } as any;
+
+      // Should match
+      const result = service.evaluateOffers(mockCart, patientWithTags, [offer], [mockService]);
+      expect(result.length).toBe(1);
+
+      // Should not match non-VIP
+      const result2 = service.evaluateOffers(mockCart, mockPatient, [offer], [mockService]);
+      expect(result2.length).toBe(0);
+    });
+
+    it('should handle visit_count condition', () => {
+      const patientHighVisits = { ...mockPatient, visitCount: 10 };
+      const offer: Offer = {
+        id: 'o5',
+        name: '10th Visit Special',
+        isActive: true, // Assuming active
+        priority: 1,
+        conditions: [{ type: 'visit_count', parameters: { threshold: 9 }, operator: 'greater_than' }],
+        benefits: [{ type: 'fixed_amount_off', parameters: { fixedAmount: 50 } }]
+      } as any;
+
+      // Should match (10 > 9)
+      const result = service.evaluateOffers(mockCart, patientHighVisits, [offer], [mockService]);
+      expect(result.length).toBe(1);
+
+      // Should not match low visits
+      const patientLowVisits = { ...mockPatient, visitCount: 5 };
+      const result2 = service.evaluateOffers(mockCart, patientLowVisits, [offer], [mockService]);
+      expect(result2.length).toBe(0);
+    });
   });
 });

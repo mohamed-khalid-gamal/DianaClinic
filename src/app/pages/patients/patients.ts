@@ -321,6 +321,7 @@ export class Patients implements OnInit {
       allergies: [],
       chronicConditions: [],
       contraindications: [],
+      tags: [],
       notes: ''
     };
   }

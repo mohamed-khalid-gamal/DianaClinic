@@ -34,7 +34,7 @@ describe('Rooms Component', () => {
       markForCheck: vi.fn()
     };
 
-    component = new Rooms(dataServiceMock, alertServiceMock, cdrMock);
+    component = new Rooms(dataServiceMock, alertServiceMock, {} as any, cdrMock);
   });
 
   it('loads rooms on init', () => {

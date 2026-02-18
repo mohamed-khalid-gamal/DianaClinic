@@ -56,7 +56,7 @@ describe('Devices Component', () => {
       markForCheck: vi.fn()
     };
 
-    component = new Devices(dataServiceMock, sweetAlertMock, notificationServiceMock, cdrMock);
+    component = new Devices(dataServiceMock, sweetAlertMock, {} as any, notificationServiceMock, cdrMock);
   });
 
   it('loads data on init', () => {

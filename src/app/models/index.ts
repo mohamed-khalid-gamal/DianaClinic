@@ -13,6 +13,8 @@ export interface Patient {
   allergies?: string[];
   chronicConditions?: string[];
   contraindications?: string[];
+  tags?: string[];
+  visitCount?: number;
   notes?: string;
   createdAt: Date;
   updatedAt: Date;

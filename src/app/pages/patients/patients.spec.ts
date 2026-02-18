@@ -103,7 +103,7 @@ describe('Patients Component', () => {
       markForCheck: vi.fn()
     };
 
-    component = new Patients(dataServiceMock, walletServiceMock, alertServiceMock, cdrMock);
+    component = new Patients(dataServiceMock, walletServiceMock, alertServiceMock, {} as any, cdrMock);
   });
 
   it('hydrates patients with derived fields on load', () => {
