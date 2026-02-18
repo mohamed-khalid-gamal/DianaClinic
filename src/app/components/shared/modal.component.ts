@@ -57,7 +57,7 @@ import { CommonModule } from '@angular/common';
       display: flex;
       flex-direction: column;
       animation: slideUp 0.3s ease;
-      overflow: hidden;
+      /* overflow: hidden; Removed to allow body to scroll */
     }
 
     @keyframes slideUp {
@@ -101,6 +101,7 @@ import { CommonModule } from '@angular/common';
       padding: 1.5rem;
       overflow-y: auto;
       flex: 1;
+      min-height: 0; /* Crucial for flex scrolling */
       scrollbar-width: thin;
     }
 

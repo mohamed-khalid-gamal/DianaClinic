@@ -278,9 +278,11 @@ export class Billing implements OnInit {
         next: ({ credits, usage }) => {
           this.availableCredits = credits;
           this.recalculateOffers(usage);
+          this.showInvoiceModal = true;
           this.cdr.markForCheck();
         },
         error: () => {
+          this.showInvoiceModal = true;
           this.cdr.markForCheck();
         }
       });
@@ -328,11 +330,11 @@ export class Billing implements OnInit {
   }
 
   get taxAmount(): number {
-    return (this.subtotal - this.discountAmount) * (this.taxRate / 100);
+    return Math.max(0, this.subtotal - this.discountAmount) * (this.taxRate / 100);
   }
 
   get grandTotal(): number {
-    return this.subtotal - this.discountAmount + this.taxAmount;
+    return Math.max(0, this.subtotal - this.discountAmount + this.taxAmount);
   }
 
   get totalPaid(): number {
@@ -423,7 +425,7 @@ export class Billing implements OnInit {
       this.alertService.validationError('Discount cannot be negative');
       return;
     }
-    if (this.payments.length === 0) {
+    if (this.payments.length === 0 && this.grandTotal > 0) {
       this.alertService.validationError('Add at least one payment');
       return;
     }

@@ -88,7 +88,7 @@ export class Appointments implements OnInit {
   // Wizard UI Helpers
   selectedSlotDoctors: Doctor[] = [];
   selectedSlotRooms: Room[] = [];
-  minDate = new Date().toISOString().split('T')[0];
+  minDate = '';
   availableSlots: { time: string, date: Date, doctors: Doctor[], rooms: Room[] }[] = [];
 
   constructor(
@@ -98,6 +98,7 @@ export class Appointments implements OnInit {
   ) {}
 
   ngOnInit() {
+    this.minDate = this.formatDateInput(new Date());
     this.loadData();
     this.generateTimeSlots();
   }
@@ -555,7 +556,8 @@ export class Appointments implements OnInit {
 
   /** Parse 12-hour locale time string (e.g. "2:30 PM") into a Date */
   private parseSlotTime(timeStr: string, dateStr: string): Date {
-    const date = new Date(dateStr);
+    const dateParts = dateStr.split('-');
+    const date = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]));
     const match = timeStr.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
     if (match) {
       let hours = parseInt(match[1], 10);
@@ -714,7 +716,12 @@ export class Appointments implements OnInit {
   formatDate(date: Date): string {
     return date.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
   }
-  formatDateInput(date: Date): string { return date.toISOString().split('T')[0]; }
+  formatDateInput(date: Date): string {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
   getStatusColor(status: string): string {
     return getAppointmentStatusColor(status);
   }

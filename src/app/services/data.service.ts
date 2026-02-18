@@ -210,13 +210,23 @@ export class DataService {
   // Appointments
   getAppointments(): Observable<Appointment[]> {
     return this.http.get<Appointment[]>(`${this.apiBase}/appointments`).pipe(
-      map(apts => apts.map(a => ({ ...a, scheduledStart: new Date(a.scheduledStart), scheduledEnd: new Date(a.scheduledEnd), createdAt: new Date(a.createdAt) })))
+      map(apts => apts.map(a => ({
+        ...a,
+        scheduledStart: this.parseUtcDate(a.scheduledStart),
+        scheduledEnd: this.parseUtcDate(a.scheduledEnd),
+        createdAt: this.parseUtcDate(a.createdAt)
+      })))
     );
   }
 
   getPatientAppointments(patientId: string): Observable<Appointment[]> {
     return this.http.get<Appointment[]>(`${this.apiBase}/appointments/patient/${patientId}`).pipe(
-      map(apts => apts.map(a => ({ ...a, scheduledStart: new Date(a.scheduledStart), scheduledEnd: new Date(a.scheduledEnd), createdAt: new Date(a.createdAt) })))
+      map(apts => apts.map(a => ({
+        ...a,
+        scheduledStart: this.parseUtcDate(a.scheduledStart),
+        scheduledEnd: this.parseUtcDate(a.scheduledEnd),
+        createdAt: this.parseUtcDate(a.createdAt)
+      })))
     );
   }
 
@@ -293,10 +303,10 @@ export class DataService {
   private hydrateSession(session: Session): Session {
     return {
       ...session,
-      startTime: new Date(session.startTime),
-      endTime: session.endTime ? new Date(session.endTime) : undefined,
+      startTime: this.parseUtcDate(session.startTime),
+      endTime: session.endTime ? this.parseUtcDate(session.endTime) : undefined,
       deviceUsage: session.deviceUsage
-        ? { ...session.deviceUsage, timestamp: new Date(session.deviceUsage.timestamp) }
+        ? { ...session.deviceUsage, timestamp: this.parseUtcDate(session.deviceUsage.timestamp) }
         : undefined
     };
   }
@@ -418,6 +428,20 @@ export class DataService {
 
   getPatientStats(params: string): Observable<any> {
     return this.http.get(`${this.apiBase}/reports/patient-stats${params}`);
+  }
+
+  private parseUtcDate(input: any): Date {
+    if (input instanceof Date) return input;
+    if (typeof input === 'string') {
+        const dateStr = input as string;
+        // If it looks like an ISO date-time without timezone (e.g. 2024-01-01T12:00:00)
+        // And strictly doesn't end with Z or have an offset
+        if (dateStr.includes('T') && !dateStr.endsWith('Z') && !/[+\-]\d{2}:\d{2}$/.test(dateStr)) {
+            return new Date(dateStr + 'Z');
+        }
+        return new Date(dateStr);
+    }
+    return new Date();
   }
 
 }
