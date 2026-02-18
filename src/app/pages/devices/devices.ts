@@ -257,7 +257,7 @@ export class Devices implements OnInit, OnDestroy {
   }
 
   getDevicesNearMaintenance(): number {
-    return this.devices.filter(d => this.isNearMaintenance(d)).length;
+    return this.devices.filter(d => d.status === 'maintenance' || this.isNearMaintenance(d)).length;
   }
 
   getTotalDevices(): number {

@@ -121,6 +121,15 @@ describe('Devices Component', () => {
     const near = { ...mockDevices[0], currentCounter: 950, maintenanceThreshold: 1000 }; // 95%
     expect(component.getMaintenancePercentage(near)).toBe(95);
     expect(component.isNearMaintenance(near)).toBe(true);
+
+    // Test getDevicesNearMaintenance logic
+    component.devices = [
+      { ...mockDevices[0], currentCounter: 0, maintenanceThreshold: 1000, status: 'active' },      // OK
+      { ...mockDevices[0], currentCounter: 950, maintenanceThreshold: 1000, status: 'active' },    // Near threshold
+      { ...mockDevices[0], currentCounter: 100, maintenanceThreshold: 1000, status: 'maintenance' } // Explicit status
+    ] as any;
+    
+    expect(component.getDevicesNearMaintenance()).toBe(2);
   });
 
   /*
