@@ -410,14 +410,48 @@ export class Appointments implements OnInit {
     const segmentServices = this.services.filter(s => segment.serviceIds.includes(s.id));
     const duration = segment.duration;
 
-    // Narrow resources based on THIS segment's requirements
-    const eligibleDoctors = this.doctors.filter(d =>
-        d.isActive && segmentServices.every(s => !s.allowedDoctorIds?.length || s.allowedDoctorIds.includes(d.id))
+    // 1. Determine Required Room Types
+    // If any service has required types, we must match ALL of them (intersection) or union?
+    // Usually, a room must support all services in the bundle.
+    // Or if services are sequential in a segment? A segment is a single block.
+    // Let's assume the room must satisfy ALL required types of services in this segment.
+    // If Service A needs 'Laser', Service B needs 'Treatment'. Room must support both?
+    // Room.type is a single string. So actually, we probably check if Room.type is in the required list.
+    // If multiple services have different requirements, avoiding a single room might be impossible if types are disjoint.
+    // BUT, usually a segment is "Laser Removal" -> requires "Laser" room.
+    // Let's collect ALL required types from all services.
+    // If NO services define requirements, ALL rooms are candidates.
+    const allRequiredTypes = new Set<string>();
+    let hasRoomRequirements = false;
+    
+    segmentServices.forEach(s => {
+        if (s.requiredRoomTypes && s.requiredRoomTypes.length > 0) {
+            hasRoomRequirements = true;
+            s.requiredRoomTypes.forEach(t => allRequiredTypes.add(t));
+        }
+    });
+
+    // 2. Filter Candidate Rooms (Static capabilities)
+    let candidateRooms = this.rooms.filter(r => r.isActive);
+    if (hasRoomRequirements) {
+        candidateRooms = candidateRooms.filter(r => allRequiredTypes.has(r.type));
+    }
+
+    // 3. Filter Candidate Doctors (Static permissions)
+    let candidateDoctors = this.doctors.filter(d => d.isActive);
+    
+    // Filter by Service Allowed IDs
+    candidateDoctors = candidateDoctors.filter(d => 
+        segmentServices.every(s => !s.allowedDoctorIds?.length || s.allowedDoctorIds.includes(d.id))
     );
 
-    const eligibleRooms = this.rooms.filter(r =>
-        r.isActive && segmentServices.every(s => !s.requiredRoomTypes?.length || s.requiredRoomTypes.includes(r.type))
-    );
+    // Filter by Assigned Rooms (Static Intersection)
+    // A doctor is valid ONLY if they are assigned to AT LEAST ONE of the candidate rooms.
+    // If d.assignedRooms is empty, they have access to all rooms.
+    candidateDoctors = candidateDoctors.filter(d => {
+        if (!d.assignedRooms || d.assignedRooms.length === 0) return true;
+        return d.assignedRooms.some(roomId => candidateRooms.some(r => r.id === roomId));
+    });
 
     const startHour = 8;
     const endHour = 20;
@@ -435,20 +469,45 @@ export class Appointments implements OnInit {
 
         if (slotEnd.getHours() >= 20 && slotEnd.getMinutes() > 0) continue;
 
-        const availableDoctors = eligibleDoctors.filter(doc =>
-            this.isDoctorAvailable(doc, slotStart, slotEnd, dayOfWeek)
-        );
+        // 4. Find Free Resources for this specific slot
+        const freeRooms = candidateRooms.filter(room => !this.hasConflicts(slotStart, slotEnd, undefined, room.id));
+        
+        // 5. Find Available Doctors
+        // Must be free strictly (no conflicts) AND working at this time
+        let slotDoctors = candidateDoctors.filter(doc => this.isDoctorAvailable(doc, slotStart, slotEnd, dayOfWeek));
 
-        const availableRooms = eligibleRooms.filter(room =>
-            this.isRoomAvailable(room, slotStart, slotEnd)
-        );
+        // 6. VALIDITY CHECK: Doctor must have access to at least one FREE candidate room
+        const validDoctors: Doctor[] = [];
+        const validRooms = new Set<Room>();
 
-        if (availableDoctors.length > 0 && availableRooms.length > 0) {
+        slotDoctors.forEach(doc => {
+            // Check shift specific room constraint
+            const shift = doc.workingHours?.find(wh => wh.dayOfWeek === dayOfWeek);
+            const shiftRoomId = shift?.roomId;
+
+            // Find rooms this doctor can use right now
+            const accessibleFreeRooms = freeRooms.filter(room => {
+                // Constraint 1: Shift assignment
+                if (shiftRoomId && room.id !== shiftRoomId) return false;
+                
+                // Constraint 2: General Assignment
+                if (doc.assignedRooms && doc.assignedRooms.length > 0 && !doc.assignedRooms.includes(room.id)) return false;
+
+                return true;
+            });
+
+            if (accessibleFreeRooms.length > 0) {
+                validDoctors.push(doc);
+                accessibleFreeRooms.forEach(r => validRooms.add(r));
+            }
+        });
+
+        if (validDoctors.length > 0 && validRooms.size > 0) {
             this.availableSlots.push({
                 time: slotStart.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
                 date: slotStart,
-                doctors: availableDoctors,
-                rooms: availableRooms
+                doctors: validDoctors,
+                rooms: Array.from(validRooms)
             });
         }
       }
@@ -794,8 +853,39 @@ export class Appointments implements OnInit {
       return sum + (svc?.duration || 30);
     }, 0) || 60;
 
-    const eligibleDoctors = this.doctors.filter(d => d.isActive);
-    const eligibleRooms = this.rooms.filter(r => r.isActive);
+    // Services Helper
+    const rescheduleServices: Service[] = [];
+    if (apt.services) {
+       apt.services.forEach(s => {
+          const svc = this.services.find(x => x.id === s.serviceId);
+          if(svc) rescheduleServices.push(svc);
+       });
+    }
+
+    // 1. Filter Rooms by Required Types
+    const allRequiredTypes = new Set<string>();
+    rescheduleServices.forEach(s => {
+        if (s.requiredRoomTypes) s.requiredRoomTypes.forEach(t => allRequiredTypes.add(t));
+    });
+
+    let eligibleRooms = this.rooms.filter(r => r.isActive);
+    if (allRequiredTypes.size > 0) {
+        eligibleRooms = eligibleRooms.filter(r => allRequiredTypes.has(r.type));
+    }
+
+    // 2. Filter Doctors by Requirements & Assignments
+    let eligibleDoctors = this.doctors.filter(d => d.isActive);
+    
+    // Filter by Service Allowed IDs
+    eligibleDoctors = eligibleDoctors.filter(d => 
+        rescheduleServices.every(s => !s.allowedDoctorIds?.length || s.allowedDoctorIds.includes(d.id))
+    );
+
+    // Filter by Assigned Rooms (Must have access to at least one eligible room)
+    eligibleDoctors = eligibleDoctors.filter(d => {
+        if (!d.assignedRooms || d.assignedRooms.length === 0) return true;
+        return d.assignedRooms.some(roomId => eligibleRooms.some(r => r.id === roomId));
+    });
 
     const startHour = 8;
     const endHour = 20;
@@ -813,21 +903,40 @@ export class Appointments implements OnInit {
 
         if (slotEnd.getHours() >= 20 && slotEnd.getMinutes() > 0) continue;
 
-        const availableDoctors = eligibleDoctors.filter(doc =>
-          this.isDoctorAvailable(doc, slotStart, slotEnd, dayOfWeek)
-        );
+        // 4. Find Free Resources
+        const freeRooms = eligibleRooms.filter(room => {
+             return !this.hasConflicts(slotStart, slotEnd, undefined, room.id);
+        });
 
-        const availableRooms = eligibleRooms.filter(room =>
-          this.isRoomAvailable(room, slotStart, slotEnd)
-        );
+        const slotDoctors = eligibleDoctors.filter(doc => this.isDoctorAvailable(doc, slotStart, slotEnd, dayOfWeek));
 
-        if (availableDoctors.length > 0 && availableRooms.length > 0) {
-          this.rescheduleAvailableSlots.push({
-            time: slotStart.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
-            date: slotStart,
-            doctors: availableDoctors,
-            rooms: availableRooms
-          });
+        // 5. VALIDITY CHECK: Doctor-Room Pairing
+        const validDoctors: Doctor[] = [];
+        const validRooms = new Set<Room>();
+
+        slotDoctors.forEach(doc => {
+            const shift = doc.workingHours?.find(wh => wh.dayOfWeek === dayOfWeek);
+            const shiftRoomId = shift?.roomId;
+
+            const accessibleFreeRooms = freeRooms.filter(room => {
+                if (shiftRoomId && room.id !== shiftRoomId) return false;
+                if (doc.assignedRooms && doc.assignedRooms.length > 0 && !doc.assignedRooms.includes(room.id)) return false;
+                return true;
+            });
+
+            if (accessibleFreeRooms.length > 0) {
+                validDoctors.push(doc);
+                accessibleFreeRooms.forEach(r => validRooms.add(r));
+            }
+        });
+
+        if (validDoctors.length > 0 && validRooms.size > 0) {
+            this.rescheduleAvailableSlots.push({
+                time: slotStart.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
+                date: slotStart,
+                doctors: validDoctors,
+                rooms: Array.from(validRooms)
+            });
         }
       }
     }
