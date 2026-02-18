@@ -420,7 +420,8 @@ export class Appointments implements OnInit {
 
     const startHour = 8;
     const endHour = 20;
-    const date = new Date(segment.date);
+    const dateParts = segment.date.split('-');
+    const date = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]));
     const dayOfWeek = date.getDay();
 
     for (let hour = startHour; hour < endHour; hour++) {
@@ -591,8 +592,9 @@ export class Appointments implements OnInit {
   }
 
   hasConflicts(start: Date, end: Date, doctorId?: string, roomId?: string): boolean {
-    return this.appointments.some(apt => {
-        if (apt.status === 'cancelled') return false;
+    // 1. Check existing saved appointments
+    const existsInDb = this.appointments.some(apt => {
+        if (apt.status === 'cancelled' || apt.status === 'no-show') return false;
 
         if (doctorId && apt.doctorId !== doctorId) return false;
         if (roomId && apt.roomId !== roomId) return false;
@@ -600,6 +602,24 @@ export class Appointments implements OnInit {
         const aptStart = new Date(apt.scheduledStart);
         let aptEnd = apt.scheduledEnd ? new Date(apt.scheduledEnd) : new Date(aptStart.getTime() + 30 * 60000);
         return (start < aptEnd && end > aptStart);
+    });
+
+    if (existsInDb) return true;
+
+    // 2. Check current booking segments (unsaved)
+    return this.bookingSegments.some((seg, idx) => {
+        // Skip current segment we are scheduling
+        if (idx === this.currentSegmentIndex) return false;
+        // Skip incomplete segments
+        if (!seg.date || !seg.time || !seg.doctorId || !seg.roomId) return false;
+
+        if (doctorId && seg.doctorId !== doctorId) return false;
+        if (roomId && seg.roomId !== roomId) return false;
+
+        const segStart = this.parseSlotTime(seg.time, seg.date);
+        const segEnd = new Date(segStart.getTime() + (seg.duration || 30) * 60000);
+
+        return (start < segEnd && end > segStart);
     });
   }
 
@@ -772,7 +792,8 @@ export class Appointments implements OnInit {
 
     const startHour = 8;
     const endHour = 20;
-    const date = new Date(this.rescheduleDate);
+    const dateParts = this.rescheduleDate.split('-');
+    const date = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]));
     const dayOfWeek = date.getDay();
 
     for (let hour = startHour; hour < endHour; hour++) {
