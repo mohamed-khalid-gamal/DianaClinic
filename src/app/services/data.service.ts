@@ -451,12 +451,14 @@ export class DataService {
     if (input instanceof Date) return input;
     if (typeof input === 'string') {
         const dateStr = input as string;
-        // If it looks like an ISO date-time without timezone (e.g. 2024-01-01T12:00:00)
-        // And strictly doesn't end with Z or have an offset
-        if (dateStr.includes('T') && !dateStr.endsWith('Z') && !/[+\-]\d{2}:\d{2}$/.test(dateStr)) {
-            return new Date(dateStr + 'Z');
+        // Check for ISO format or Space separator (SQL style)
+        // If it strictly doesn't end with Z and doesn't have a timezone offset
+        if ((dateStr.includes('T') || dateStr.includes(' ')) && !dateStr.endsWith('Z') && !/[+\-]\d{2}:\d{2}$/.test(dateStr)) {
+            // Replace space with T for standard parsing if needed, though Date ctor usually handles it.
+            // Safest to append Z.
+            return new Date(dateStr.replace(' ', 'T') + 'Z');
         }
-        return new Date(dateStr);
+        return new Date(dateStr); // Let browser handle Z or offset
     }
     return new Date();
   }

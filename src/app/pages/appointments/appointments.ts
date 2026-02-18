@@ -178,6 +178,7 @@ export class Appointments implements OnInit {
     this.resetBooking();
     this.showBookingModal = true;
     this.bookingStep = 1;
+    this.loadData();
   }
 
   closeBookingModal() {
@@ -599,10 +600,18 @@ export class Appointments implements OnInit {
       this.dataService.addPatient(newPatient).subscribe({
         next: (created) => {
           this.patients.push(created);
+          // Update state to prevent duplicate creation on retry
+          this.booking.isNewPatient = false;
+          this.booking.patientId = created.id;
+          this.booking.patientSearch = `${created.firstName} ${created.lastName}`;
+          this.selectPatient(created);
+
           doBooking(created.id);
           this.cdr.markForCheck();
         },
-        error: (err: any) => {} // Handled globally
+        error: (err: any) => {
+          this.alertService.error('Failed to create patient: ' + (err.error?.error || 'Unknown error'));
+        }
       });
     } else {
       doBooking(this.booking.patientId);
