@@ -8,6 +8,7 @@ describe('Inventory Component', () => {
   let component: Inventory;
   let dataServiceMock: any;
   let sweetAlertMock: any;
+  let formErrorServiceMock: any;
   let notificationServiceMock: any;
   let cdrMock: any;
 
@@ -63,6 +64,10 @@ describe('Inventory Component', () => {
       confirmDelete: vi.fn().mockResolvedValue(true)
     };
 
+    formErrorServiceMock = {
+      handleBackendErrors: vi.fn()
+    };
+
     notificationServiceMock = {
       getAlertCount: vi.fn().mockReturnValue(of(5))
     };
@@ -72,7 +77,7 @@ describe('Inventory Component', () => {
       detectChanges: vi.fn()
     };
 
-    component = new Inventory(dataServiceMock, sweetAlertMock, notificationServiceMock, cdrMock);
+    component = new Inventory(dataServiceMock, sweetAlertMock, formErrorServiceMock, notificationServiceMock, cdrMock);
   });
 
   it('loads data and alerts on init', () => {
@@ -145,6 +150,34 @@ describe('Inventory Component', () => {
     component.editingCategoryName = 'Updated Cat';
     component.saveCategory(mockCategories[0]);
     expect(dataServiceMock.updateInventoryCategory).toHaveBeenCalled();
+  });
+
+  it('prevents saving when expiry date is today or in the past', () => {
+    component.itemForm = { 
+      name: 'Expired Item', 
+      sku: 'EXP1', 
+      category: 'c1', 
+      quantity: 10, 
+      costPrice: 10,
+      sellingPrice: 20
+    };
+    
+    // Test past date
+    const pastDate = new Date();
+    pastDate.setDate(pastDate.getDate() - 1);
+    component.itemForm.expiryDate = pastDate;
+    
+    component.saveItem();
+    expect(sweetAlertMock.validationError).toHaveBeenCalledWith('Expiration date cannot be today or in the past');
+    expect(dataServiceMock.addInventoryItem).not.toHaveBeenCalled();
+
+    // Test today's date
+    const today = new Date();
+    component.itemForm.expiryDate = today;
+    
+    component.saveItem();
+    expect(sweetAlertMock.validationError).toHaveBeenCalledWith('Expiration date cannot be today or in the past');
+    expect(dataServiceMock.addInventoryItem).not.toHaveBeenCalled();
   });
 
   /*

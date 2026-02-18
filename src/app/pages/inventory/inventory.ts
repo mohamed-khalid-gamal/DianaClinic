@@ -175,6 +175,18 @@ export class Inventory implements OnInit, OnDestroy {
       return;
     }
 
+    if (this.itemForm.expiryDate) {
+      const expiry = new Date(this.itemForm.expiryDate);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      expiry.setHours(0, 0, 0, 0); // Normalize to compare dates only
+
+      if (expiry <= today) {
+        this.sweetAlert.validationError('Expiration date cannot be today or in the past');
+        return;
+      }
+    }
+
     const itemName = this.itemForm.name || 'Item';
     this.saving = true;
     if (!this.isEditMode) {
