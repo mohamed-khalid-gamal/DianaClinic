@@ -55,6 +55,7 @@ describe('Sessions Component', () => {
       updateAppointmentStatus: vi.fn().mockReturnValue(of({})),
       addPatientTransaction: vi.fn().mockReturnValue(of({})),
       addSession: vi.fn().mockReturnValue(of({})),
+      completeSession: vi.fn().mockReturnValue(of({})),
       updateDeviceCounter: vi.fn().mockReturnValue(of({})),
       updateInventoryQuantity: vi.fn().mockReturnValue(of({}))
     };
@@ -73,14 +74,16 @@ describe('Sessions Component', () => {
       confirm: vi.fn().mockResolvedValue(true),
       validationError: vi.fn(),
       success: vi.fn(),
-      sessionEnded: vi.fn()
+      sessionEnded: vi.fn().mockResolvedValue({ isConfirmed: true })
     };
 
     cdrMock = {
       markForCheck: vi.fn()
     };
 
-    component = new Sessions(dataServiceMock, walletServiceMock, offerServiceMock, alertServiceMock, cdrMock);
+    const routerMock = { navigate: vi.fn() } as any;
+
+    component = new Sessions(dataServiceMock, walletServiceMock, offerServiceMock, alertServiceMock, cdrMock, routerMock);
   });
 
   afterEach(() => {
@@ -188,7 +191,7 @@ describe('Sessions Component', () => {
     
     component.confirmEndSession();
     
-    expect(dataServiceMock.updateAppointmentStatus).toHaveBeenCalledWith('a1', 'completed');
+    expect(dataServiceMock.completeSession).toHaveBeenCalled();
     expect(alertServiceMock.sessionEnded).toHaveBeenCalled();
   });
 });

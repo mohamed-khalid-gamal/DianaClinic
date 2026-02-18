@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy, ChangeDetectorRef, ChangeDetectionStrateg
 import { environment } from '../../../environments/environment';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterModule } from '@angular/router';
+import { RouterModule, Router } from '@angular/router';
 import { forkJoin, Observable, of } from 'rxjs';
 import { PageHeaderComponent, ModalComponent, StatCardComponent } from '../../components/shared';
 import { DataService } from '../../services/data.service';
@@ -97,7 +97,8 @@ export class Sessions implements OnInit, OnDestroy {
     private walletService: WalletService,
     private offerService: OfferService,
     private alertService: SweetAlertService,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private router: Router
   ) {}
 
   ngOnInit() {
@@ -855,10 +856,24 @@ export class Sessions implements OnInit, OnDestroy {
         this.activeSessions = this.activeSessions.filter(s => s.appointment.id !== session.appointment.id);
 
         const patientName = `${session.patient.firstName} ${session.patient.lastName}`;
-        this.closeEndSessionModal();
-        this.alertService.sessionEnded(patientName);
-        this.cdr.markForCheck();
-      },
+          // Success - Close Modal
+          this.closeEndSessionModal();
+          this.loadData(); // Refresh list
+
+          this.alertService.sessionEnded(patientName).then(async () => {
+             // New UX: Ask if they want to go to billing
+             const goToBilling = await this.alertService.confirm(
+                 'Go to Billing?',
+                 'Session ended successfully. Do you want to generate an invoice now?',
+                 'Yes, Go to Billing',
+                 'Later'
+             );
+             if (goToBilling) {
+                 this.router.navigate(['/billing']);
+             }
+          });
+          this.cdr.markForCheck();
+        },
       error: (err: any) => {
         console.error('Session completion failed', err);
         const errorMessage = err.error?.error || 'Failed to complete session. Please try again.';

@@ -16,6 +16,7 @@ interface InvoiceItem {
   total: number;
   serviceId?: string;
   isCreditsUsed?: boolean; // Track if paying with credits
+  originallyPaidByCredit?: boolean; // New: Track if credits were used during session (so we don't double charge)
 }
 
 interface PaymentMethod {
@@ -252,9 +253,12 @@ export class Billing implements OnInit {
              if (session.creditsUsed) {
                  for(const creditUsage of session.creditsUsed) {
                      // Find the invoice item for this service
+                     // We match by serviceId. If there are multiple items for same service (unlikely in this context but possible),
+                     // we should ideally match one. For now, find first non-credit one.
                      const invItem = this.invoiceItems.find(i => i.serviceId === creditUsage.serviceId && !i.isCreditsUsed);
                      if(invItem) {
                          invItem.isCreditsUsed = true;
+                         invItem.originallyPaidByCredit = true; // Mark as already paid by session credits
                          invItem.total = 0;
                          invItem.description += ` (Covered by ${creditUsage.unitsUsed} ${creditUsage.unitType})`;
                      }
@@ -442,7 +446,8 @@ export class Billing implements OnInit {
     const preOps: Observable<any>[] = [];
 
     for (const item of this.invoiceItems) {
-      if (item.isCreditsUsed && item.serviceId && this.selectedPatient) {
+      // Only redeem if credits used AND NOT originally paid during session
+      if (item.isCreditsUsed && item.serviceId && this.selectedPatient && !item.originallyPaidByCredit) {
         preOps.push(this.walletService.redeemCredit(this.selectedPatient.id, item.serviceId));
         preOps.push(this.dataService.addPatientTransaction({
           patientId: this.selectedPatient.id,

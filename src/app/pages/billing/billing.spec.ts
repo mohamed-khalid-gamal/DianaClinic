@@ -45,7 +45,8 @@ describe('Billing Component', () => {
       getSessionByAppointment: vi.fn().mockReturnValue(of({})),
       createInvoice: vi.fn().mockReturnValue(of({})),
       updateAppointmentStatus: vi.fn().mockReturnValue(of({})),
-      addPatientTransaction: vi.fn().mockReturnValue(of({}))
+      addPatientTransaction: vi.fn().mockReturnValue(of({})),
+      getOfferUsage: vi.fn().mockReturnValue(of([]))
     };
 
     offerServiceMock = {
@@ -143,5 +144,29 @@ describe('Billing Component', () => {
     expect(dataServiceMock.createInvoice).toHaveBeenCalled();
     expect(dataServiceMock.updateAppointmentStatus).toHaveBeenCalledWith('a1', 'billed');
     expect(alertServiceMock.invoicePaid).toHaveBeenCalled();
+  });
+
+  it('should NOT redeem credit again if originallyPaidByCredit is true', () => {
+    component.selectedAppointment = mockAppointments[0];
+    component.selectedPatient = mockPatients[0];
+    component.invoiceItems = [
+      { 
+        description: 'Service', 
+        quantity: 1, 
+        unitPrice: 100, 
+        total: 0, 
+        serviceId: 's1', 
+        isCreditsUsed: true, 
+        originallyPaidByCredit: true 
+      }
+    ];
+    component.payments = []; // Fully paid by credit
+    
+    component.confirmInvoice();
+
+    expect(dataServiceMock.createInvoice).toHaveBeenCalled();
+    // Verify redeemCredit was NOT called
+    expect(walletServiceMock.redeemCredit).not.toHaveBeenCalled();
+    // Verify invoice payload has appliedOfferId if needed, but here we check credits
   });
 });

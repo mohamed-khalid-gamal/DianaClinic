@@ -181,11 +181,14 @@
                 <i class="fa-solid fa-ticket"></i> Use Credit
               </button>
               <button
-                *ngIf="!isViewingInvoice && item.isCreditsUsed"
+                *ngIf="!isViewingInvoice && item.isCreditsUsed && !item.originallyPaidByCredit"
                 class="btn btn-xs btn-danger"
                 (click)="removeCredit(item)">
                 <i class="fa-solid fa-xmark"></i> Remove
               </button>
+              <span *ngIf="item.originallyPaidByCredit" class="text-xs text-muted" title="Credit used during session">
+                <i class="fa-solid fa-lock"></i> Session
+              </span>
               <span *ngIf="item.serviceId && !hasCreditsForService(item.serviceId) && !item.isCreditsUsed" class="no-credits">
                 —
               </span>
