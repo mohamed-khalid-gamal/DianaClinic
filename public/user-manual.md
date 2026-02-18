@@ -17,7 +17,7 @@
 10. [Devices](#10-devices)
 11. [Inventory](#11-inventory)
 12. [Services (Detailed)](#12-services)
-13. [Offers & Packages (Detailed)](#13-offers--packages)
+13. [Offers and Packages (Full Comprehensive Guide)](#13-offers-and-packages-full-comprehensive-guide)
 14. [Billing](#14-billing)
 15. [Wallet & Credits System](#15-wallet--credits-system)
 16. [Quick Reference](#16-quick-reference)
@@ -731,214 +731,221 @@ The system supports 4 distinct pricing models. Each service can have ONE primary
 
 ---
 
-## 13. Offers & Packages
+## 13. Offers and Packages (Full Comprehensive Guide)
 
-### Overview
+### 13.1 Overview
+The Offers Engine is a sophisticated rule-based system that allows the clinic to manage promotions, loyalty programs, and bundled packages. It is designed to be highly flexible, allowing combinations of various types, complex triggers (conditions), and diverse rewards (benefits).
 
-The Offers system provides a powerful rule engine for discounts, packages, and promotions.
+### 13.2 Offer Types & Varieties
+The system categorizes offers into six primary types, though they can be further customized:
 
-### Offer Types (Detailed)
+*   **Percentage Discount (`percentage`)**: Reduces the cost of services by a set percentage (e.g., 15% off).
+*   **Fixed Amount Discount (`fixed_amount`)**: Subtracts a flat EGP value from the total (e.g., EGP 200 off).
+*   **Bundle Pricing (`bundle`)**: Offers a specific set of services at a pre-defined fixed price when booked together.
+*   **Credit Package (`package`)**: The most popular variety, used to sell "Session" or "Pulse" credits in bulk (e.g., a "10-Session Laser Package").
+*   **Buy X Get Y (`buyXgetY`)**: Triggers a reward after a specific quantity is purchased (e.g., "Buy 5, Get 1 Free").
+*   **Conditional Rules (`conditional`)**: Purely rule-based offers that apply dynamic discounts based on complex patient or cart attributes.
 
-#### 1. Percentage Discount (`percentage`)
+### 13.3 Comprehensive Offer Conditions
+Conditions are the "triggers" that determine if an offer is applicable. You can combine multiple conditions using nested logic.
 
-**Description**: Apply a percentage off the cart total or specific services.
+#### Logical Groups
+*   **AND Group**: All conditions within this group must be true.
+*   **OR Group**: At least one condition within this group must be true.
 
-**Configuration**:
-| Field | Value |
-|-------|-------|
-| Type | `percent_off` |
-| Percent | 10-50% typically |
-
-**Example**: "20% Off All Services"
-- Condition: None (applies to everyone)
-- Benefit: 20% off total
-
-**When to Use**: Flash sales, seasonal promotions, loyalty rewards.
-
----
-
-#### 2. Fixed Amount Discount (`fixed_amount`)
-
-**Description**: Subtract a fixed EGP amount from the total.
-
-**Configuration**:
-| Field | Value |
-|-------|-------|
-| Type | `fixed_amount_off` |
-| Fixed Amount | EGP 100, 200, etc. |
-
-**Example**: "EGP 200 Off Your First Visit"
-- Condition: New Patient
-- Benefit: EGP 200 off
-
-**When to Use**: Welcome discounts, referral bonuses, promotional codes.
-
----
-
-#### 3. Bundle Pricing (`bundle`)
-
-**Description**: Combine multiple services at a special fixed price.
-
-**Configuration**:
-| Field | Value |
-|-------|-------|
-| Type | `fixed_price` |
-| Fixed Price | Bundle total (e.g., EGP 3,000) |
-| Condition | Must include specific services |
-
-**Example**: "Bridal Package"
-- Required Services: Facial + Hair Removal + Skin Rejuvenation
-- Normal Price: EGP 4,500
-- Bundle Price: EGP 3,000
-- Savings: EGP 1,500
-
-**Booking Behavior**:
-- Patient must book ALL required services together
-- System auto-applies bundle price
-- Works as one appointment or segment
-
----
-
-#### 4. Buy X Get Y (`buyXgetY`)
-
-**Description**: Purchase a certain quantity and get additional sessions free.
-
-**Configuration**:
-| Field | Value |
-|-------|-------|
-| Buy Quantity | How many to purchase |
-| Free Quantity | How many free sessions |
-| Target Service | Which service applies |
-
-**Example**: "Buy 5 Laser Sessions, Get 1 Free"
-- Buy: 5 sessions
-- Get: 1 free session
-- Effective discount: ~17%
-
-**Implementation**: When patient books 5 sessions, 6th is granted free in wallet.
-
----
-
-#### 5. Credit Package (`package`)
-
-**Description**: Sell prepaid credits for services at a discounted rate.
-
-**Configuration**:
-| Field | Value |
-|-------|-------|
-| Type | `grant_package` |
-| Fixed Price | Package purchase price |
-| Package Service | Which service |
-| Package Sessions/Pulses | Quantity granted |
-| Validity Days | Optional expiration |
-
-**Example 1 - Session Package**:
-- Name: "10 Facial Sessions"
-- Price: EGP 6,000 (vs EGP 8,000 individual)
-- Grants: 10 session credits for "Facial Treatment"
-- Validity: 365 days
-
-**Example 2 - Pulse Package**:
-- Name: "5,000 Laser Pulses"
-- Price: EGP 15,000
-- Grants: 5,000 pulse credits for "Laser Hair Removal"
-- Validity: 180 days
-
-**Example 3 - Multi-Service Package**:
-- Name: "Ultimate Beauty Package"
-- Price: EGP 20,000
-- Grants:
-  - 10 sessions of "Facial Treatment"
-  - 5 sessions of "Chemical Peel"
-  - 3,000 pulses of "Laser Hair Removal"
-- Validity: 365 days
-
-**Purchase Flow**:
-1. Patient → Profile → Buy Package
-2. Select package → Confirm
-3. Pending bill created (credits NOT active)
-4. Patient pays → Credits activated
-5. Credits appear in wallet for future bookings
-
----
-
-#### 6. Conditional Offers (`conditional`)
-
-**Description**: Complex rules with multiple conditions.
-
-**Available Conditions**:
-
+#### Trigger Categories
 | Condition Type | Description |
 |----------------|-------------|
-| `service_includes` | Cart must contain specific services |
-| `min_spend` | Minimum cart total required |
-| `new_patient` | Only for patients registered < 30 days |
-| `patient_tag` | Specific patient groups (VIP, etc.) |
-| `date_range` | Valid during specific dates |
-| `specific_patient` | Only for selected patient IDs |
+| **Service Requirements** | Must include specific services or items from chosen categories in the cart. |
+| **Minimum Spend** | The total booking amount must meet or exceed a specific threshold. |
+| **New Patient** | Automatically identifies patients with no prior history or those registered recently. |
+| **Patient Tags** | Targets groups based on assigned tags (VIP, Employee, Referral, etc.). |
+| **Date Range** | Restricts the offer to a specific start and end date (e.g., "Ramadan Special"). |
+| **Time of Day** | Happy hour style pricing valid only during specific hours (e.g., 9:00 AM - 1:00 PM). |
+| **Days of Week** | Valid only on specific days (e.g., "Weekend Glow - Sat/Sun only"). |
+| **Specific Patients** | Direct targeting of individual patients for private or compensatory offers. |
+| **Visit Count** | Loyalty-based trigger (e.g., "Applies on your 10th visit"). |
+| **Patient Attributes** | Based on patient metadata like age, gender, or medical history. |
 
-**Example - Loyalty Discount**:
-- Name: "VIP 15% Off"
-- Condition: Patient tag = "VIP"
-- Benefit: 15% off all services
+### 13.4 Offer Benefits (The Rewards)
+When conditions are met, the system applies one of these benefits:
 
-**Example - Minimum Spend**:
-- Name: "Spend EGP 2,000 Get EGP 300 Off"
-- Condition: Cart total ≥ EGP 2,000
-- Benefit: EGP 300 fixed discount
+*   **Percent Off**: A percentage reduction applied to the applicable services.
+*   **Fixed Amount Off**: A flat discount subtracted from the subtotal.
+*   **Fixed Total Price**: Forces the total for the selected services to a specific price (common for bundles).
+*   **Grant Package Credits**: Instead of an immediate discount, it adds "Credits" to the patient's wallet. These can be **Session Units** (for fixed/area pricing) or **Pulse Units** (for laser/pulse pricing).
+*   **Free Session**: Grants one or more free treatments when the "Buy X" threshold is reached.
 
-**Example - Service-Specific**:
-- Name: "Botox + Filler Combo"
-- Condition: Cart includes "Botox" AND "Filler"
-- Benefit: 25% off total
+### 13.5 Advanced Management Features
+
+#### 13.5.1 Priority & Stacking
+*   **Priority (1-100)**: Determines the application sequence. Higher priority offers are evaluated first.
+*   **Exclusivity**: If an offer is marked as **Exclusive**, it cannot be combined with any other offers. If the system detects multiple offers, it will prioritize the exclusive one or allow the user to choose.
+
+#### 13.5.2 Usage Limits
+*   **Per Patient Limit**: Restricts how many times an individual patient can use an offer (e.g., "One-time welcome discount").
+*   **Total Usage Limit**: A global cap on how many times the offer can be redeemed clinic-wide (e.g., "First 50 customers only").
+
+#### 13.5.3 Validity Controls
+*   **Active/Inactive Toggle**: Instantly enable or disable an offer without deleting it.
+*   **Validation**: The system automatically checks validity upon booking and billing to ensure expired offers are not used.
+
+### 13.6 The Offer Creation Wizard (3 Steps)
+The creation process is split into three logical steps. Each step guides you through defining the identity, the triggers, and the rewards. For a granular description of every input field, see **Section 13.8**.
+
+1.  **Step 1: General Info**: Set name, description, priority, and exclusivity.
+2.  **Step 2: Conditions**: Build the logic tree using the "Add Condition" and "Add Group" tools.
+3.  **Step 3: Benefits**: Select the reward type and configure its parameters (percentages, amounts, or credit types).
+
+### 13.7 Real-World Examples (Common Varieties)
+
+Here are some common ways to configure the system for different clinic goals:
+
+*   **The "First Visit" Perk**:
+    *   **Type**: Fixed Amount
+    *   **Condition**: `New Patient Only`
+    *   **Benefit**: EGP 300 Off
+    *   **Usage**: 1 per patient.
+
+*   **The "Laser Power" Pack**:
+    *   **Type**: Package
+    *   **Grant**: 5,000 Pulse Units
+    *   **Validity**: 365 Days
+    *   **Best For**: High-yield laser treatments.
+
+*   **The "Morning Glow" (Off-Peak Discount)**:
+    *   **Type**: Percentage
+    *   **Condition**: `Time of Day (9:00 - 12:00)` AND `Days (Mon-Thu)`
+    *   **Benefit**: 25% Off
+    *   **Goal**: Drive traffic during slow morning hours.
+
+*   **The "VIP Beauty Routine"**:
+    *   **Type**: Conditional
+    *   **Condition**: `Patient Tag: VIP`
+    *   **Benefit**: 15% Off (Infinite usage)
+    *   **Priority**: 90 (High) to ensure it applies before general promos.
+
+*   **The "Ultimate Bridal Bundle"**:
+    *   **Type**: Bundle
+    *   **Condition**: `Includes: Full Body Laser + Hydrafacial + Chemical Peel`
+    *   **Benefit**: Fixed Price EGP 4,500 (Savings of EGP 1,200)
 
 ---
 
-### Offer Priority & Exclusivity
+### 13.8 The Complete Field & Input Reference
 
-| Setting | Description |
-|---------|-------------|
-| **Priority** | Higher number = applies first |
-| **Exclusive** | If true, cannot combine with other offers |
+This section provides a granular, field-by-field explanation of every input encountered in the 3-step creation wizard.
 
-**Stacking Logic**:
-1. Sort offers by priority (descending)
-2. Apply exclusive offer alone OR stack non-exclusive offers
-3. Display total savings to patient
+#### Step 1: Basic Details (The Identity)
+This step establishes the metadata and high-level behavioral rules.
 
----
-
-### Creating Complex Offers (Step-by-Step)
-
-#### Example: "New Patient Welcome Package"
-
-1. **Go to Offers → + Add Offer**
-
-2. **Step 1 - Basic Info**:
-   - Name: "New Patient Welcome Package"
-   - Type: Package
-   - Description: "3 Sessions for the price of 2!"
-
-3. **Step 2 - Conditions**:
-   - Add Condition: "New Patient Only"
-
-4. **Step 3 - Benefits**:
-   - Type: Grant Package
-   - Fixed Price: EGP 1,600
-   - Service: Facial Treatment
-   - Sessions: 3
-   - Validity: 90 days
-
-5. **Step 4 - Settings**:
-   - Valid From: Today
-   - Valid Until: (leave empty for no expiry)
-   - Active: Yes
-
-6. **Save**
+| Field | Detailed Explanation | Technical Guidance |
+|-------|----------------------|--------------------|
+| **Offer Name** | The name displayed in the offers grid and on invoices. | Use something descriptive like "New Patient 15% Off". |
+| **Description** | Detailed explanation of the offer's purpose or internal notes. | Not visible on standard invoices, but helps staff understand the rule. |
+| **Offer Type** | The root logic (Percentage, Fixed, Bundle, Package, etc.). | Changing this after creation may reset Step 3 benefits. |
+| **Priority** | Rank of application (1–100). | If multiple offers match a booking, high priority (e.g., 90) applies before low priority (e.g., 10). |
+| **Valid From** | The date the promotion officially starts. | The system ignores the offer before this date. |
+| **Valid Until** | The date the promotion ends. | Inclusive. At 00:00:00 after this date, the offer expires. |
+| **Status Toggle** | Master switch (Active/Inactive). | Use this to temporarily pause a promotion without deleting it. |
+| **Exclusive Flag** | Determines if this offer can "stack" with others. | **Exclusive** = No other discounts allowed. **Non-exclusive** = Allows stacking with other non-exclusive rules. |
+| **Patient Limit** | Max redemptions *per individual patient*. | Controls for "One-time" introductory offers. |
+| **Total Limit** | Max redemptions *clinic-wide* across all patients. | Essential for limited-time "First 50 people" campaigns. |
 
 ---
 
-## Services + Offers + Credits Integration
+#### Step 2: Conditions (The Triggers)
+Conditions define **exactly when** the reward should be triggered. You can build complex logical trees.
+
+| Condition Type | Feature & Input Detail | Usage Example |
+|----------------|------------------------|---------------|
+| **Service Includes** | **Match Logic**: `Any`, `All`, `None`, or `Exact`. <br> **Min Quantity**: Minimum units required. <br> **Filter**: Select specific services or entire categories. | Require "At least 2 Facials" to get the discount. |
+| **Minimum Spend** | **Min Amount**: The total cart subtotal before taxes/discounts. | "Spend EGP 2000 or more to qualify." |
+| **New Patient** | (Dynamic Check): Queries patient history. | Triggers only for patients with 0 prior completed sessions. |
+| **Patient Tag Match**| **Tags**: Categorized labels. <br> **Operator**: `Contains` or `Not Contains`. | Apply only to "VIP" tagged patients. |
+| **Date Range** | **Start/End Date**: Valid timeframe. | "Valentine's Week" promotion. |
+| **Time Range** | **Start/End Time**: Hourly restrictions. | "Early Bird" discount from 9:00 AM to 12:00 PM. |
+| **Days of Week** | **Mon–Sun Checkboxes**: Daily restrictions. | "Sunday Funday" specials. |
+| **Specific Patient** | **Patient IDs**: Direct targeting. | Compensation offers for specifically affected individuals. |
+| **Patient Attribute**| **Attribute**: Age, Gender, City, etc. <br> **Operator**: `Greater Than`, `Equals`, etc. | "Student Discount" based on Age < 25. |
+| **Cart Property** | **Property**: Total Items, Category Count. | "Buy items from at least 3 categories." |
+| **Logic Group** | **Logic**: `AND` or `OR`. | `(Age > 60 AND Is New Patient)` OR `(Has VIP Tag)`. |
+
+---
+
+#### Step 3: Benefits (The Reward)
+The benefit is the "prize" the patient receives once conditions are met.
+
+*   **Percentage Reward**:
+    *   *Input*: `Discount Percentage (%)`.
+    *   *Effect*: Reduces the subtotal of applicable services by the specified amount (e.g., `20%`).
+*   **Fixed Amount Reward**:
+    *   *Input*: `Discount Amount (EGP)`.
+    *   *Effect*: Subtracts a flat fee from the total (e.g., `-EGP 100`).
+*   **Bundle Reward**:
+    *   *Input*: `Fixed Total Price (EGP)`.
+    *   *Effect*: Adjusts the total of all required services to a flat rate, regardless of individual prices.
+*   **Package Reward (Bulk Credits)**:
+    *   *Inputs*: `Package Price` + `Credit Items`.
+    *   *Credit Items*: Define `Service`, `Quantity`, and `Unit Type`.
+    *   *Unit Types*:
+        *   **Sessions**: Fixed treatment counts.
+        *   **Pulses**: For laser devices (counts pulses fired).
+        *   **Units**: For injectables (e.g., ml or units).
+*   **Buy X Get Y Reward**:
+    *   *Inputs*: `Buy Qty` (Threshold), `Free Qty` (Reward), `Target Service`.
+    *   *Effect*: Automatically adds the free sessions to the patient's record after the threshold is met.
+---
+
+### 13.9 Advanced Offer Scenarios (The Scenario Library)
+
+This library covers "all-possible" complex configurations based on the system's rule engine.
+
+#### A. Loyalty & Retention Scenarios
+| Goal | Logical Trigger | Reward Configuration |
+|------|-----------------|----------------------|
+| **10th Visit Reward** | `Match: AND` <br> `Visits Equal: 10` | **Benefit**: Fixed Amount Off (EGP 500). |
+| **VIP Anniversary Cache** | `Match: AND` <br> `Patient Tag: VIP` <br> `Date Range: (Active Anniversary)` | **Benefit**: Free Session (Select Target Service). |
+| **"Win-Back" Offer** | `Match: AND` <br> `Tag: Inactive (Manual Tag)` <br> `Min Spend: 1000` | **Benefit**: 40% Discount Off. |
+
+#### B. Demographic & Attribute Scenarios
+| Goal | Logical Trigger | Reward Configuration |
+|------|-----------------|----------------------|
+| **Men's Grooming Month** | `Match: AND` <br> `Gender: Male` <br> `Month: November` | **Benefit**: Fixed Price Bundle (Beard Trim + Facial). |
+| **Youth/Student Discount** | `Match: AND` <br> `Age Less Than: 25` | **Benefit**: 15% Discount on all services. |
+| **Senior Citizen Care** | `Match: AND` <br> `Age Greater Than: 60` | **Benefit**: Fixed Amount Off (EGP 250). |
+
+#### C. Volume & Utilization Scenarios
+| Goal | Logical Trigger | Reward Configuration |
+|------|-----------------|----------------------|
+| **Bulk Body Coverage** | `Match: AND` <br> `Cart Quantity Greater Than: 4` | **Benefit**: 30% Off Total (Incentivizes multi-area laser). |
+| **"Happy Hour" Laser** | `Match: AND` <br> `Time: 10:00 - 13:00` <br> `Category: Laser` | **Benefit**: Fixed Price (Flat rate for any laser zone). |
+| **Weekend Rush Surcharge** | `Match: AND` <br> `Days: Fri, Sat` | **Benefit**: Negative Discount (Fixed Amount Increase - *Used for Premium Slots*). |
+
+#### D. Nested Logic (The Power-User Scenarios)
+These scenarios use **Logic Groups** (Section 13.3) for clinical precision.
+
+*   **Scenario: "Specific Medical Exclusion"**
+    *   **Logic Root**: `OR`
+        *   `Group 1 (AND)`: Is New Patient AND Is Male.
+        *   `Group 2 (AND)`: Is VIP AND Is Female.
+    *   **Benefit**: Percentage Discount.
+    *   *Result*: Offer only applies to New Men OR VIP Women.
+
+*   **Scenario: "The Anti-Stacker Rule"**
+    *   **Logic Root**: `AND`
+        *   `Service Includes: Botox`
+        *   `Service EXCLUDES (Logic: None): Laser Treatment`
+    *   **Benefit**: Free Session of Botox.
+    *   *Result*: Only applies if the patient is NOT also getting laser in the same visit.
+
+#### E. Stacking & Priority Scenarios
+*   **The "Welcome Bundle" (Priority 100, Exclusive)**:
+    *   Ensures that if research shows a new patient is eligible for both a 10% seasonal discount and the 20% Welcome Bundle, the system **forces** the 20% one and stops.
+*   **The "Accumulated Savings" (Priority 10, Non-Exclusive)**:
+    *   Allow a "VIP Tag" discount (15%) to stack with a "Happy Hour" discount (10%) for a total effective reduction.
+
+---
 
 ### How They Work Together
 

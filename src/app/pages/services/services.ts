@@ -64,13 +64,15 @@ export class Services implements OnInit {
       services: this.dataService.getServices(),
       categories: this.dataService.getCategories(),
       doctors: this.dataService.getDoctors(),
-      inventory: this.dataService.getInventory()
+      inventory: this.dataService.getInventory(),
+      inventoryCategories: this.dataService.getInventoryCategories()
     }).subscribe({
-      next: ({ services, categories, doctors, inventory }) => {
+      next: ({ services, categories, doctors, inventory, inventoryCategories }) => {
         this.services = services;
         this.categories = categories;
         this.doctors = doctors;
-        this.inventoryItems = inventory.filter(i => i.category === 'consumable' || i.category === 'drug');
+        
+        this.inventoryItems = inventory;
         this.loading = false;
         this.cdr.markForCheck();
       },

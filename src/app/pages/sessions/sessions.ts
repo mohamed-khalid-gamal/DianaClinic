@@ -287,6 +287,27 @@ export class Sessions implements OnInit, OnDestroy {
 
     // Initialize consumables list
     this.endSessionConsumables = [];
+    
+    // Pre-fill from defined service consumables
+    session.services.forEach(svc => {
+      if (svc.consumables) {
+        svc.consumables.forEach(c => {
+           const existing = this.endSessionConsumables.find(item => item.itemId === c.inventoryItemId);
+           if (existing) {
+             existing.quantity += c.quantity;
+           } else {
+             const inventoryItem = this.inventory.find(i => i.id === c.inventoryItemId);
+             if (inventoryItem) {
+               this.endSessionConsumables.push({
+                 itemId: inventoryItem.id,
+                 name: inventoryItem.name,
+                 quantity: c.quantity
+               });
+             }
+           }
+        });
+      }
+    });
 
     // Reset extra charges
     this.extraCharges = [];
@@ -755,6 +776,17 @@ export class Sessions implements OnInit, OnDestroy {
       return;
     }
 
+    // Validate Consumable Stock
+    for (const consumable of this.endSessionConsumables) {
+      const inventoryItem = this.inventory.find(i => i.id === consumable.itemId);
+      if (inventoryItem) {
+        if (consumable.quantity > inventoryItem.quantity) {
+          this.alertService.validationError(`Insufficient stock for ${consumable.name}. Available: ${inventoryItem.quantity}, Requested: ${consumable.quantity}`);
+          return;
+        }
+      }
+    }
+
     const session = this.selectedSession;
     const patientId = session.patient.id;
     session.notes = this.sessionNotes;
@@ -829,7 +861,8 @@ export class Sessions implements OnInit, OnDestroy {
       },
       error: (err: any) => {
         console.error('Session completion failed', err);
-        this.alertService.error('Failed to complete session. Please try again.');
+        const errorMessage = err.error?.error || 'Failed to complete session. Please try again.';
+        this.alertService.error(errorMessage);
       }
     });
   }

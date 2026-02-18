@@ -519,7 +519,8 @@ export class Appointments implements OnInit {
         },
         error: (err: any) => {
           console.error('Booking failed', err);
-          this.alertService.error('Booking failed. Please try again.');
+          const errorMessage = err.error?.error || 'Booking failed. Please try again.';
+          this.alertService.error(errorMessage);
         }
       });
     };

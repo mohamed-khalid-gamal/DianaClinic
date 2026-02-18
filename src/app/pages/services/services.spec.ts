@@ -2,7 +2,7 @@ import '../../../test-setup';
 import { of } from 'rxjs';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
 import { Services } from './services';
-import { Service, ServiceCategory, Doctor, InventoryItem } from '../../models';
+import { Service, ServiceCategory, Doctor, InventoryItem, InventoryCategory } from '../../models';
 
 describe('Services Component', () => {
   let component: Services;
@@ -33,8 +33,14 @@ describe('Services Component', () => {
     { id: 'd1', name: 'Dr. Smith' } as any
   ];
 
+  const mockInventoryCategories: InventoryCategory[] = [
+    { id: 'ic1', name: 'Consumable' },
+    { id: 'ic2', name: 'Equipment' }
+  ];
+
   const mockInventory: InventoryItem[] = [
-    { id: 'i1', name: 'Item 1', category: 'consumable' } as any
+    { id: 'i1', name: 'Item 1', category: 'ic1' } as any,
+    { id: 'i2', name: 'Item 2', category: 'ic2' } as any
   ];
 
   beforeEach(() => {
@@ -43,6 +49,7 @@ describe('Services Component', () => {
       getCategories: vi.fn().mockReturnValue(of(mockCategories)),
       getDoctors: vi.fn().mockReturnValue(of(mockDoctors)),
       getInventory: vi.fn().mockReturnValue(of(mockInventory)),
+      getInventoryCategories: vi.fn().mockReturnValue(of(mockInventoryCategories)),
       addService: vi.fn().mockReturnValue(of(mockServices[0])),
       updateService: vi.fn().mockReturnValue(of(mockServices[0])),
       deleteService: vi.fn().mockReturnValue(of(void 0)),
@@ -65,17 +72,24 @@ describe('Services Component', () => {
       markForCheck: vi.fn()
     };
 
-    component = new Services(dataServiceMock, alertServiceMock, cdrMock);
+    const formErrorServiceMock = {
+      handleBackendErrors: vi.fn()
+    };
+
+    component = new Services(dataServiceMock, alertServiceMock, formErrorServiceMock as any, cdrMock);
   });
 
   it('loads data on init', () => {
     component.ngOnInit();
     expect(dataServiceMock.getServices).toHaveBeenCalled();
     expect(dataServiceMock.getCategories).toHaveBeenCalled();
+    expect(dataServiceMock.getInventoryCategories).toHaveBeenCalled();
     expect(component.services.length).toBe(1);
     expect(component.categories.length).toBe(1);
     expect(component.doctors.length).toBe(1);
-    expect(component.inventoryItems.length).toBe(1);
+    expect(component.inventoryItems.length).toBe(2); // Should have all items
+    expect(component.inventoryItems[0].id).toBe('i1');
+    expect(component.inventoryItems[1].id).toBe('i2');
   });
 
   it('filters services by category', () => {
@@ -124,12 +138,4 @@ describe('Services Component', () => {
     component.togglePricingType('fixed');
     expect(component.serviceForm.pricingModels?.length).toBe(0);
   });
-
-  /*
-  it.skip('deletes service after confirmation', async () => {
-    await component.deleteService(mockServices[0]);
-    expect(dataServiceMock.deleteService).toHaveBeenCalled();
-    expect(alertServiceMock.deleted).toHaveBeenCalled();
-  });
-  */
 });
