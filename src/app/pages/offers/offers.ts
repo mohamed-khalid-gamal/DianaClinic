@@ -1,10 +1,12 @@
 import { Component, OnInit, ChangeDetectorRef, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, NgForm } from '@angular/forms';
+import { HttpErrorResponse } from '@angular/common/http';
 import { forkJoin } from 'rxjs';
 import { PageHeaderComponent, ModalComponent } from '../../components/shared';
 import { DataService } from '../../services/data.service';
 import { SweetAlertService } from '../../services/sweet-alert.service';
+import { FormErrorService } from '../../services/form-error.service';
 import { Offer, Service, OfferCondition, OfferBenefit, PackageCreditItem, ServiceCategory } from '../../models';
 
 @Component({
@@ -31,6 +33,7 @@ export class Offers implements OnInit {
   constructor(
     private dataService: DataService,
     private alertService: SweetAlertService,
+    private formErrorService: FormErrorService,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -92,12 +95,20 @@ export class Offers implements OnInit {
   saveOffer(form?: NgForm) {
     if (form && form.invalid) {
       form.form.markAllAsTouched();
-      this.alertService.validationError('Please fill all required fields');
+      this.alertService.validationError('Please correct the highlighted errors before saving');
       return;
     }
 
-    if (!this.offerForm.name) {
+    if (!this.offerForm.name?.trim()) {
       this.alertService.validationError('Offer Name is required');
+      return;
+    }
+    if (this.offerForm.name.trim().length < 2) {
+      this.alertService.validationError('Offer name must be at least 2 characters');
+      return;
+    }
+    if (this.offerForm.priority != null && (this.offerForm.priority < 1 || this.offerForm.priority > 100)) {
+      this.alertService.validationError('Priority must be between 1 and 100');
       return;
     }
 
@@ -121,7 +132,8 @@ export class Offers implements OnInit {
           this.saving = false;
           this.cdr.markForCheck();
         },
-        error: () => {
+        error: (err: HttpErrorResponse) => {
+          this.formErrorService.handleBackendErrors(err, form);
           this.saving = false;
           this.cdr.markForCheck();
         }
@@ -135,7 +147,8 @@ export class Offers implements OnInit {
           this.saving = false;
           this.cdr.markForCheck();
         },
-        error: () => {
+        error: (err: HttpErrorResponse) => {
+          this.formErrorService.handleBackendErrors(err, form);
           this.saving = false;
           this.cdr.markForCheck();
         }

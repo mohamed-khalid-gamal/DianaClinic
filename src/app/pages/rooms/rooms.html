@@ -29,8 +29,11 @@
   <form #roomFormRef="ngForm" class="form-grid">
     <div class="form-group">
       <label>Room Name *</label>
-      <input type="text" name="roomName" required [(ngModel)]="roomForm.name" placeholder="e.g., Laser Suite 1" #roomName="ngModel">
-      <span class="error-text" *ngIf="roomName.invalid && (roomName.touched || roomName.dirty)">Room name is required</span>
+      <input type="text" name="roomName" required minlength="2" [(ngModel)]="roomForm.name" placeholder="e.g., Laser Suite 1" #roomName="ngModel">
+      <span class="error-text" *ngIf="roomName.invalid && (roomName.touched || roomName.dirty)">
+        <span *ngIf="roomName.errors?.['required']">Room name is required</span>
+        <span *ngIf="roomName.errors?.['minlength']">Room name must be at least 2 characters</span>
+      </span>
     </div>
 
     <div class="form-group">

@@ -26,7 +26,7 @@ import { PageHeaderComponent } from '../../components/shared';
         {{ error }}
       </div>
 
-      <div class="manual-content" *ngIf="!loading && !error" [innerHTML]="manualHtml"></div>
+      <div class="manual-content" *ngIf="!loading && !error" [innerHTML]="manualHtml" (click)="onContentClick($event)"></div>
     </div>
   `,
   styles: [`
@@ -167,6 +167,16 @@ export class ManualPage implements OnInit {
 
     this.http.get('user-manual.md', { responseType: 'text' }).subscribe({
       next: async (markdown) => {
+        const renderer = new marked.Renderer();
+        renderer.heading = (text: string, level: number) => {
+          const id = text
+            .toLowerCase()
+            .replace(/[^\w]+/g, '-')
+            .replace(/^-+|-+$/g, '');
+          return `<h${level} id="${id}">${text}</h${level}>`;
+        };
+
+        marked.use({ renderer });
         const html = await marked.parse(markdown);
         this.manualHtml = this.sanitizer.bypassSecurityTrustHtml(html);
         this.loading = false;
@@ -178,5 +188,28 @@ export class ManualPage implements OnInit {
         this.cdr.markForCheck();
       }
     });
+  }
+  onContentClick(event: MouseEvent) {
+    const target = event.target as HTMLElement;
+    const anchor = target.closest('a');
+    if (anchor) {
+      const href = anchor.getAttribute('href');
+      if (href && href.startsWith('#')) {
+        event.preventDefault();
+        const id = href.substring(1);
+        const element = document.getElementById(id);
+        if (element) {
+          // Add offset for fixed header if needed, usually 80-100px
+          const headerOffset = 100;
+          const elementPosition = element.getBoundingClientRect().top;
+          const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+
+          window.scrollTo({
+            top: offsetPosition,
+            behavior: 'smooth'
+          });
+        }
+      }
+    }
   }
 }

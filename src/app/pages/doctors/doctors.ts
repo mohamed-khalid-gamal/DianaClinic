@@ -1,10 +1,12 @@
 import { Component, OnInit, ChangeDetectorRef, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, NgForm } from '@angular/forms';
+import { HttpErrorResponse } from '@angular/common/http';
 import { forkJoin } from 'rxjs';
 import { PageHeaderComponent, DataTableComponent, ModalComponent, TableColumn } from '../../components/shared';
 import { DataService } from '../../services/data.service';
 import { SweetAlertService } from '../../services/sweet-alert.service';
+import { FormErrorService } from '../../services/form-error.service';
 import { Doctor } from '../../models';
 
 @Component({
@@ -49,6 +51,7 @@ export class Doctors implements OnInit {
   constructor(
     private dataService: DataService,
     private alertService: SweetAlertService,
+    private formErrorService: FormErrorService,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -116,16 +119,25 @@ export class Doctors implements OnInit {
   saveDoctor(form?: NgForm) {
     if (form && form.invalid) {
       form.form.markAllAsTouched();
-      this.alertService.validationError('Please fill all required fields');
+      this.alertService.validationError('Please correct the highlighted errors before saving');
       return;
     }
 
     const nameValue = this.doctorForm.name?.trim();
     const specialtyValue = this.doctorForm.specialty?.trim();
     const phoneValue = this.doctorForm.phone?.trim();
+    const emailValue = this.doctorForm.email?.trim();
 
     if (!nameValue) {
       this.alertService.validationError('Doctor name is required');
+      return;
+    }
+    if (nameValue.length < 2) {
+      this.alertService.validationError('Doctor name must be at least 2 characters');
+      return;
+    }
+    if (!/^[a-zA-Z\s.\-]+$/.test(nameValue)) {
+      this.alertService.validationError('Doctor name must only contain letters, spaces, dots, or dashes');
       return;
     }
     if (!specialtyValue) {
@@ -134,6 +146,14 @@ export class Doctors implements OnInit {
     }
     if (!phoneValue) {
       this.alertService.validationError('Phone is required');
+      return;
+    }
+    if (!/^(\+201|01)[0125][0-9]{8}$/.test(phoneValue)) {
+      this.alertService.validationError('Enter a valid Egyptian mobile number (e.g. 01012345678)');
+      return;
+    }
+    if (emailValue && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailValue)) {
+      this.alertService.validationError('Please enter a valid email address');
       return;
     }
 
@@ -162,7 +182,8 @@ export class Doctors implements OnInit {
           this.saving = false;
           this.cdr.markForCheck();
         },
-        error: () => {
+        error: (err: HttpErrorResponse) => {
+          this.formErrorService.handleBackendErrors(err, form);
           this.saving = false;
           this.cdr.markForCheck();
         }

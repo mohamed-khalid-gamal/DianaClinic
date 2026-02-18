@@ -1,6 +1,7 @@
 import { Component, OnInit, ChangeDetectorRef, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, NgForm } from '@angular/forms';
+import { HttpErrorResponse } from '@angular/common/http';
 import { RouterModule } from '@angular/router';
 import { forkJoin } from 'rxjs';
 import { switchMap } from 'rxjs/operators';
@@ -10,6 +11,7 @@ import { ModalComponent } from '../../components/shared/modal.component';
 import { DataService } from '../../services/data.service';
 import { WalletService } from '../../services/wallet.service';
 import { SweetAlertService } from '../../services/sweet-alert.service';
+import { FormErrorService } from '../../services/form-error.service';
 import { Patient, PatientWallet, ServiceCredit, Appointment, Session } from '../../models';
 
 @Component({
@@ -50,6 +52,7 @@ export class Patients implements OnInit {
     private dataService: DataService,
     private walletService: WalletService,
     private alertService: SweetAlertService,
+    private formErrorService: FormErrorService,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -74,6 +77,15 @@ export class Patients implements OnInit {
             lastVisit: patientApts.length > 0 ? new Date(patientApts[0].scheduledStart) : undefined
           };
         });
+
+        // Update selectedPatient reference if it exists
+        if (this.selectedPatient) {
+          const updatedSelected = this.patients.find(p => p.id === this.selectedPatient!.id);
+          if (updatedSelected) {
+            this.selectedPatient = updatedSelected;
+          }
+        }
+
         this.loading = false;
         this.cdr.markForCheck();
       },
@@ -154,7 +166,8 @@ export class Patients implements OnInit {
           this.saving = false;
           this.cdr.markForCheck();
         },
-        error: () => {
+        error: (err: HttpErrorResponse) => {
+          this.formErrorService.handleBackendErrors(err, form);
           this.saving = false;
           this.cdr.markForCheck();
         }
@@ -172,7 +185,8 @@ export class Patients implements OnInit {
           this.saving = false;
           this.cdr.markForCheck();
         },
-        error: () => {
+        error: (err: HttpErrorResponse) => {
+          this.formErrorService.handleBackendErrors(err, form);
           this.saving = false;
           this.cdr.markForCheck();
         }

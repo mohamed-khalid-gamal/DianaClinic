@@ -121,20 +121,29 @@
   <form #deviceFormRef="ngForm" class="form-grid">
     <div class="form-group">
       <label>Device Name *</label>
-      <input type="text" name="deviceName" required [(ngModel)]="deviceForm.name" placeholder="e.g., Candela GentleMax Pro" #deviceName="ngModel">
-      <span class="error-text" *ngIf="deviceName.invalid && (deviceName.touched || deviceName.dirty)">Device name is required</span>
+      <input type="text" name="deviceName" required minlength="2" [(ngModel)]="deviceForm.name" placeholder="e.g., Candela GentleMax Pro" #deviceName="ngModel">
+      <span class="error-text" *ngIf="deviceName.invalid && (deviceName.touched || deviceName.dirty)">
+        <span *ngIf="deviceName.errors?.['required']">Device name is required</span>
+        <span *ngIf="deviceName.errors?.['minlength']">Device name must be at least 2 characters</span>
+      </span>
     </div>
 
     <div class="form-group">
       <label>Model *</label>
-      <input type="text" name="model" required [(ngModel)]="deviceForm.model" placeholder="Model name" #deviceModel="ngModel">
-      <span class="error-text" *ngIf="deviceModel.invalid && (deviceModel.touched || deviceModel.dirty)">Model is required</span>
+      <input type="text" name="model" required minlength="2" [(ngModel)]="deviceForm.model" placeholder="Model name" #deviceModel="ngModel">
+      <span class="error-text" *ngIf="deviceModel.invalid && (deviceModel.touched || deviceModel.dirty)">
+        <span *ngIf="deviceModel.errors?.['required']">Model is required</span>
+        <span *ngIf="deviceModel.errors?.['minlength']">Model must be at least 2 characters</span>
+      </span>
     </div>
 
     <div class="form-group">
       <label>Serial Number *</label>
-      <input type="text" name="serialNumber" required [(ngModel)]="deviceForm.serialNumber" placeholder="Device serial number" #serialNumber="ngModel">
-      <span class="error-text" *ngIf="serialNumber.invalid && (serialNumber.touched || serialNumber.dirty)">Serial number is required</span>
+      <input type="text" name="serialNumber" required pattern="^[a-zA-Z0-9\-]+$" [(ngModel)]="deviceForm.serialNumber" placeholder="Device serial number" #serialNumber="ngModel">
+      <span class="error-text" *ngIf="serialNumber.invalid && (serialNumber.touched || serialNumber.dirty)">
+        <span *ngIf="serialNumber.errors?.['required']">Serial number is required</span>
+        <span *ngIf="serialNumber.errors?.['pattern']">Serial number must be alphanumeric (letters, digits, dashes only)</span>
+      </span>
     </div>
 
     <div class="form-group">
@@ -164,7 +173,10 @@
     <div class="form-group">
       <label>Maintenance Threshold *</label>
       <input type="number" name="maintenanceThreshold" required [(ngModel)]="deviceForm.maintenanceThreshold" min="1" #maintenanceThreshold="ngModel">
-      <span class="error-text" *ngIf="maintenanceThreshold.invalid && (maintenanceThreshold.touched || maintenanceThreshold.dirty)">Maintenance threshold is required</span>
+      <span class="error-text" *ngIf="maintenanceThreshold.invalid && (maintenanceThreshold.touched || maintenanceThreshold.dirty)">
+        <span *ngIf="maintenanceThreshold.errors?.['required']">Maintenance threshold is required</span>
+        <span *ngIf="maintenanceThreshold.errors?.['min']">Threshold must be at least 1</span>
+      </span>
     </div>
 
     <div class="form-group">
@@ -193,7 +205,8 @@
 
     <div class="form-group">
       <label>Counter End (After Session) *</label>
-      <input type="number" [(ngModel)]="usageLog.counterEnd" [min]="usageLog.counterStart">
+      <input type="number" [(ngModel)]="usageLog.counterEnd" [min]="usageLog.counterStart" name="counterEnd" #counterEnd="ngModel">
+      <span class="error-text" *ngIf="usageLog.counterEnd <= usageLog.counterStart && usageLog.counterEnd !== undefined">Counter end must be greater than the current counter ({{ formatNumber(usageLog.counterStart) }})</span>
     </div>
 
     <div class="usage-calculated" *ngIf="usageLog.counterEnd > usageLog.counterStart">

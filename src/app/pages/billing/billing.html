@@ -221,8 +221,9 @@
 
         <div class="manual-discount">
            <label>Manual Discount Adjustment</label>
-            <input type="number" name="discount" [(ngModel)]="discount" placeholder="0.00">
+            <input type="number" name="discount" [(ngModel)]="discount" placeholder="0.00" min="0">
             <span class="error-text" *ngIf="invoiceAttempted && discount < 0">Discount cannot be negative</span>
+            <span class="error-text" *ngIf="discount > subtotal && subtotal > 0">Discount exceeds subtotal</span>
         </div>
       </div>
     </div>
@@ -251,6 +252,7 @@
           <span *ngIf="!isViewingInvoice" class="tax-edit">
             Tax (<input type="number" name="taxRate" [(ngModel)]="taxRate" min="0" max="100" class="tax-input">&nbsp;%)
           </span>
+          <span class="error-text" *ngIf="taxRate < 0 || taxRate > 100" style="font-size: 0.7rem;">Tax must be 0-100%</span>
           <span>EGP {{ taxAmount | number }}</span>
         </div>
 
@@ -280,8 +282,9 @@
           </select>
           <input type="number" name="paymentAmount" [(ngModel)]="newPayment.amount" (change)="validatePaymentAmount()" min="0" placeholder="Amount">
         </div>
-        <span class="error-text" *ngIf="!isViewingInvoice && paymentAttempted && (!newPayment.type || newPayment.amount <= 0)">Enter a valid payment method and amount</span>
-        <span class="error-text" *ngIf="!isViewingInvoice && paymentAttempted && remainingBalance > 0 && newPayment.amount > remainingBalance">Payment exceeds remaining balance</span>
+        <span class="error-text" *ngIf="!isViewingInvoice && paymentAttempted && !newPayment.type">Select a payment method</span>
+        <span class="error-text" *ngIf="!isViewingInvoice && paymentAttempted && newPayment.amount <= 0">Enter a valid payment amount</span>
+        <span class="error-text" *ngIf="!isViewingInvoice && paymentAttempted && remainingBalance > 0 && newPayment.amount > remainingBalance">Payment exceeds remaining balance (EGP {{ remainingBalance | number }})</span>
         <div class="payment-actions" *ngIf="!isViewingInvoice">
            <button class="btn btn-outline" (click)="payFullAmount()">Full</button>
            <button class="btn btn-secondary" (click)="addPayment()">Add</button>

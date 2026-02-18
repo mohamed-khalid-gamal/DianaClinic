@@ -92,8 +92,11 @@
       <div class="form-grid">
         <div class="form-group full-width">
           <label>Offer Name *</label>
-          <input type="text" name="offerName" required [(ngModel)]="offerForm.name" placeholder="e.g., Summer Bundle" #offerName="ngModel">
-          <span class="error-text" *ngIf="offerName.invalid && (offerName.touched || offerName.dirty)">Offer name is required</span>
+          <input type="text" name="offerName" required minlength="2" [(ngModel)]="offerForm.name" placeholder="e.g., Summer Bundle" #offerName="ngModel">
+          <span class="error-text" *ngIf="offerName.invalid && (offerName.touched || offerName.dirty)">
+            <span *ngIf="offerName.errors?.['required']">Offer name is required</span>
+            <span *ngIf="offerName.errors?.['minlength']">Offer name must be at least 2 characters</span>
+          </span>
         </div>
 
         <div class="form-group full-width">
@@ -116,7 +119,8 @@
 
         <div class="form-group">
           <label>Priority (1-100)</label>
-          <input type="number" name="priority" [(ngModel)]="offerForm.priority" placeholder="10">
+          <input type="number" name="priority" [(ngModel)]="offerForm.priority" placeholder="10" min="1" max="100" #offerPriority="ngModel">
+          <span class="error-text" *ngIf="offerPriority.invalid && (offerPriority.touched || offerPriority.dirty)">Priority must be between 1 and 100</span>
           <span class="hint">Higher priority applies first</span>
         </div>
 
@@ -416,17 +420,20 @@
           <div class="ben-params">
             <div class="form-group" *ngIf="offerForm.type === 'percentage' || offerForm.type === 'conditional'">
               <label>Discount Percentage (%)</label>
-              <input type="number" [(ngModel)]="ben.parameters.percent" [ngModelOptions]="{ standalone: true }">
+              <input type="number" [(ngModel)]="ben.parameters.percent" [ngModelOptions]="{ standalone: true }" min="1" max="100">
+              <span class="error-text" *ngIf="ben.parameters.percent != null && (ben.parameters.percent < 1 || ben.parameters.percent > 100)">Discount must be between 1% and 100%</span>
             </div>
 
             <div class="form-group" *ngIf="offerForm.type === 'fixed_amount'">
               <label>Discount Amount (EGP)</label>
-              <input type="number" [(ngModel)]="ben.parameters.fixedAmount" [ngModelOptions]="{ standalone: true }">
+              <input type="number" [(ngModel)]="ben.parameters.fixedAmount" [ngModelOptions]="{ standalone: true }" min="0">
+              <span class="error-text" *ngIf="ben.parameters.fixedAmount != null && ben.parameters.fixedAmount < 0">Discount amount cannot be negative</span>
             </div>
 
             <div class="form-group" *ngIf="offerForm.type === 'bundle'">
               <label>Bundle Fixed Price (EGP)</label>
-              <input type="number" [(ngModel)]="ben.parameters.fixedPrice" [ngModelOptions]="{ standalone: true }">
+              <input type="number" [(ngModel)]="ben.parameters.fixedPrice" [ngModelOptions]="{ standalone: true }" min="0">
+              <span class="error-text" *ngIf="ben.parameters.fixedPrice != null && ben.parameters.fixedPrice < 0">Bundle price cannot be negative</span>
             </div>
 
              <div class="params-group" *ngIf="offerForm.type === 'package'">

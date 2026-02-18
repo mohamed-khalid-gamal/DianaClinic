@@ -1,10 +1,12 @@
 import { Component, OnInit, OnDestroy, ChangeDetectorRef, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, NgForm } from '@angular/forms';
+import { HttpErrorResponse } from '@angular/common/http';
 import { forkJoin, Subscription } from 'rxjs';
 import { PageHeaderComponent, ModalComponent, StatCardComponent, NotificationsPanelComponent } from '../../components/shared';
 import { DataService } from '../../services/data.service';
 import { SweetAlertService } from '../../services/sweet-alert.service';
+import { FormErrorService } from '../../services/form-error.service';
 import { AlertService } from '../../services/alert.service';
 import { Device, Room } from '../../models';
 import { getDeviceStatusColor } from '../../utils/status-colors';
@@ -40,6 +42,7 @@ export class Devices implements OnInit, OnDestroy {
   constructor(
     private dataService: DataService,
     private alertService: SweetAlertService,
+    private formErrorService: FormErrorService,
     private notificationService: AlertService,
     private cdr: ChangeDetectorRef
   ) {}
@@ -94,7 +97,7 @@ export class Devices implements OnInit, OnDestroy {
   saveDevice(form?: NgForm) {
     if (form && form.invalid) {
       form.form.markAllAsTouched();
-      this.alertService.validationError('Please fill all required fields');
+      this.alertService.validationError('Please correct the highlighted errors before saving');
       return;
     }
 
@@ -113,6 +116,10 @@ export class Devices implements OnInit, OnDestroy {
     }
     if (!serialValue) {
       this.alertService.validationError('Serial number is required');
+      return;
+    }
+    if (!/^[a-zA-Z0-9\-]+$/.test(serialValue)) {
+      this.alertService.validationError('Serial number must be alphanumeric (letters, digits, dashes only)');
       return;
     }
     if (!counterTypeValue) {
@@ -135,7 +142,8 @@ export class Devices implements OnInit, OnDestroy {
           this.saving = false;
           this.cdr.markForCheck();
         },
-        error: () => {
+        error: (err: HttpErrorResponse) => {
+          this.formErrorService.handleBackendErrors(err, form);
           this.saving = false;
           this.cdr.markForCheck();
         }
@@ -149,7 +157,8 @@ export class Devices implements OnInit, OnDestroy {
           this.saving = false;
           this.cdr.markForCheck();
         },
-        error: () => {
+        error: (err: HttpErrorResponse) => {
+          this.formErrorService.handleBackendErrors(err, form);
           this.saving = false;
           this.cdr.markForCheck();
         }

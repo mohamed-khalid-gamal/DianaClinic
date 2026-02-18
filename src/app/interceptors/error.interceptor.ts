@@ -17,9 +17,9 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
       } else {
         // Server-side error
         switch (error.status) {
-          case 400: // Bad Request
+          case 400: // Bad Request — may include field-level validation errors
             errorTitle = 'Invalid Request';
-            errorMessage = error.error?.error || error.error?.message || 'Please check your input.';
+            errorMessage = formatValidationErrors(error);
             break;
           case 401: // Unauthorized
             errorTitle = 'Unauthorized';
@@ -58,3 +58,46 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
     })
   );
 };
+
+/**
+ * Parse field-level validation errors from backend response.
+ * Handles both ASP.NET ModelState format: { errors: { Field: ["msg"] } }
+ * and custom middleware format: { error: "msg", errors: { field: ["msg"] } }
+ */
+function formatValidationErrors(error: HttpErrorResponse): string {
+  const body = error.error;
+
+  // Check for field-level errors dictionary (ASP.NET ModelState or custom middleware)
+  const errors: Record<string, string[]> | undefined = body?.errors;
+
+  if (errors && typeof errors === 'object') {
+    const messages: string[] = [];
+    for (const [field, fieldErrors] of Object.entries(errors)) {
+      if (Array.isArray(fieldErrors)) {
+        // Format field name from PascalCase/camelCase to readable form
+        const readableField = field
+          .replace(/([A-Z])/g, ' $1')
+          .replace(/^[\s.]/, '')
+          .trim();
+        fieldErrors.forEach(msg => {
+          // If the message already contains the field name context, use it directly
+          // Otherwise prefix with the readable field name
+          if (msg.toLowerCase().includes(readableField.toLowerCase()) || !readableField) {
+            messages.push(msg);
+          } else {
+            messages.push(`${readableField}: ${msg}`);
+          }
+        });
+      }
+    }
+
+    if (messages.length > 0) {
+      // If there's a summary error message, prepend it
+      const summary = body?.error || body?.title || 'Please correct the following errors:';
+      return `${summary}\n\n• ${messages.join('\n• ')}`;
+    }
+  }
+
+  // Fallback to generic error message
+  return body?.error || body?.message || body?.title || 'Please check your input.';
+}

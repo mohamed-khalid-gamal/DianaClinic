@@ -1,10 +1,12 @@
 import { Component, OnInit, ChangeDetectorRef, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, NgForm } from '@angular/forms';
+import { HttpErrorResponse } from '@angular/common/http';
 import { forkJoin } from 'rxjs';
 import { PageHeaderComponent, ModalComponent } from '../../components/shared';
 import { DataService } from '../../services/data.service';
 import { SweetAlertService } from '../../services/sweet-alert.service';
+import { FormErrorService } from '../../services/form-error.service';
 import { Service, ServiceCategory, PricingModel, Doctor, InventoryItem, ServiceConsumable } from '../../models';
 
 @Component({
@@ -49,6 +51,7 @@ export class Services implements OnInit {
   constructor(
     private dataService: DataService,
     private alertService: SweetAlertService,
+    private formErrorService: FormErrorService,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -137,7 +140,7 @@ export class Services implements OnInit {
   saveService(form?: NgForm) {
     if (form && form.invalid) {
       form.form.markAllAsTouched();
-      this.alertService.validationError('Please fill all required fields');
+      this.alertService.validationError('Please correct the highlighted errors before saving');
       return;
     }
 
@@ -145,6 +148,10 @@ export class Services implements OnInit {
 
     if (!serviceNameValue) {
       this.alertService.validationError('Service name is required');
+      return;
+    }
+    if (serviceNameValue.length < 2) {
+      this.alertService.validationError('Service name must be at least 2 characters');
       return;
     }
     if (!this.serviceForm.categoryId) {
@@ -167,7 +174,8 @@ export class Services implements OnInit {
           this.saving = false;
           this.cdr.markForCheck();
         },
-        error: () => {
+        error: (err: HttpErrorResponse) => {
+          this.formErrorService.handleBackendErrors(err, form);
           this.saving = false;
           this.cdr.markForCheck();
         }
@@ -181,7 +189,8 @@ export class Services implements OnInit {
           this.saving = false;
           this.cdr.markForCheck();
         },
-        error: () => {
+        error: (err: HttpErrorResponse) => {
+          this.formErrorService.handleBackendErrors(err, form);
           this.saving = false;
           this.cdr.markForCheck();
         }

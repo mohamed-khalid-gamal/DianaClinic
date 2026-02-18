@@ -100,14 +100,20 @@
   <form #itemFormRef="ngForm" class="form-grid">
     <div class="form-group">
       <label>Product Name *</label>
-      <input type="text" name="name" required [(ngModel)]="itemForm.name" placeholder="Product name" #itemName="ngModel">
-      <span class="error-text" *ngIf="itemName.invalid && (itemName.touched || itemName.dirty)">Product name is required</span>
+      <input type="text" name="name" required minlength="2" [(ngModel)]="itemForm.name" placeholder="Product name" #itemName="ngModel">
+      <span class="error-text" *ngIf="itemName.invalid && (itemName.touched || itemName.dirty)">
+        <span *ngIf="itemName.errors?.['required']">Product name is required</span>
+        <span *ngIf="itemName.errors?.['minlength']">Product name must be at least 2 characters</span>
+      </span>
     </div>
 
     <div class="form-group">
       <label>SKU *</label>
-      <input type="text" name="sku" required [(ngModel)]="itemForm.sku" placeholder="e.g., HA-001" #itemSku="ngModel">
-      <span class="error-text" *ngIf="itemSku.invalid && (itemSku.touched || itemSku.dirty)">SKU is required</span>
+      <input type="text" name="sku" required pattern="^[A-Za-z0-9\-]+$" [(ngModel)]="itemForm.sku" placeholder="e.g., HA-001" #itemSku="ngModel">
+      <span class="error-text" *ngIf="itemSku.invalid && (itemSku.touched || itemSku.dirty)">
+        <span *ngIf="itemSku.errors?.['required']">SKU is required</span>
+        <span *ngIf="itemSku.errors?.['pattern']">SKU must contain only letters, digits, or dashes</span>
+      </span>
     </div>
 
     <div class="form-group">
@@ -134,7 +140,10 @@
     <div class="form-group">
       <label>Quantity *</label>
       <input type="number" name="quantity" required [(ngModel)]="itemForm.quantity" min="0" #itemQuantity="ngModel">
-      <span class="error-text" *ngIf="itemQuantity.invalid && (itemQuantity.touched || itemQuantity.dirty)">Quantity is required</span>
+      <span class="error-text" *ngIf="itemQuantity.invalid && (itemQuantity.touched || itemQuantity.dirty)">
+        <span *ngIf="itemQuantity.errors?.['required']">Quantity is required</span>
+        <span *ngIf="itemQuantity.errors?.['min']">Quantity cannot be negative</span>
+      </span>
     </div>
 
     <div class="form-group">
@@ -146,13 +155,13 @@
     <div class="form-group">
       <label>Cost Price (EGP)</label>
       <input type="number" name="costPrice" [(ngModel)]="itemForm.costPrice" min="0" step="0.01" #costPrice="ngModel">
-      <span class="error-text" *ngIf="costPrice.invalid && (costPrice.touched || costPrice.dirty)">Must be 0 or greater</span>
+      <span class="error-text" *ngIf="costPrice.invalid && (costPrice.touched || costPrice.dirty)">Cost price cannot be negative</span>
     </div>
 
     <div class="form-group">
       <label>Selling Price (EGP)</label>
       <input type="number" name="sellingPrice" [(ngModel)]="itemForm.sellingPrice" min="0" step="0.01" #sellingPrice="ngModel">
-      <span class="error-text" *ngIf="sellingPrice.invalid && (sellingPrice.touched || sellingPrice.dirty)">Must be 0 or greater</span>
+      <span class="error-text" *ngIf="sellingPrice.invalid && (sellingPrice.touched || sellingPrice.dirty)">Selling price cannot be negative</span>
     </div>
 
     <div class="form-group">
@@ -187,11 +196,12 @@
 
   <div class="category-manager">
     <div class="category-add-form">
-      <input type="text" [(ngModel)]="newCategoryName" placeholder="New category name..." class="category-input">
-      <button class="btn btn-primary btn-sm" (click)="addNewCategory()" [disabled]="!newCategoryName.trim()">
+      <input type="text" [(ngModel)]="newCategoryName" placeholder="New category name..." class="category-input" minlength="2">
+      <button class="btn btn-primary btn-sm" (click)="addNewCategory()" [disabled]="!newCategoryName.trim() || newCategoryName.trim().length < 2">
         <i class="fa-solid fa-plus"></i> Add
       </button>
     </div>
+    <span class="error-text" *ngIf="newCategoryName.trim().length > 0 && newCategoryName.trim().length < 2">Category name must be at least 2 characters</span>
 
     <div class="category-list" *ngIf="categories.length; else noCats">
       <div class="category-item" *ngFor="let cat of categories">

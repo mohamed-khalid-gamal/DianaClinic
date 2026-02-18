@@ -1,10 +1,12 @@
 import { Component, OnInit, OnDestroy, ChangeDetectorRef, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, NgForm } from '@angular/forms';
+import { HttpErrorResponse } from '@angular/common/http';
 import { forkJoin, Subscription } from 'rxjs';
 import { PageHeaderComponent, DataTableComponent, ModalComponent, StatCardComponent, TableColumn, NotificationsPanelComponent } from '../../components/shared';
 import { DataService } from '../../services/data.service';
 import { SweetAlertService } from '../../services/sweet-alert.service';
+import { FormErrorService } from '../../services/form-error.service';
 import { AlertService } from '../../services/alert.service';
 import { InventoryItem, InventoryCategory } from '../../models';
 
@@ -51,6 +53,7 @@ export class Inventory implements OnInit, OnDestroy {
   constructor(
     private dataService: DataService,
     private sweetAlert: SweetAlertService,
+    private formErrorService: FormErrorService,
     private notificationService: AlertService,
     private cdr: ChangeDetectorRef
   ) {}
@@ -132,7 +135,7 @@ export class Inventory implements OnInit, OnDestroy {
   saveItem(form?: NgForm) {
     if (form && form.invalid) {
       form.form.markAllAsTouched();
-      this.sweetAlert.validationError('Please fill all required fields');
+      this.sweetAlert.validationError('Please correct the highlighted errors before saving');
       return;
     }
 
@@ -143,8 +146,16 @@ export class Inventory implements OnInit, OnDestroy {
       this.sweetAlert.validationError('Product name is required');
       return;
     }
+    if (nameValue.length < 2) {
+      this.sweetAlert.validationError('Product name must be at least 2 characters');
+      return;
+    }
     if (!skuValue) {
       this.sweetAlert.validationError('SKU is required');
+      return;
+    }
+    if (!/^[A-Za-z0-9\-]+$/.test(skuValue)) {
+      this.sweetAlert.validationError('SKU must contain only letters, digits, or dashes');
       return;
     }
     if (!this.itemForm.category) {
@@ -153,6 +164,14 @@ export class Inventory implements OnInit, OnDestroy {
     }
     if (this.itemForm.quantity == null || this.itemForm.quantity < 0) {
       this.sweetAlert.validationError('Quantity must be 0 or more');
+      return;
+    }
+    if (this.itemForm.costPrice != null && this.itemForm.costPrice < 0) {
+      this.sweetAlert.validationError('Cost price cannot be negative');
+      return;
+    }
+    if (this.itemForm.sellingPrice != null && this.itemForm.sellingPrice < 0) {
+      this.sweetAlert.validationError('Selling price cannot be negative');
       return;
     }
 
@@ -167,7 +186,8 @@ export class Inventory implements OnInit, OnDestroy {
           this.saving = false;
           this.cdr.detectChanges();
         },
-        error: () => {
+        error: (err: HttpErrorResponse) => {
+          this.formErrorService.handleBackendErrors(err, form);
           this.saving = false;
           this.cdr.detectChanges();
         }
@@ -181,7 +201,8 @@ export class Inventory implements OnInit, OnDestroy {
           this.saving = false;
           this.cdr.detectChanges();
         },
-        error: () => {
+        error: (err: HttpErrorResponse) => {
+          this.formErrorService.handleBackendErrors(err, form);
           this.saving = false;
           this.cdr.detectChanges();
         }

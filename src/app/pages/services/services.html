@@ -84,8 +84,11 @@
       <div class="form-grid">
         <div class="form-group">
           <label>Service Name *</label>
-          <input type="text" name="serviceName" required [(ngModel)]="serviceForm.name" placeholder="e.g., Full Body Laser" #serviceName="ngModel">
-          <span class="error-text" *ngIf="serviceName.invalid && (serviceName.touched || serviceName.dirty)">Service name is required</span>
+          <input type="text" name="serviceName" required minlength="2" [(ngModel)]="serviceForm.name" placeholder="e.g., Full Body Laser" #serviceName="ngModel">
+          <span class="error-text" *ngIf="serviceName.invalid && (serviceName.touched || serviceName.dirty)">
+            <span *ngIf="serviceName.errors?.['required']">Service name is required</span>
+            <span *ngIf="serviceName.errors?.['minlength']">Service name must be at least 2 characters</span>
+          </span>
         </div>
 
         <div class="form-group">
@@ -100,7 +103,10 @@
         <div class="form-group">
           <label>Duration (minutes) *</label>
           <input type="number" name="duration" required [(ngModel)]="serviceForm.duration" min="5" step="5" #duration="ngModel">
-          <span class="error-text" *ngIf="duration.invalid && (duration.touched || duration.dirty)">Duration is required</span>
+          <span class="error-text" *ngIf="duration.invalid && (duration.touched || duration.dirty)">
+            <span *ngIf="duration.errors?.['required']">Duration is required</span>
+            <span *ngIf="duration.errors?.['min']">Duration must be at least 5 minutes</span>
+          </span>
         </div>
 
         <div class="form-group">
@@ -177,7 +183,7 @@
           <div class="form-group">
             <label>Price (EGP)</label>
             <input type="number" [(ngModel)]="getPricingModel('fixed')!.basePrice" [ngModelOptions]="{ standalone: true }" min="0" #fixedPrice="ngModel">
-            <span class="error-text" *ngIf="fixedPrice.invalid && (fixedPrice.touched || fixedPrice.dirty)">Price must be 0 or greater</span>
+            <span class="error-text" *ngIf="fixedPrice.invalid && (fixedPrice.touched || fixedPrice.dirty)">Price cannot be negative</span>
           </div>
         </div>
 
@@ -188,12 +194,12 @@
             <div class="form-group">
               <label>Base Fee (EGP)</label>
               <input type="number" [(ngModel)]="getPricingModel('pulse')!.basePrice" [ngModelOptions]="{ standalone: true }" min="0" #pulseBase="ngModel">
-              <span class="error-text" *ngIf="pulseBase.invalid && (pulseBase.touched || pulseBase.dirty)">Must be 0 or greater</span>
+              <span class="error-text" *ngIf="pulseBase.invalid && (pulseBase.touched || pulseBase.dirty)">Base fee cannot be negative</span>
             </div>
             <div class="form-group">
               <label>Price per Pulse (EGP)</label>
               <input type="number" [(ngModel)]="getPricingModel('pulse')!.pricePerUnit" [ngModelOptions]="{ standalone: true }" min="0" step="0.1" #pulsePrice="ngModel">
-              <span class="error-text" *ngIf="pulsePrice.invalid && (pulsePrice.touched || pulsePrice.dirty)">Must be 0 or greater</span>
+              <span class="error-text" *ngIf="pulsePrice.invalid && (pulsePrice.touched || pulsePrice.dirty)">Price per pulse cannot be negative</span>
             </div>
           </div>
           <div class="formula-preview">
@@ -225,7 +231,7 @@
           <div class="form-group">
             <label>Price per Minute (EGP)</label>
             <input type="number" [(ngModel)]="getPricingModel('time')!.pricePerUnit" [ngModelOptions]="{ standalone: true }" min="0" step="0.5" #timePrice="ngModel">
-            <span class="error-text" *ngIf="timePrice.invalid && (timePrice.touched || timePrice.dirty)">Price must be 0 or greater</span>
+            <span class="error-text" *ngIf="timePrice.invalid && (timePrice.touched || timePrice.dirty)">Price per minute cannot be negative</span>
           </div>
         </div>
       </div>
@@ -244,7 +250,7 @@
           </select>
           <input type="number" [ngModel]="cons.quantity" (ngModelChange)="cons.quantity = $event" [ngModelOptions]="{ standalone: true }" min="1" placeholder="Qty">
           <button type="button" class="btn btn-outline btn-sm" (click)="removeConsumable(i)">×</button>
-          <span class="error-text" *ngIf="cons.quantity < 1">Qty min 1</span>
+          <span class="error-text" *ngIf="cons.quantity < 1">Quantity must be at least 1</span>
         </div>
       </div>
       <button type="button" class="btn btn-outline btn-sm" (click)="addConsumable()">+ Add Consumable</button>
@@ -262,11 +268,12 @@
 
   <div class="category-manager">
     <div class="category-add-form">
-      <input type="text" [(ngModel)]="newCategoryName" placeholder="New category name..." class="category-input">
-      <button class="btn btn-primary btn-sm" (click)="addNewCategory()" [disabled]="!newCategoryName.trim()">
+      <input type="text" [(ngModel)]="newCategoryName" placeholder="New category name..." class="category-input" minlength="2">
+      <button class="btn btn-primary btn-sm" (click)="addNewCategory()" [disabled]="!newCategoryName.trim() || newCategoryName.trim().length < 2">
         <i class="fa-solid fa-plus"></i> Add
       </button>
     </div>
+    <span class="error-text" *ngIf="newCategoryName.trim().length > 0 && newCategoryName.trim().length < 2">Category name must be at least 2 characters</span>
 
     <div class="category-list" *ngIf="categories.length; else noCats">
       <div class="category-item" *ngFor="let cat of categories">

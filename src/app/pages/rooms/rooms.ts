@@ -1,9 +1,11 @@
 import { Component, OnInit, ChangeDetectorRef, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, NgForm } from '@angular/forms';
+import { HttpErrorResponse } from '@angular/common/http';
 import { PageHeaderComponent, DataTableComponent, ModalComponent, TableColumn } from '../../components/shared';
 import { DataService } from '../../services/data.service';
 import { SweetAlertService } from '../../services/sweet-alert.service';
+import { FormErrorService } from '../../services/form-error.service';
 import { Room } from '../../models';
 
 @Component({
@@ -35,6 +37,7 @@ export class Rooms implements OnInit {
   constructor(
     private dataService: DataService,
     private alertService: SweetAlertService,
+    private formErrorService: FormErrorService,
     private cdr: ChangeDetectorRef
   ) {}
 
@@ -79,7 +82,7 @@ export class Rooms implements OnInit {
   saveRoom(form?: NgForm) {
     if (form && form.invalid) {
       form.form.markAllAsTouched();
-      this.alertService.validationError('Please fill all required fields');
+      this.alertService.validationError('Please correct the highlighted errors before saving');
       return;
     }
 
@@ -90,8 +93,16 @@ export class Rooms implements OnInit {
       this.alertService.validationError('Room name is required');
       return;
     }
+    if (roomNameValue.length < 2) {
+      this.alertService.validationError('Room name must be at least 2 characters');
+      return;
+    }
     if (!roomTypeValue) {
       this.alertService.validationError('Room type is required');
+      return;
+    }
+    if (this.roomForm.capacity !== undefined && (this.roomForm.capacity < 1 || this.roomForm.capacity > 10)) {
+      this.alertService.validationError('Capacity must be between 1 and 10');
       return;
     }
 
@@ -106,7 +117,8 @@ export class Rooms implements OnInit {
           this.saving = false;
           this.cdr.markForCheck();
         },
-        error: () => {
+        error: (err: HttpErrorResponse) => {
+          this.formErrorService.handleBackendErrors(err, form);
           this.saving = false;
           this.cdr.markForCheck();
         }
@@ -120,7 +132,8 @@ export class Rooms implements OnInit {
           this.saving = false;
           this.cdr.markForCheck();
         },
-        error: () => {
+        error: (err: HttpErrorResponse) => {
+          this.formErrorService.handleBackendErrors(err, form);
           this.saving = false;
           this.cdr.markForCheck();
         }

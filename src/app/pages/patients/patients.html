@@ -196,25 +196,41 @@
   <form #patientFormRef="ngForm" class="form-grid">
     <div class="form-group">
       <label>First Name *</label>
-      <input type="text" name="firstName" required [(ngModel)]="patientForm.firstName" placeholder="Enter first name" #firstName="ngModel">
-      <span class="error-text" *ngIf="firstName.invalid && (firstName.touched || firstName.dirty)">First name is required</span>
+      <input type="text" name="firstName" required pattern="^[a-zA-Z\s\-']+$" [(ngModel)]="patientForm.firstName" placeholder="Enter first name" #firstName="ngModel">
+      <span class="error-text" *ngIf="firstName.invalid && (firstName.touched || firstName.dirty)">
+        <span *ngIf="firstName.errors?.['required']">First name is required</span>
+        <span *ngIf="firstName.errors?.['pattern']">First name must only contain letters</span>
+        <span *ngIf="firstName.errors?.['serverError']">{{ firstName.errors?.['serverError'] }}</span>
+      </span>
     </div>
 
     <div class="form-group">
       <label>Last Name *</label>
-      <input type="text" name="lastName" required [(ngModel)]="patientForm.lastName" placeholder="Enter last name" #lastName="ngModel">
-      <span class="error-text" *ngIf="lastName.invalid && (lastName.touched || lastName.dirty)">Last name is required</span>
+      <input type="text" name="lastName" required pattern="^[a-zA-Z\s\-']+$" [(ngModel)]="patientForm.lastName" placeholder="Enter last name" #lastName="ngModel">
+      <span class="error-text" *ngIf="lastName.invalid && (lastName.touched || lastName.dirty)">
+        <span *ngIf="lastName.errors?.['required']">Last name is required</span>
+        <span *ngIf="lastName.errors?.['pattern']">Last name must only contain letters</span>
+        <span *ngIf="lastName.errors?.['serverError']">{{ lastName.errors?.['serverError'] }}</span>
+      </span>
     </div>
 
     <div class="form-group">
       <label>Phone *</label>
-      <input type="tel" name="phone" required [(ngModel)]="patientForm.phone" placeholder="+20 xxx xxx xxxx" #phone="ngModel">
-      <span class="error-text" *ngIf="phone.invalid && (phone.touched || phone.dirty)">Phone is required</span>
+      <input type="tel" name="phone" required pattern="^(\+201|01)[0125][0-9]{8}$" [(ngModel)]="patientForm.phone" placeholder="01012345678" #phone="ngModel">
+      <span class="error-text" *ngIf="phone.invalid && (phone.touched || phone.dirty)">
+        <span *ngIf="phone.errors?.['required']">Phone is required</span>
+        <span *ngIf="phone.errors?.['pattern']">Enter a valid Egyptian mobile (e.g. 01012345678)</span>
+        <span *ngIf="phone.errors?.['serverError']">{{ phone.errors?.['serverError'] }}</span>
+      </span>
     </div>
 
     <div class="form-group">
       <label>Email</label>
-      <input type="email" name="email" [(ngModel)]="patientForm.email" placeholder="email@example.com">
+      <input type="email" name="email" email [(ngModel)]="patientForm.email" placeholder="email@example.com" #email="ngModel">
+      <span class="error-text" *ngIf="email.invalid && (email.touched || email.dirty)">
+        <span *ngIf="email.errors?.['email']">Invalid email format</span>
+        <span *ngIf="email.errors?.['serverError']">{{ email.errors?.['serverError'] }}</span>
+      </span>
     </div>
 
     <div class="form-group">
