@@ -553,7 +553,7 @@ export class Sessions implements OnInit, OnDestroy {
       };
     });
 
-    this.endSessionAvailableOffers = this.offerService.evaluateOffers(cart, patient, this.offers);
+    this.endSessionAvailableOffers = this.offerService.evaluateOffers(cart, patient, this.offers, [], undefined, 'billing');
   }
 
   // Toggle credit usage for a specific service

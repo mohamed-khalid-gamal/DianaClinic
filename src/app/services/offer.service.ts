@@ -26,7 +26,7 @@ export class OfferService {
   /**
    * Main entry point: Evaluate all available offers against the current cart and patient.
    */
-  evaluateOffers(cart: CartItem[], patient: Patient, allOffers: Offer[], services: Service[] = [], usageStats?: { offerId: string, patientCount: number, globalCount: number }[]): AppliedOffer[] {
+  evaluateOffers(cart: CartItem[], patient: Patient, allOffers: Offer[], services: Service[] = [], usageStats?: { offerId: string, patientCount: number, globalCount: number }[], context: 'billing' | 'package' | 'all' = 'all'): AppliedOffer[] {
     const applicableOffers: AppliedOffer[] = [];
     const today = new Date();
 
@@ -35,6 +35,16 @@ export class OfferService {
       if (!o.isActive) return false;
       if (o.validFrom && new Date(o.validFrom) > today) return false;
       if (o.validUntil && new Date(o.validUntil) < today) return false;
+
+      // Filter by context
+      if (context === 'billing') {
+        // Billing/End Session only shows discounts (percentage or fixed amount), NOT packages
+        if (o.type === 'package') return false;
+      } else if (context === 'package') {
+        // Package purchase only shows packages
+        if (o.type !== 'package') return false;
+      }
+
       return true;
     });
 

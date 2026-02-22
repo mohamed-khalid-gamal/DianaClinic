@@ -316,7 +316,7 @@ export class Billing implements OnInit {
       quantity: item.quantity
     }));
 
-    this.availableOffers = this.offerService.evaluateOffers(cart, this.selectedPatient, this.offers, this.services, usageStats);
+    this.availableOffers = this.offerService.evaluateOffers(cart, this.selectedPatient, this.offers, this.services, usageStats, 'billing');
 
     if (this.availableOffers.length > 0 && !this.selectedAppliedOffer) {
        this.selectedAppliedOffer = this.availableOffers[0];
