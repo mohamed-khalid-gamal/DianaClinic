@@ -186,13 +186,17 @@ export class OfferService {
       const attr = condition.parameters.attributeName;
       if (!attr) return true;
       
-      // Access patient property safely, supporting nested paths if needed (simple for now)
-      const value = (patient as any)[attr];
-      
-      // Handle Date attributes (like dateOfBirth) specifically for age comparison
-      if (attr === 'dateOfBirth' && value) {
-          const age = new Date().getFullYear() - new Date(value).getFullYear();
-          return this.compareValues(age, condition.parameters.attributeValue, condition.operator);
+      let value: any = undefined;
+
+      // Handle derived or mapped attributes
+      if (attr === 'age') {
+          if (!patient.dateOfBirth) return false;
+          value = new Date().getFullYear() - new Date(patient.dateOfBirth).getFullYear();
+      } else if (attr === 'visitCount') {
+          value = patient.visitCount || 0;
+      } else {
+          // Fallback to direct property access
+          value = (patient as any)[attr];
       }
 
       return this.compareValues(value, condition.parameters.attributeValue, condition.operator);

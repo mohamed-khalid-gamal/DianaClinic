@@ -7,7 +7,7 @@ import { PageHeaderComponent, ModalComponent } from '../../components/shared';
 import { DataService } from '../../services/data.service';
 import { SweetAlertService } from '../../services/sweet-alert.service';
 import { FormErrorService } from '../../services/form-error.service';
-import { Offer, Service, OfferCondition, OfferBenefit, PackageCreditItem, ServiceCategory } from '../../models';
+import { Offer, Service, OfferCondition, OfferBenefit, PackageCreditItem, ServiceCategory, Patient } from '../../models';
 
 @Component({
   selector: 'app-offers',
@@ -23,6 +23,7 @@ export class Offers implements OnInit {
   offers: Offer[] = [];
   services: Service[] = [];
   categories: ServiceCategory[] = [];
+  patients: Patient[] = [];
   showModal = false;
   isEditMode = false;
   currentStep = 1;
@@ -46,12 +47,14 @@ export class Offers implements OnInit {
     forkJoin({
       offers: this.dataService.getOffers(),
       services: this.dataService.getServices(),
-      categories: this.dataService.getCategories()
+      categories: this.dataService.getCategories(),
+      patients: this.dataService.getPatients()
     }).subscribe({
-      next: ({ offers, services, categories }) => {
+      next: ({ offers, services, categories, patients }) => {
         this.offers = offers;
         this.services = services;
         this.categories = categories;
+        this.patients = patients;
         this.loading = false;
         this.cdr.markForCheck();
       },
@@ -228,6 +231,27 @@ export class Offers implements OnInit {
     return this.services.find(s => s.id === serviceId)?.name || 'Unknown';
   }
 
+  getPatientName(patientId: string): string {
+    const p = this.patients.find(p => p.id === patientId);
+    return p ? `${p.firstName} ${p.lastName}` : 'Unknown';
+  }
+
+  addPatientToCondition(cond: OfferCondition, event: any) {
+    const pId = event.target.value;
+    if (!pId) return;
+    if (!cond.parameters.patientIds) cond.parameters.patientIds = [];
+    if (!cond.parameters.patientIds.includes(pId)) {
+      cond.parameters.patientIds.push(pId);
+    }
+    event.target.value = '';
+  }
+
+  removePatientFromCondition(cond: OfferCondition, pId: string) {
+    if (cond.parameters.patientIds) {
+      cond.parameters.patientIds = cond.parameters.patientIds.filter((id: string) => id !== pId);
+    }
+  }
+
   joinArray(arr?: string[]): string {
     return (arr || []).join(', ');
   }
@@ -249,11 +273,8 @@ export class Offers implements OnInit {
   getTypeLabel(type: string): string {
     const map: any = {
       'percentage': 'Percentage Discount',
-      'bundle': 'Fixed Bundle',
       'package': 'Credit Package',
-      'fixed_amount': 'Flat Discount',
-      'buyXgetY': 'Buy X Get Y',
-      'conditional': 'Conditional Rule'
+      'fixed_amount': 'Flat Discount'
     };
     return map[type] || type;
   }
@@ -263,11 +284,11 @@ export class Offers implements OnInit {
     if (!benefit) return 'No benefits defined';
 
     switch (benefit.type) {
-      case 'percent_off': return `${benefit.parameters.percent}% Off`;
-      case 'fixed_amount_off': return `EGP ${benefit.parameters.fixedAmount} Off`;
-      case 'fixed_price': return `Price: EGP ${benefit.parameters.fixedPrice}`;
-      case 'grant_package': return `${benefit.parameters.packageSessions} Sessions for EGP ${benefit.parameters.fixedPrice}`;
-      case 'free_session': return `Buy ${benefit.parameters.buyQuantity || 2} Get ${benefit.parameters.freeQuantity || 1} Free`;
+      case 'percent_off': return `${benefit.parameters.percent || 0}% Off`;
+      case 'fixed_amount_off': return `EGP ${benefit.parameters.fixedAmount || 0} Off`;
+      case 'grant_package': 
+        const totalQty = (benefit.parameters.packageCredits || []).reduce((sum: number, c: any) => sum + (c.quantity || 0), 0);
+        return `${totalQty} Sessions for EGP ${benefit.parameters.fixedPrice || 0}`;
       default: return benefit.type;
     }
   }
@@ -418,10 +439,7 @@ export class Offers implements OnInit {
     const typeMap: Record<string, OfferBenefit['type']> = {
       'percentage': 'percent_off',
       'fixed_amount': 'fixed_amount_off',
-      'bundle': 'fixed_price',
-      'package': 'grant_package',
-      'buyXgetY': 'free_session',
-      'conditional': 'percent_off'
+      'package': 'grant_package'
     };
     ben.type = typeMap[type] || 'percent_off';
   }

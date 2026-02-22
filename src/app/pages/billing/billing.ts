@@ -442,77 +442,10 @@ export class Billing implements OnInit {
       return;
     }
 
-    // 1. Collect pre-invoice operations (credit redemptions + package grants)
-    const preOps: Observable<any>[] = [];
+    // 1. Credit redemptions and package grants are now securely performed by the backend during Invoice Create
+    // to ensure atomicity. The frontend just passes the flags.
 
-    for (const item of this.invoiceItems) {
-      // Only redeem if credits used AND NOT originally paid during session
-      if (item.isCreditsUsed && item.serviceId && this.selectedPatient && !item.originallyPaidByCredit) {
-        preOps.push(this.walletService.redeemCredit(this.selectedPatient.id, item.serviceId));
-        preOps.push(this.dataService.addPatientTransaction({
-          patientId: this.selectedPatient.id,
-          date: new Date(),
-          type: 'credit_usage',
-          description: `Used 1 credit for ${item.description}`,
-          amount: 0,
-          method: 'credits',
-          serviceId: item.serviceId,
-          relatedAppointmentId: this.selectedAppointment?.id
-        }));
-      }
-    }
-
-    // 2. Handle package grants from offers
-    if (this.selectedAppliedOffer && this.selectedPatient) {
-      const offer = this.selectedAppliedOffer.offer;
-      const benefit = offer.benefits[0];
-
-      if (benefit && benefit.type === 'grant_package') {
-        const serviceId = benefit.parameters?.packageServiceId;
-        const sessions = benefit.parameters?.packageSessions || 1;
-        const validityDays = benefit.parameters?.packageValidityDays || 365;
-
-        if (serviceId) {
-          const service = this.services.find(s => s.id === serviceId);
-          if (!service) {
-            this.alertService.validationError('Package service is missing or invalid.');
-            return;
-          }
-          if (sessions <= 0) {
-            this.alertService.validationError('Package sessions must be greater than 0.');
-            return;
-          }
-
-          const serviceName = service.name;
-          const expiresAt = new Date();
-          expiresAt.setDate(expiresAt.getDate() + validityDays);
-
-          const credit: ServiceCredit = {
-            serviceId: serviceId,
-            serviceName: serviceName,
-            remaining: sessions,
-            total: sessions,
-            expiresAt: expiresAt,
-            packageId: offer.id,
-            unitType: 'session'
-          };
-
-          preOps.push(this.walletService.addCredit(this.selectedPatient.id, credit));
-          this.packageGrantedMessage = `✓ Package granted: ${sessions} sessions of ${serviceName}`;
-          preOps.push(this.dataService.addPatientTransaction({
-            patientId: this.selectedPatient.id,
-            date: new Date(),
-            type: 'credit_purchase',
-            description: `Granted package: ${sessions} sessions of ${serviceName}`,
-            amount: benefit.parameters?.fixedPrice || 0,
-            method: 'card',
-            serviceId: serviceId,
-            packageId: offer.id,
-            relatedAppointmentId: this.selectedAppointment?.id
-          }));
-        }
-      }
-    }
+    // 2. Handle package grants from offers is now securely performed by the backend during Invoice Create
 
     // 3. Build invoice payload
     const invoicePayload = {
@@ -524,7 +457,9 @@ export class Billing implements OnInit {
         description: item.description,
         quantity: item.quantity,
         unitPrice: item.unitPrice,
-        total: item.total
+        total: item.total,
+        isCreditsUsed: item.isCreditsUsed || false,
+        serviceId: item.serviceId || null
       })),
       subtotal: this.subtotal,
       discount: this.discountAmount,
@@ -540,14 +475,9 @@ export class Billing implements OnInit {
       }))
     };
 
-    // 4. Execute: pre-ops (sequential) → create invoice → post-ops (status + payment transactions)
+    // 2. Create invoice (Backend handles all transactions atomically)
     this.isProcessingInvoice = true;
-    const preOps$: Observable<any> = preOps.length > 0
-      ? preOps.reduce((chain, op) => chain.pipe(switchMap(() => op)), of(null) as Observable<any>)
-      : of(null);
-
-    preOps$.pipe(
-      switchMap(() => this.dataService.createInvoice(invoicePayload)),
+    this.dataService.createInvoice(invoicePayload).pipe(
       switchMap(() => {
         const postOps: Observable<any>[] = [];
 
@@ -584,7 +514,7 @@ export class Billing implements OnInit {
       error: (err: any) => {
         this.isProcessingInvoice = false;
         this.cdr.markForCheck();
-      } // Handled globally
+      }
     });
   }
 
