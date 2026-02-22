@@ -513,6 +513,9 @@ export class Billing implements OnInit {
       },
       error: (err: any) => {
         this.isProcessingInvoice = false;
+        console.error('Invoice creation failed', err);
+        const errorMessage = err.error?.error || err.error?.message || 'Failed to create invoice. Please try again.';
+        this.alertService.error(errorMessage);
         this.cdr.markForCheck();
       }
     });
