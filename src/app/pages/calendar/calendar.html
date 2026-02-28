@@ -191,7 +191,7 @@
     </div>
 
     <div class="detail-actions">
-      <button class="btn btn-outline" routerLink="/appointments">
+      <button class="btn btn-outline" [routerLink]="['/appointments']" [queryParams]="{date: selectedEvent!.start | date:'yyyy-MM-dd'}">
         <i class="fa-solid fa-calendar"></i> View in Appointments
       </button>
       <button class="btn btn-primary" routerLink="/billing">

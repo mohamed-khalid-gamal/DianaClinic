@@ -114,6 +114,21 @@ export class Offers implements OnInit {
       this.alertService.validationError('Priority must be between 1 and 100');
       return;
     }
+    // Bug 13.2 fix: Enforce integer priority
+    if (this.offerForm.priority != null) {
+      this.offerForm.priority = Math.floor(this.offerForm.priority);
+    }
+
+    // Bug 13.5 fix: Validate package offers have at least one service credit
+    if (this.offerForm.type === 'package') {
+      const benefit = this.offerForm.benefits?.[0];
+      const credits = benefit?.parameters?.packageCredits || [];
+      const validCredits = credits.filter(c => c.serviceId && c.serviceId.trim() !== '');
+      if (validCredits.length === 0) {
+        this.alertService.validationError('Package offers must include at least one service with credits. Please add a service to the package.');
+        return;
+      }
+    }
 
     // Default benefits if missing
     if (!this.offerForm.benefits || this.offerForm.benefits.length === 0) {
@@ -316,7 +331,7 @@ export class Offers implements OnInit {
          case 'day_of_week': return `Days: ${(cond.parameters.daysOfWeek || []).map(d => ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d]).join(', ')}`;
          case 'customer_attribute': return `Patient ${cond.parameters.attributeName} ${cond.operator} ${cond.parameters.attributeValue}`;
          case 'visit_count': return `Visits ${cond.operator} ${cond.parameters.attributeValue}`;
-         case 'cart_property': return `Cart ${cond.parameters.attributeName} ${cond.operator} ${cond.parameters.threshold}`;
+         case 'cart_property': return `Invoice ${cond.parameters.attributeName} ${cond.operator} ${cond.parameters.threshold}`;
          default: return cond.type;
       }
   }
@@ -333,7 +348,7 @@ export class Offers implements OnInit {
       'time_range': 'Time of Day',
       'day_of_week': 'Days of Week',
       'customer_attribute': 'Patient Attribute',
-      'cart_property': 'Cart Property'
+      'cart_property': 'Invoice Property'
     };
     return labels[type] || type;
   }

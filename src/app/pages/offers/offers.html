@@ -344,7 +344,7 @@
                    </div>
                </div>
 
-               <!-- Cart Property -->
+               <!-- Invoice Property -->
                <div *ngSwitchCase="'cart_property'" class="form-grid sentence-builder">
                    <div class="form-group mb-0">
                        <select [(ngModel)]="cond.parameters.attributeName" [ngModelOptions]="{ standalone: true }" class="modern-select">
@@ -418,10 +418,10 @@
         <div class="dropdown-add-rule d-flex gap-2">
           <select #newCondType class="modern-select custom-select-add" style="flex: 1;">
              <option value="" disabled selected>Select Rule to Add...</option>
-             <optgroup label="Cart & Spend">
+             <optgroup label="Invoice & Spend">
                <option value="min_spend">Minimum Spend</option>
                <option value="service_includes">Must Include Services</option>
-               <option value="cart_property">Cart Property</option>
+               <option value="cart_property">Invoice Property</option>
              </optgroup>
              <optgroup label="Patient Targeting">
                <option value="new_patient">New Patients Only</option>
@@ -430,7 +430,6 @@
                <option value="specific_patient">Specific Patients</option>
              </optgroup>
              <optgroup label="Date & Time">
-               <option value="date_range">Date Range</option>
                <option value="time_range">Time of Day</option>
                <option value="day_of_week">Days of Week</option>
              </optgroup>

@@ -240,6 +240,7 @@ export class ModalComponent {
   @Input() confirmText = 'Save';
   @Input() cancelText = 'Cancel';
   @Input() confirmDisabled = false;
+  @Input() allowBackgroundClose = false;
 
   @Output() closed = new EventEmitter<void>();
   @Output() confirmed = new EventEmitter<void>();
@@ -253,7 +254,7 @@ export class ModalComponent {
   }
 
   onOverlayClick(event: MouseEvent) {
-    if ((event.target as HTMLElement).classList.contains('modal-overlay')) {
+    if (this.allowBackgroundClose && (event.target as HTMLElement).classList.contains('modal-overlay')) {
       this.close();
     }
   }

@@ -59,7 +59,8 @@ export class Billing implements OnInit {
 
   // Offers
   availableOffers: AppliedOffer[] = [];
-  selectedAppliedOffer: AppliedOffer | null = null;
+  // Bug 13.1 fix: Support multiple non-exclusive offers
+  selectedAppliedOffers: AppliedOffer[] = [];
 
   // Available Credits
   availableCredits: ServiceCredit[] = [];
@@ -176,7 +177,7 @@ export class Billing implements OnInit {
     this.invoiceItems = [];
     this.payments = [];
     this.discount = 0;
-    this.selectedAppliedOffer = null;
+    this.selectedAppliedOffers = [];
     this.availableOffers = [];
     this.availableCredits = [];
     this.packageGrantedMessage = '';
@@ -237,6 +238,17 @@ export class Billing implements OnInit {
             // 2. Process Extra Charges
             if (session.extraCharges) {
                 for (const charge of session.extraCharges) {
+                    // Bug 12.2 fix: If the extra charge has a serviceId, it represents
+                    // the actual cost calculated from a non-fixed pricing model (pulse/area/time).
+                    // Zero out the original invoice item's base price to avoid double-counting.
+                    if (charge.serviceId) {
+                      const matchingItem = this.invoiceItems.find(i => i.serviceId === charge.serviceId && !i.isCreditsUsed);
+                      if (matchingItem) {
+                        matchingItem.unitPrice = 0;
+                        matchingItem.total = 0;
+                        matchingItem.description += ` (${charge.description})`;
+                      }
+                    }
                     this.invoiceItems.push({
                         description: charge.description,
                         quantity: 1,
@@ -316,10 +328,12 @@ export class Billing implements OnInit {
       quantity: item.quantity
     }));
 
-    this.availableOffers = this.offerService.evaluateOffers(cart, this.selectedPatient, this.offers, this.services, usageStats, 'billing');
+    const sessionDate = this.selectedAppointment ? new Date(this.selectedAppointment.scheduledStart) : undefined;
+    this.availableOffers = this.offerService.evaluateOffers(cart, this.selectedPatient, this.offers, this.services, usageStats, 'billing', sessionDate);
 
-    if (this.availableOffers.length > 0 && !this.selectedAppliedOffer) {
-       this.selectedAppliedOffer = this.availableOffers[0];
+    // Bug 13.1 fix: Auto-select all non-exclusive offers if none selected yet
+    if (this.availableOffers.length > 0 && this.selectedAppliedOffers.length === 0) {
+       this.selectedAppliedOffers = [...this.availableOffers];
     }
   }
 
@@ -330,7 +344,9 @@ export class Billing implements OnInit {
   }
 
   get discountAmount(): number {
-    return (this.selectedAppliedOffer?.discountAmount || 0) + this.discount;
+    // Bug 13.1 fix: Sum discounts from all selected offers
+    const offerDiscount = this.selectedAppliedOffers.reduce((sum, o) => sum + (o.discountAmount || 0), 0);
+    return offerDiscount + this.discount;
   }
 
   get taxAmount(): number {
@@ -350,11 +366,21 @@ export class Billing implements OnInit {
   }
 
   applyOffer(appliedOffer: AppliedOffer) {
-    this.selectedAppliedOffer = appliedOffer;
+    // Bug 13.1 fix: Toggle offer selection (add/remove from array)
+    const idx = this.selectedAppliedOffers.findIndex(o => o.offer.id === appliedOffer.offer.id);
+    if (idx > -1) {
+      this.selectedAppliedOffers.splice(idx, 1);
+    } else {
+      this.selectedAppliedOffers.push(appliedOffer);
+    }
   }
 
-  clearOffer() {
-    this.selectedAppliedOffer = null;
+  isOfferSelected(appliedOffer: AppliedOffer): boolean {
+    return this.selectedAppliedOffers.some(o => o.offer.id === appliedOffer.offer.id);
+  }
+
+  clearOffers() {
+    this.selectedAppliedOffers = [];
   }
 
   // Credit Usage
@@ -369,6 +395,20 @@ export class Billing implements OnInit {
 
   useCredit(item: InvoiceItem) {
     if (item.serviceId && this.hasCreditsForService(item.serviceId)) {
+      // Bug 13.6 fix: Validate credit unit type matches service pricing model
+      const credit = this.availableCredits.find(c => c.serviceId === item.serviceId && c.remaining > 0);
+      const svc = this.services.find(s => s.id === item.serviceId);
+      if (credit && svc) {
+        // Check if credit type is compatible with any of the service's pricing models
+        const creditType = credit.unitType;
+        const compatibleModel = svc.pricingModels.some(m => {
+          if (creditType === 'session' || creditType === 'unit') return m.type === 'fixed';
+          return m.type === creditType;
+        });
+        if (!compatibleModel) {
+          return; // Don't allow mismatched credit usage
+        }
+      }
       item.isCreditsUsed = true;
       item.total = 0; // Zero out the price
     }
@@ -414,7 +454,7 @@ export class Billing implements OnInit {
     }
   }
 
-  confirmInvoice() {
+  confirmInvoice(saveAsPending: boolean = false) {
     if (this.isProcessingInvoice) return;
     this.invoiceAttempted = true;
     if (!this.selectedPatient || !this.selectedAppointment) {
@@ -429,12 +469,12 @@ export class Billing implements OnInit {
       this.alertService.validationError('Discount cannot be negative');
       return;
     }
-    if (this.payments.length === 0 && this.grandTotal > 0) {
-      this.alertService.validationError('Add at least one payment');
+    if (this.payments.length === 0 && this.grandTotal > 0 && !saveAsPending) {
+      this.alertService.validationError('Add at least one payment or Save as Pending');
       return;
     }
-    if (this.totalPaid < this.grandTotal) {
-      this.alertService.validationError('Remaining balance must be fully paid');
+    if (!saveAsPending && this.totalPaid < this.grandTotal) {
+      this.alertService.validationError('Remaining balance must be fully paid to Confirm & Pay. Otherwise use Save as Pending.');
       return;
     }
     if (this.totalPaid > this.grandTotal) {
@@ -447,37 +487,41 @@ export class Billing implements OnInit {
 
     // 2. Handle package grants from offers is now securely performed by the backend during Invoice Create
 
-    // 3. Build invoice payload
-    const invoicePayload = {
-      patientId: this.selectedPatient?.id ?? '',
-      appointmentId: this.selectedAppointment?.id ?? '',
-      sessionId: null as string | null,
-      appliedOfferId: this.selectedAppliedOffer?.offer.id || null, // Add this line
-      items: this.invoiceItems.map(item => ({
-        description: item.description,
-        quantity: item.quantity,
-        unitPrice: item.unitPrice,
-        total: item.total,
-        isCreditsUsed: item.isCreditsUsed || false,
-        serviceId: item.serviceId || null
-      })),
-      subtotal: this.subtotal,
-      discount: this.discountAmount,
-      tax: this.taxAmount,
-      total: this.grandTotal,
-      status: 'paid' as const,
-      createdAt: new Date(),
-      payments: this.payments.map(p => ({
-        id: crypto.randomUUID(),
-        amount: p.amount,
-        method: p.type as 'cash' | 'card' | 'wallet' | 'credits',
-        timestamp: new Date()
-      }))
-    };
-
-    // 2. Create invoice (Backend handles all transactions atomically)
+    // 3. Build invoice payload — first fetch the session so we can pass its ID
+    //    This is critical to prevent double credit deduction (Bug 13.4)
     this.isProcessingInvoice = true;
-    this.dataService.createInvoice(invoicePayload).pipe(
+    this.dataService.getSessionByAppointment(this.selectedAppointment!.id).pipe(
+      switchMap(session => {
+        const invoicePayload = {
+          patientId: this.selectedPatient?.id ?? '',
+          appointmentId: this.selectedAppointment?.id ?? '',
+          sessionId: session?.id || null,
+          appliedOfferId: this.selectedAppliedOffers.length > 0 ? this.selectedAppliedOffers[0].offer.id : null,
+          items: this.invoiceItems.map(item => ({
+            description: item.description,
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            total: item.total,
+            isCreditsUsed: item.isCreditsUsed || false,
+            serviceId: item.serviceId || null
+          })),
+          subtotal: this.subtotal,
+          discount: this.discountAmount,
+          tax: this.taxAmount,
+          total: this.grandTotal,
+          status: saveAsPending ? (this.totalPaid > 0 ? 'partial' as const : 'pending' as const) : 'paid' as const,
+          createdAt: new Date(),
+          payments: this.payments.map(p => ({
+            id: crypto.randomUUID(),
+            amount: p.amount,
+            method: p.type as 'cash' | 'card' | 'wallet' | 'credits',
+            timestamp: new Date()
+          }))
+        };
+
+        // Create invoice (Backend handles all transactions atomically)
+        return this.dataService.createInvoice(invoicePayload);
+      }),
       switchMap(() => {
         const postOps: Observable<any>[] = [];
 

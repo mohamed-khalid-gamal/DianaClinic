@@ -410,8 +410,9 @@ export class CalendarComponent implements OnChanges {
       initialView: this.currentView,
       headerToolbar: false, // We use our custom header
       events: this.events,
-      slotMinTime: '07:00:00',
-      slotMaxTime: '22:00:00',
+      // Bug 10 fix: Extended time range to show early/late appointments
+      slotMinTime: '06:00:00',
+      slotMaxTime: '23:00:00',
       slotDuration: '00:30:00',
       allDaySlot: false,
       weekends: true,

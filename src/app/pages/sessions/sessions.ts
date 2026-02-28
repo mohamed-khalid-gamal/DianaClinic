@@ -553,7 +553,8 @@ export class Sessions implements OnInit, OnDestroy {
       };
     });
 
-    this.endSessionAvailableOffers = this.offerService.evaluateOffers(cart, patient, this.offers, [], undefined, 'billing');
+    // Bug 13.11 fix: Pass this.services so category-based service matching works
+    this.endSessionAvailableOffers = this.offerService.evaluateOffers(cart, patient, this.offers, this.services, undefined, 'billing');
   }
 
   // Toggle credit usage for a specific service

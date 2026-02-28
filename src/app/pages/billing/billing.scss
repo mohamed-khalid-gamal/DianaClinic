@@ -516,6 +516,9 @@
   border: 1px solid var(--border-color);
   border-radius: var(--radius-xl);
   padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  min-height: 250px;
 
   h4 {
     margin: 0 0 1rem;
@@ -524,6 +527,7 @@
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    flex-shrink: 0;
 
     &::before {
       content: '';
@@ -536,11 +540,19 @@
   }
 }
 
+.error-text {
+  display: block;
+  margin-bottom: 0.75rem;
+  font-size: 0.75rem;
+  color: var(--danger);
+}
+
 .payment-form {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0.5rem;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.5rem;
+  flex-shrink: 0;
 
   select, input {
     padding: 0.625rem 0.75rem;
@@ -559,6 +571,7 @@
   display: flex;
   gap: 0.5rem;
   margin-bottom: 1rem;
+  flex-shrink: 0;
 
   .btn {
     flex: 1;
@@ -566,7 +579,8 @@
 }
 
 .payments-list {
-  max-height: 120px;
+  flex: 1;
+  min-height: 80px;
   overflow-y: auto;
 }
 

@@ -26,15 +26,15 @@ export class OfferService {
   /**
    * Main entry point: Evaluate all available offers against the current cart and patient.
    */
-  evaluateOffers(cart: CartItem[], patient: Patient, allOffers: Offer[], services: Service[] = [], usageStats?: { offerId: string, patientCount: number, globalCount: number }[], context: 'billing' | 'package' | 'all' = 'all'): AppliedOffer[] {
+  evaluateOffers(cart: CartItem[], patient: Patient, allOffers: Offer[], services: Service[] = [], usageStats?: { offerId: string, patientCount: number, globalCount: number }[], context: 'billing' | 'package' | 'all' = 'all', sessionDate?: Date): AppliedOffer[] {
     const applicableOffers: AppliedOffer[] = [];
-    const today = new Date();
+    const evaluationDate = sessionDate ? new Date(sessionDate) : new Date();
 
     // 1. Filter active and valid date
     let candidates = allOffers.filter(o => {
       if (!o.isActive) return false;
-      if (o.validFrom && new Date(o.validFrom) > today) return false;
-      if (o.validUntil && new Date(o.validUntil) < today) return false;
+      if (o.validFrom && new Date(o.validFrom) > evaluationDate) return false;
+      if (o.validUntil && new Date(o.validUntil) < evaluationDate) return false;
 
       // Filter by context
       if (context === 'billing') {
@@ -61,12 +61,12 @@ export class OfferService {
       });
     }
 
-    // 3. Sort by priority
-    candidates.sort((a, b) => (b.priority || 0) - (a.priority || 0));
+    // 3. Sort by priority (Bug 13.2 fix: enforce integer priority)
+    candidates.sort((a, b) => (Math.floor(b.priority || 0)) - (Math.floor(a.priority || 0)));
 
-    // 3. Evaluate conditions
+    // 3. Evaluate detailed logic conditions
     for (const offer of candidates) {
-      if (this.evaluateOfferConditions(offer, cart, patient, services)) {
+      if (this.evaluateOfferConditions(offer, cart, patient, services, evaluationDate)) {
         const benefit = this.calculateBenefit(offer, cart);
         if (benefit && (benefit.discountAmount > 0 || benefit.offer.benefits[0]?.type === 'grant_package')) {
           applicableOffers.push(benefit);
@@ -89,21 +89,21 @@ export class OfferService {
     return nonExclusives;
   }
 
-  private evaluateOfferConditions(offer: Offer, cart: CartItem[], patient: Patient, services: Service[]): boolean {
+  private evaluateOfferConditions(offer: Offer, cart: CartItem[], patient: Patient, services: Service[], evaluationDate: Date): boolean {
     if (!offer.conditions || offer.conditions.length === 0) return true;
     // Top level is always implicit AND
-    return offer.conditions.every(cond => this.evaluateCondition(cond, cart, patient, services));
+    return offer.conditions.every(cond => this.evaluateCondition(cond, cart, patient, services, evaluationDate));
   }
 
-  private evaluateCondition(condition: OfferCondition, cart: CartItem[], patient: Patient, services: Service[]): boolean {
+  private evaluateCondition(condition: OfferCondition, cart: CartItem[], patient: Patient, services: Service[], evaluationDate: Date): boolean {
     switch (condition.type) {
       case 'group':
         if (!condition.children || condition.children.length === 0) return true;
         if (condition.logic === 'OR') {
-          return condition.children.some(child => this.evaluateCondition(child, cart, patient, services));
+          return condition.children.some(child => this.evaluateCondition(child, cart, patient, services, evaluationDate));
         } else {
           // Default to AND
-          return condition.children.every(child => this.evaluateCondition(child, cart, patient, services));
+          return condition.children.every(child => this.evaluateCondition(child, cart, patient, services, evaluationDate));
         }
 
       case 'service_includes':
@@ -114,7 +114,8 @@ export class OfferService {
         return total >= (condition.parameters.minAmount || 0);
 
       case 'new_patient':
-         const isNew = (new Date().getTime() - new Date(patient.createdAt).getTime()) < (30 * 24 * 60 * 60 * 1000);
+         // Bug 13.12a fix: Use visitCount instead of creation date
+         const isNew = (patient.visitCount || 0) === 0;
          return isNew;
 
       case 'patient_tag':
@@ -138,9 +139,8 @@ export class OfferService {
         return targetTags.some(tag => patientTags.includes(tag));
 
       case 'date_range':
-        const now = new Date();
-        if (condition.parameters.startDate && new Date(condition.parameters.startDate) > now) return false;
-        if (condition.parameters.endDate && new Date(condition.parameters.endDate) < now) return false;
+        if (condition.parameters.startDate && new Date(condition.parameters.startDate) > evaluationDate) return false;
+        if (condition.parameters.endDate && new Date(condition.parameters.endDate) < evaluationDate) return false;
         return true;
 
       case 'specific_patient':
@@ -148,10 +148,10 @@ export class OfferService {
         return condition.parameters.patientIds.includes(patient.id);
 
       case 'time_range':
-        return this.evaluateTimeRange(condition);
+        return this.evaluateTimeRange(condition, evaluationDate);
       
       case 'day_of_week':
-        return this.evaluateDayOfWeek(condition);
+        return this.evaluateDayOfWeek(condition, evaluationDate);
 
       case 'customer_attribute':
         return this.evaluateAttribute(condition, patient);
@@ -168,10 +168,9 @@ export class OfferService {
     }
   }
 
-  private evaluateTimeRange(condition: OfferCondition): boolean {
+  private evaluateTimeRange(condition: OfferCondition, evaluationDate: Date): boolean {
       if (!condition.parameters.startTime || !condition.parameters.endTime) return true;
-      const now = new Date();
-      const currentMinutes = now.getHours() * 60 + now.getMinutes();
+      const currentMinutes = evaluationDate.getHours() * 60 + evaluationDate.getMinutes();
       
       const [startH, startM] = condition.parameters.startTime.split(':').map(Number);
       const startMinutes = startH * 60 + startM;
@@ -186,9 +185,9 @@ export class OfferService {
       return currentMinutes >= startMinutes && currentMinutes <= endMinutes;
   }
 
-  private evaluateDayOfWeek(condition: OfferCondition): boolean {
+  private evaluateDayOfWeek(condition: OfferCondition, evaluationDate: Date): boolean {
       if (!condition.parameters.daysOfWeek || condition.parameters.daysOfWeek.length === 0) return true;
-      const day = new Date().getDay(); // 0-6 (Sun-Sat)
+      const day = evaluationDate.getDay(); // 0-6 (Sun-Sat)
       return condition.parameters.daysOfWeek.includes(day);
   }
 
@@ -219,15 +218,15 @@ export class OfferService {
       }
       
       switch (operator) {
-          case 'equals': return value == target;
-          case 'not_equals': return value != target;
-          case 'greater_than': return value > target;
-          case 'less_than': return value < target;
+          case 'equals': return String(value).toLowerCase() === String(target).toLowerCase();
+          case 'not_equals': return String(value).toLowerCase() !== String(target).toLowerCase();
+          case 'greater_than': return Number(value) > Number(target);
+          case 'less_than': return Number(value) < Number(target);
           case 'contains': return String(value).toLowerCase().includes(String(target).toLowerCase());
           case 'not_contains': return !String(value).toLowerCase().includes(String(target).toLowerCase());
-          case 'in': return Array.isArray(target) && target.includes(value);
-          case 'not_in': return Array.isArray(target) && !target.includes(value);
-          default: return value == target;
+          case 'in': return Array.isArray(target) && target.map((t: any) => String(t).toLowerCase()).includes(String(value).toLowerCase());
+          case 'not_in': return Array.isArray(target) && !target.map((t: any) => String(t).toLowerCase()).includes(String(value).toLowerCase());
+          default: return String(value).toLowerCase() === String(target).toLowerCase();
       }
   }
 
@@ -262,9 +261,9 @@ export class OfferService {
       isMatch = !Array.from(targetIds).some(id => cartHasId(id));
       return isMatch;
     } else if (matchType === 'exact') {
-      // Cart services must be exactly the target set
-      if (cartServiceIds.size !== targetIds.size) isMatch = false;
-      else isMatch = Array.from(targetIds).every(id => cartHasId(id));
+      // Bug 13.10 fix: 'exact' means exactly one of the target services is in the cart
+      const matchingCount = Array.from(targetIds).filter(id => cartHasId(id)).length;
+      isMatch = matchingCount === 1;
     } else {
       // 'all' - Cart must contain ALL target IDs
       isMatch = Array.from(targetIds).every(id => cartHasId(id));

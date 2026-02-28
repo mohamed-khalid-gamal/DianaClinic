@@ -141,9 +141,7 @@
   [title]="isViewingInvoice ? 'View Invoice' : 'Generate Invoice'"
   maxWidth="900px"
   (closed)="closeInvoiceModal()"
-  (confirmed)="confirmInvoice()"
-  confirmText="Confirm & Pay"
-  [showFooter]="!isViewingInvoice">
+  [showFooter]="false">
 
   <div class="invoice-layout">
     <!-- Left: Items & Offers -->
@@ -209,12 +207,20 @@
         <div class="offers-list" *ngIf="availableOffers.length > 0; else noOffers">
           <div class="offer-chip"
                *ngFor="let offerApp of availableOffers"
-               [class.selected]="selectedAppliedOffer === offerApp"
+               [class.selected]="isOfferSelected(offerApp)"
                (click)="applyOffer(offerApp)">
             <i class="fa-solid fa-tag"></i>
             <div class="app-info">
               <span class="name">{{ offerApp.offer.name }}</span>
               <span class="savings">- EGP {{ offerApp.discountAmount | number }}</span>
+            </div>
+          </div>
+          <!-- Clear Offer Button -->
+          <div class="offer-chip" style="border-color: var(--danger); background: rgba(220, 38, 38, 0.05);" *ngIf="selectedAppliedOffers.length > 0" (click)="clearOffers()">
+            <i class="fa-solid fa-ban" style="color: var(--danger);"></i>
+            <div class="app-info">
+              <span class="name" style="color: var(--danger);">Clear Offers</span>
+              <span class="savings text-muted">Remove current offer</span>
             </div>
           </div>
         </div>
@@ -240,9 +246,9 @@
           <span>EGP {{ subtotal | number }}</span>
         </div>
 
-        <div class="summary-row discount" *ngIf="selectedAppliedOffer">
-          <span>Offer: {{ selectedAppliedOffer.offer.name }}</span>
-          <span>- EGP {{ selectedAppliedOffer.discountAmount | number }}</span>
+        <div class="summary-row discount" *ngFor="let selOffer of selectedAppliedOffers">
+          <span>Offer: {{ selOffer.offer.name }}</span>
+          <span>- EGP {{ selOffer.discountAmount | number }}</span>
         </div>
 
         <div class="summary-row discount" *ngIf="discount > 0">
@@ -302,5 +308,11 @@
         </div>
       </div>
     </div>
+  </div>
+
+  <div class="modal-footer" *ngIf="!isViewingInvoice" style="margin: 0 -1.5rem -1.5rem; border-top: 1px solid var(--border-color); padding: 1rem 1.5rem; display: flex; justify-content: flex-end; gap: 0.75rem; background: var(--bg-card); border-radius: 0 0 var(--radius-xl) var(--radius-xl);">
+    <button class="btn btn-outline" (click)="closeInvoiceModal()">Cancel</button>
+    <button class="btn btn-secondary" (click)="confirmInvoice(true)">Save as Pending</button>
+    <button class="btn btn-primary" (click)="confirmInvoice(false)">Confirm & Pay</button>
   </div>
 </app-modal>

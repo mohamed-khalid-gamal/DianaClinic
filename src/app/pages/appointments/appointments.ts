@@ -7,6 +7,7 @@ import { DataService } from '../../services/data.service';
 import { Appointment, Patient, Doctor, Room, Service } from '../../models';
 import { SweetAlertService } from '../../services/sweet-alert.service';
 import { getAppointmentStatusColor } from '../../utils/status-colors';
+import { ActivatedRoute } from '@angular/router';
 
 interface TimeSlot {
   time: string;
@@ -94,13 +95,25 @@ export class Appointments implements OnInit {
   constructor(
     private dataService: DataService,
     private alertService: SweetAlertService,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private route: ActivatedRoute
   ) {}
 
   ngOnInit() {
     this.minDate = this.formatDateInput(new Date());
     this.loadData();
     this.generateTimeSlots();
+
+    // Bug 10.1 fix: Navigate to appointment date if passed as query param
+    this.route.queryParams.subscribe(params => {
+      if (params['date']) {
+        const parts = params['date'].split('-');
+        if (parts.length === 3) {
+          this.currentDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+          this.cdr.markForCheck();
+        }
+      }
+    });
   }
 
   get weekDays(): { date: Date; label: string }[] {
@@ -266,9 +279,15 @@ export class Appointments implements OnInit {
     switch (this.bookingStep) {
       case 1:
         if (this.booking.isNewPatient) {
-          return this.booking.newPatient.firstName.trim() !== '' &&
+          const valid = this.booking.newPatient.firstName.trim() !== '' &&
             this.booking.newPatient.lastName.trim() !== '' &&
             this.booking.newPatient.phone.trim() !== '';
+          // Bug 9.3 fix: Validate email format if provided
+          if (valid && this.booking.newPatient.email.trim() !== '') {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return emailRegex.test(this.booking.newPatient.email.trim());
+          }
+          return valid;
         }
         return this.booking.patientId !== '';
       case 2:
@@ -454,8 +473,9 @@ export class Appointments implements OnInit {
         return d.assignedRooms.some(roomId => candidateRooms.some(r => r.id === roomId));
     });
 
-    const startHour = 8;
-    const endHour = 20;
+    // Bug 10 fix: Extended time range to show early/late appointments
+    const startHour = 6;
+    const endHour = 23;
     const dateParts = segment.date.split('-');
     const date = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]));
     const dayOfWeek = date.getDay();
@@ -468,7 +488,7 @@ export class Appointments implements OnInit {
         const slotEnd = new Date(slotStart);
         slotEnd.setMinutes(slotStart.getMinutes() + duration);
 
-        if (slotEnd.getHours() >= 20 && slotEnd.getMinutes() > 0) continue;
+        if (slotEnd.getHours() >= 23 && slotEnd.getMinutes() > 0) continue;
 
         // 4. Find Free Resources for this specific slot
         const freeRooms = candidateRooms.filter(room => !this.hasConflicts(slotStart, slotEnd, undefined, room.id));
@@ -664,10 +684,19 @@ export class Appointments implements OnInit {
   hasConflicts(start: Date, end: Date, doctorId?: string, roomId?: string): boolean {
     // 1. Check existing saved appointments
     const existsInDb = this.appointments.some(apt => {
-        if (apt.status === 'cancelled' || apt.status === 'no-show') return false;
+        // Bug 9.5 fix: Exclude completed and billed appointments from conflict detection
+        if (apt.status === 'cancelled' || apt.status === 'no-show' || apt.status === 'completed' || apt.status === 'billed') return false;
 
-        if (doctorId && apt.doctorId !== doctorId) return false;
-        if (roomId && apt.roomId !== roomId) return false;
+        // Check if the current booking patient matches the appointment patient
+        const isSamePatient = this.booking.patientId && this.booking.patientId === apt.patientId;
+
+        // It is a conflict if it overlaps with the same doctor, same room, OR same patient
+        let involvesConflictEntity = false;
+        if (doctorId && apt.doctorId === doctorId) involvesConflictEntity = true;
+        if (roomId && apt.roomId === roomId) involvesConflictEntity = true;
+        if (isSamePatient) involvesConflictEntity = true;
+
+        if (!involvesConflictEntity) return false;
 
         const aptStart = new Date(apt.scheduledStart);
         let aptEnd = apt.scheduledEnd ? new Date(apt.scheduledEnd) : new Date(aptStart.getTime() + 30 * 60000);
@@ -683,9 +712,9 @@ export class Appointments implements OnInit {
         // Skip incomplete segments
         if (!seg.date || !seg.time || !seg.doctorId || !seg.roomId) return false;
 
-        if (doctorId && seg.doctorId !== doctorId) return false;
-        if (roomId && seg.roomId !== roomId) return false;
-
+        // Since ALL segments in the current wizard belong to the SAME PATIENT,
+        // ANY time overlap between segments is a conflict for the patient,
+        // regardless of whether the doctor or room is different.
         const segStart = this.parseSlotTime(seg.time, seg.date);
         const segEnd = new Date(segStart.getTime() + (seg.duration || 30) * 60000);
 
@@ -731,7 +760,8 @@ export class Appointments implements OnInit {
   }
 
   getSelectedServices(): Service[] {
-    return this.services.filter(s => this.booking.allServiceIds.includes(s.id));
+    // Bug 11 fix: Only show active services
+    return this.services.filter(s => s.isActive && this.booking.allServiceIds.includes(s.id));
   }
 
   getTotalDuration(): number {
@@ -757,7 +787,8 @@ export class Appointments implements OnInit {
   // View Helpers
   generateTimeSlots() {
      this.timeSlots = [];
-     for (let hour = 8; hour <= 20; hour++) {
+     // Bug 10 fix: Extended time range
+     for (let hour = 6; hour <= 23; hour++) {
        for (let minute = 0; minute < 60; minute += 30) {
          const displayTime = new Date(2024, 0, 1, hour, minute).toLocaleTimeString('en-US', {
            hour: 'numeric', minute: '2-digit', hour12: true
@@ -795,10 +826,22 @@ export class Appointments implements OnInit {
   }
 
   async updateStatus(apt: Appointment, status: Appointment['status']) {
+    // Bug 10.2 fix: Prevent direct 'completed' status — must use End Session in Sessions page
+    if (status === 'completed') {
+      this.alertService.validationError('To complete an appointment, use the "End Session" feature in the Sessions page. This ensures proper inventory deduction and session records.');
+      return;
+    }
     if (status === 'cancelled') {
       const confirmed = await this.alertService.confirm(
         'Cancel Appointment?',
         'Are you sure you want to cancel this appointment? This action cannot be undone.'
+      );
+      if (!confirmed) return;
+    }
+    if (status === 'no-show') {
+      const confirmed = await this.alertService.confirm(
+        'Mark as No-Show?',
+        'Are you sure you want to mark this appointment as No-Show?'
       );
       if (!confirmed) return;
     }
