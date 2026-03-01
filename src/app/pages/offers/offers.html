@@ -258,18 +258,16 @@
                          <div class="credit-row-inputs">
                             <!-- Category Selection -->
                             <select [(ngModel)]="sel.categoryId" [ngModelOptions]="{ standalone: true }" (change)="onServiceSelectionCategoryChange(sel)" class="modern-select">
-                               <option value="">All Categories</option>
-                               <option *ngFor="let c of categories" [value]="c.id">{{ c.name }}</option>
+                               <option value="">-- No Category Filter --</option>
+                               <option *ngFor="let c of getFilteredCategoriesForSelection(cond, si)" [value]="c.id">{{ c.name }}</option>
                             </select>
 
                             <!-- Service Selection (filtered by selected category) -->
                             <select [(ngModel)]="sel.serviceId" [ngModelOptions]="{ standalone: true }" class="modern-select">
-                               <!-- If category selected, show 'All Services in Category', else just show all or grouped -->
                                <option value="">
-                                  {{ sel.categoryId ? 'All Services in Category' : 'Select a Service' }}
+                                  {{ sel.categoryId ? 'All Remaining Services in Category' : 'Select a Service' }}
                                </option>
-                               <!-- We filter services visually below, but in code it would be cleaner to use a method -->
-                               <option *ngFor="let s of getFilteredServicesForSelection(cond, sel.categoryId, sel.serviceId)" [value]="s.id">{{ s.name }}</option>
+                               <option *ngFor="let s of getFilteredServicesForSelection(cond, si)" [value]="s.id">{{ s.name }}</option>
                             </select>
 
                             <button class="btn-icon danger" (click)="removeServiceSelection(cond, si)" title="Remove Row">

@@ -270,18 +270,20 @@
   display: grid;
   grid-template-columns: 1fr 350px;
   gap: 1.5rem;
-  max-height: 65vh;
-  overflow: hidden;
+  height: 60vh;
+  min-height: 400px;
+  margin-bottom: 1.5rem;
 
   @media (max-width: 900px) {
     grid-template-columns: 1fr;
-    max-height: none;
+    height: auto;
   }
 }
 
 .invoice-main {
   overflow-y: auto;
-  padding-right: 1rem;
+  padding-right: 0.5rem;
+  height: 100%;
 }
 
 .patient-info {
@@ -426,8 +428,8 @@
   flex-direction: column;
   gap: 1rem;
   overflow-y: auto;
-  max-height: 100%;
   padding-right: 0.5rem;
+  height: 100%;
 }
 
 .summary-card {
@@ -521,6 +523,7 @@
   display: flex;
   flex-direction: column;
   min-height: 250px;
+  flex-shrink: 0;
 
   h4 {
     margin: 0 0 1rem;

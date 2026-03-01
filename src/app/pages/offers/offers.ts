@@ -228,21 +228,52 @@ export class Offers implements OnInit {
     sel.serviceId = '';
   }
 
-  getFilteredServicesForSelection(cond: OfferCondition, categoryId: string, currentServiceId: string): Service[] {
+  getFilteredCategoriesForSelection(cond: OfferCondition, index: number): ServiceCategory[] {
+    if (!cond.parameters.serviceSelections) return this.categories;
+
+    const fullySelectedCategoryIds = cond.parameters.serviceSelections
+      .filter((sel: any, i: number) => i !== index && sel.categoryId && !sel.serviceId)
+      .map((sel: any) => sel.categoryId);
+
+    const selectedServiceIds = cond.parameters.serviceSelections
+        .filter((sel: any, i: number) => i !== index && sel.serviceId)
+        .map((sel: any) => sel.serviceId);
+
+    const exhaustedCategoryIds = this.categories.filter(c => {
+       const categoryServices = this.services.filter(s => s.categoryId === c.id);
+       if (categoryServices.length === 0) return false;
+       return categoryServices.every(s => selectedServiceIds.includes(s.id));
+    }).map(c => c.id);
+
+    const hiddenCategoryIds = [...fullySelectedCategoryIds, ...exhaustedCategoryIds];
+
+    return this.categories.filter(c => !hiddenCategoryIds.includes(c.id));
+  }
+
+  getFilteredServicesForSelection(cond: OfferCondition, index: number): Service[] {
     let filtered = this.services;
-    
-    // Filter by selected category if provided
-    if (categoryId) {
-      filtered = filtered.filter(s => s.categoryId === categoryId);
+    const currentSelection = cond.parameters.serviceSelections?.[index];
+
+    if (currentSelection?.categoryId) {
+      filtered = filtered.filter(s => s.categoryId === currentSelection.categoryId);
     }
-    
-    // Filter out services already selected in OTHER rows to prevent duplicates in the UI repeater
+
     if (cond.parameters.serviceSelections) {
       const selectedServiceIds = cond.parameters.serviceSelections
-        .map((sel: any) => sel.serviceId)
-        .filter((id: string) => id && id !== currentServiceId);
+        .filter((sel: any, i: number) => i !== index && sel.serviceId)
+        .map((sel: any) => sel.serviceId);
         
-      filtered = filtered.filter(s => !selectedServiceIds.includes(s.id));
+      if (selectedServiceIds.length > 0) {
+         filtered = filtered.filter(s => !selectedServiceIds.includes(s.id));
+      }
+
+      const fullySelectedCategoryIds = cond.parameters.serviceSelections
+        .filter((sel: any, i: number) => i !== index && sel.categoryId && !sel.serviceId)
+        .map((sel: any) => sel.categoryId);
+
+      if (fullySelectedCategoryIds.length > 0) {
+         filtered = filtered.filter(s => !fullySelectedCategoryIds.includes(s.categoryId));
+      }
     }
     
     return filtered;
