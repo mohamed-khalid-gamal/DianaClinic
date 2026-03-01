@@ -349,6 +349,10 @@ export class DataService {
     return this.http.post<Invoice>(`${this.apiBase}/invoices`, invoice);
   }
 
+  addInvoicePayment(invoiceId: string, payment: { amount: number, method: string }): Observable<Invoice> {
+    return this.http.post<Invoice>(`${this.apiBase}/invoices/${invoiceId}/payments`, payment);
+  }
+
   // Alerts
   getAlerts(): Observable<Alert[]> {
     return this.http.get<Alert[]>(`${this.apiBase}/alerts`);

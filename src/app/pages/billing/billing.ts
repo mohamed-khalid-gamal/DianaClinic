@@ -47,12 +47,18 @@ export class Billing implements OnInit {
   showInvoiceModal = false;
   selectedAppointment: Appointment | null = null;
   selectedPatient: Patient | null = null;
+  selectedInvoiceId: string | null = null;
   isViewingInvoice = false;
+  isPartialPaymentMode = false;
   isProcessingInvoice = false;
 
   // History filters
+  historySearchQuery = '';
   historyDateFrom = '';
   historyDateTo = '';
+  historyPriceMin: number | null = null;
+  historyPriceMax: number | null = null;
+  historyStatusFilter: 'all' | 'paid' | 'partial' | 'pending' = 'all';
 
   // Invoice Builder
   invoiceItems: InvoiceItem[] = [];
@@ -132,6 +138,8 @@ export class Billing implements OnInit {
 
   get filteredHistoryAppointments(): Appointment[] {
     let result = this.historyAppointments;
+
+    // Filter by Date
     if (this.historyDateFrom) {
       const from = new Date(this.historyDateFrom);
       from.setHours(0, 0, 0, 0);
@@ -142,7 +150,35 @@ export class Billing implements OnInit {
       to.setHours(23, 59, 59, 999);
       result = result.filter(a => new Date(a.scheduledStart) <= to);
     }
+
+    // Filter by Patient Name
+    if (this.historySearchQuery.trim()) {
+      const q = this.historySearchQuery.toLowerCase();
+      result = result.filter(a => this.getPatientName(a.patientId).toLowerCase().includes(q));
+    }
+
+    // Filter by Invoice-specific attributes (Price & Status)
+    if (this.historyPriceMin !== null || this.historyPriceMax !== null || this.historyStatusFilter !== 'all') {
+      result = result.filter(a => {
+        const inv = this.invoices.find(i => i.appointmentId === a.id);
+        if (!inv) return false;
+
+        // Price Check
+        if (this.historyPriceMin !== null && inv.total < this.historyPriceMin) return false;
+        if (this.historyPriceMax !== null && inv.total > this.historyPriceMax) return false;
+
+        // Status Check
+        if (this.historyStatusFilter !== 'all' && inv.status !== this.historyStatusFilter) return false;
+
+        return true;
+      });
+    }
+
     return result.sort((a, b) => new Date(b.scheduledStart).getTime() - new Date(a.scheduledStart).getTime());
+  }
+
+  getInvoiceForAppointment(appointmentId: string): any {
+    return this.invoices.find(inv => inv.appointmentId === appointmentId);
   }
 
   onHistoryFilterChange() {
@@ -150,8 +186,12 @@ export class Billing implements OnInit {
   }
 
   clearHistoryFilter() {
+    this.historySearchQuery = '';
     this.historyDateFrom = '';
     this.historyDateTo = '';
+    this.historyPriceMin = null;
+    this.historyPriceMax = null;
+    this.historyStatusFilter = 'all';
   }
 
   getPatientName(patientId: string): string {
@@ -191,6 +231,9 @@ export class Billing implements OnInit {
         this.alertService.error('Invoice not found for this appointment.');
         return;
       }
+
+      this.selectedInvoiceId = invoice.id;
+      this.isPartialPaymentMode = invoice.status === 'pending' || invoice.status === 'partial';
 
       this.invoiceItems = (invoice.items || []).map((item: any) => ({
         description: item.description,
@@ -312,8 +355,10 @@ export class Billing implements OnInit {
     this.showInvoiceModal = false;
     this.selectedAppointment = null;
     this.selectedPatient = null;
+    this.selectedInvoiceId = null;
     this.packageGrantedMessage = '';
     this.isViewingInvoice = false;
+    this.isPartialPaymentMode = false;
     this.isProcessingInvoice = false;
   }
 
@@ -560,6 +605,76 @@ export class Billing implements OnInit {
         console.error('Invoice creation failed', err);
         const errorMessage = err.error?.error || err.error?.message || 'Failed to create invoice. Please try again.';
         this.alertService.error(errorMessage);
+        this.cdr.markForCheck();
+      }
+    });
+  }
+
+  submitAdditionalPayment() {
+    if (this.isProcessingInvoice || !this.selectedInvoiceId) return;
+    
+    this.paymentAttempted = true;
+    if (!this.newPayment.type) {
+      this.alertService.validationError('Select a payment method');
+      return;
+    }
+    if (this.newPayment.amount <= 0) {
+      this.alertService.validationError('Payment amount must be greater than 0');
+      return;
+    }
+    if (this.remainingBalance > 0 && this.newPayment.amount > this.remainingBalance) {
+      this.alertService.validationError('Payment amount exceeds remaining balance');
+      return;
+    }
+
+    this.isProcessingInvoice = true;
+    this.dataService.addInvoicePayment(this.selectedInvoiceId, {
+      amount: this.newPayment.amount,
+      method: this.newPayment.type
+    }).pipe(
+      switchMap((updatedInvoice) => {
+        // Also add the transaction to the patient's record for consistency
+        return this.dataService.addPatientTransaction({
+          patientId: this.selectedPatient!.id,
+          date: new Date(),
+          type: 'payment',
+          description: `Partial payment via ${this.newPayment.type}`,
+          amount: this.newPayment.amount,
+          method: this.newPayment.type,
+          relatedAppointmentId: this.selectedAppointment?.id
+        }).pipe(switchMap(() => of(updatedInvoice)));
+      })
+    ).subscribe({
+      next: (updatedInvoice) => {
+        this.isProcessingInvoice = false;
+        
+        // Update local state to reflect the new payment
+        this.payments.push({ ...this.newPayment });
+        this.newPayment = { type: 'cash', amount: 0 };
+        this.paymentAttempted = false;
+        
+        // Update the invoice in the list
+        const idx = this.invoices.findIndex(inv => inv.id === updatedInvoice.id);
+        if (idx > -1) {
+          this.invoices[idx] = updatedInvoice;
+        }
+
+        // If newly paid off, refresh everything and close
+        if (updatedInvoice.status === 'paid') {
+          this.alertService.success('Fully Paid', 'Invoice has been fully paid off.')
+            .then(() => {
+              this.closeInvoiceModal();
+              this.loadData();
+            });
+        } else {
+          this.alertService.success('Payment Added', 'Partial payment recorded successfully.');
+        }
+        this.cdr.markForCheck();
+      },
+      error: (err: any) => {
+        this.isProcessingInvoice = false;
+        console.error('Adding payment failed', err);
+        this.alertService.error(err.error?.error || 'Failed to add payment. Please try again.');
         this.cdr.markForCheck();
       }
     });

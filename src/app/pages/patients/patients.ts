@@ -204,7 +204,13 @@ export class Patients implements OnInit {
           this.alertService.deleted('Patient', patientName);
           this.cdr.markForCheck();
         },
-        error: () => {} // Handled globally
+        error: (err: HttpErrorResponse) => {
+          if (err.status === 409 || err.status === 400) {
+            const message = typeof err.error === 'string' ? err.error : this.formErrorService.getErrorSummary(err);
+            this.alertService.error('Deletion Failed', message);
+          }
+          // Other errors (500 etc) handled globally
+        }
       });
     }
   }

@@ -87,16 +87,40 @@
 
   <!-- History List (New) -->
   <div class="appointments-list" *ngIf="activeTab === 'completed'">
-    <div class="history-filters">
+    <div class="history-filters" style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-end; margin-bottom: 1.5rem;">
       <div class="filter-group">
-        <label>From</label>
+        <label>Patient Name</label>
+        <div class="search-box">
+          <i class="fa-solid fa-search"></i>
+          <input type="text" [(ngModel)]="historySearchQuery" (input)="onHistoryFilterChange()" placeholder="Search patient...">
+        </div>
+      </div>
+      <div class="filter-group">
+        <label>Date From</label>
         <input type="date" [(ngModel)]="historyDateFrom" (change)="onHistoryFilterChange()">
       </div>
       <div class="filter-group">
-        <label>To</label>
+        <label>Date To</label>
         <input type="date" [(ngModel)]="historyDateTo" (change)="onHistoryFilterChange()">
       </div>
-      <button class="btn btn-outline btn-sm" (click)="clearHistoryFilter()">Clear</button>
+      <div class="filter-group" style="max-width: 120px;">
+        <label>Min Price</label>
+        <input type="number" [(ngModel)]="historyPriceMin" (change)="onHistoryFilterChange()" placeholder="EGP">
+      </div>
+      <div class="filter-group" style="max-width: 120px;">
+        <label>Max Price</label>
+        <input type="number" [(ngModel)]="historyPriceMax" (change)="onHistoryFilterChange()" placeholder="EGP">
+      </div>
+      <div class="filter-group">
+        <label>Status</label>
+        <select [(ngModel)]="historyStatusFilter" (change)="onHistoryFilterChange()">
+          <option value="all">All</option>
+          <option value="paid">Paid</option>
+          <option value="partial">Partial</option>
+          <option value="pending">Pending</option>
+        </select>
+      </div>
+      <button class="btn btn-outline btn-sm" (click)="clearHistoryFilter()">Clear Filters</button>
     </div>
 
     <div class="appointment-row history" *ngFor="let apt of filteredHistoryAppointments">
@@ -108,7 +132,22 @@
         <div class="apt-info">
             <span class="patient-name">{{ getPatientName(apt.patientId) }}</span>
             <div class="details">
-                <span class="text-success"><i class="fa-solid fa-check-circle"></i> Paid</span>
+                <ng-container *ngIf="getInvoiceForAppointment(apt.id) as inv; else rawPaid">
+                  <span [ngClass]="{
+                    'text-success': inv.status === 'paid',
+                    'text-warning': inv.status === 'partial' || inv.status === 'pending'
+                  }">
+                    <i class="fa-solid" [ngClass]="{
+                      'fa-check-circle': inv.status === 'paid',
+                      'fa-clock': inv.status === 'pending',
+                      'fa-circle-half-stroke': inv.status === 'partial'
+                    }"></i> 
+                    {{ inv.status | titlecase }} (EGP {{ inv.total | number }})
+                  </span>
+                </ng-container>
+                <ng-template #rawPaid>
+                  <span class="text-success"><i class="fa-solid fa-check-circle"></i> Paid</span>
+                </ng-template>
                 <span class="separator">•</span>
                 <span>{{ getDoctorName(apt.doctorId) }}</span>
             </div>
@@ -257,9 +296,9 @@
         </div>
 
         <div class="summary-row tax">
-          <span *ngIf="isViewingInvoice">Tax ({{ taxRate }}%)</span>
-          <span *ngIf="!isViewingInvoice" class="tax-edit">
-            Tax (<input type="number" name="taxRate" [(ngModel)]="taxRate" min="0" max="100" class="tax-input">&nbsp;%)
+          <span *ngIf="isViewingInvoice && !isPartialPaymentMode">Tax ({{ taxRate }}%)</span>
+          <span *ngIf="!isViewingInvoice || isPartialPaymentMode" class="tax-edit">
+            Tax (<input type="number" name="taxRate" [(ngModel)]="taxRate" min="0" max="100" class="tax-input" [disabled]="isPartialPaymentMode">&nbsp;%)
           </span>
           <span class="error-text" *ngIf="taxRate < 0 || taxRate > 100" style="font-size: 0.7rem;">Tax must be 0-100%</span>
           <span>EGP {{ taxAmount | number }}</span>
@@ -283,7 +322,7 @@
 
       <div class="payment-section">
         <h4>Add Payment</h4>
-        <div class="payment-form" *ngIf="!isViewingInvoice">
+        <div class="payment-form" *ngIf="!isViewingInvoice || isPartialPaymentMode">
           <select name="paymentType" [(ngModel)]="newPayment.type">
             <option value="cash">Cash</option>
             <option value="card">Card</option>
@@ -291,12 +330,12 @@
           </select>
           <input type="number" name="paymentAmount" [(ngModel)]="newPayment.amount" (change)="validatePaymentAmount()" min="0" placeholder="Amount">
         </div>
-        <span class="error-text" *ngIf="!isViewingInvoice && paymentAttempted && !newPayment.type">Select a payment method</span>
-        <span class="error-text" *ngIf="!isViewingInvoice && paymentAttempted && newPayment.amount <= 0">Enter a valid payment amount</span>
-        <span class="error-text" *ngIf="!isViewingInvoice && paymentAttempted && remainingBalance > 0 && newPayment.amount > remainingBalance">Payment exceeds remaining balance (EGP {{ remainingBalance | number }})</span>
-        <div class="payment-actions" *ngIf="!isViewingInvoice">
+        <span class="error-text" *ngIf="(!isViewingInvoice || isPartialPaymentMode) && paymentAttempted && !newPayment.type">Select a payment method</span>
+        <span class="error-text" *ngIf="(!isViewingInvoice || isPartialPaymentMode) && paymentAttempted && newPayment.amount <= 0">Enter a valid payment amount</span>
+        <span class="error-text" *ngIf="(!isViewingInvoice || isPartialPaymentMode) && paymentAttempted && remainingBalance > 0 && newPayment.amount > remainingBalance">Payment exceeds remaining balance (EGP {{ remainingBalance | number }})</span>
+        <div class="payment-actions" *ngIf="!isViewingInvoice || isPartialPaymentMode">
            <button class="btn btn-outline" (click)="payFullAmount()">Full</button>
-           <button class="btn btn-secondary" (click)="addPayment()">Add</button>
+           <button class="btn btn-secondary" (click)="isPartialPaymentMode ? submitAdditionalPayment() : addPayment()">{{ isPartialPaymentMode ? 'Add & Save' : 'Add' }}</button>
         </div>
 
         <div class="payments-list">
@@ -310,9 +349,11 @@
     </div>
   </div>
 
-  <div class="modal-footer" *ngIf="!isViewingInvoice" style="margin: 0 -1.5rem -1.5rem; border-top: 1px solid var(--border-color); padding: 1rem 1.5rem; display: flex; justify-content: flex-end; gap: 0.75rem; background: var(--bg-card); border-radius: 0 0 var(--radius-xl) var(--radius-xl);">
-    <button class="btn btn-outline" (click)="closeInvoiceModal()">Cancel</button>
-    <button class="btn btn-secondary" (click)="confirmInvoice(true)">Save as Pending</button>
-    <button class="btn btn-primary" (click)="confirmInvoice(false)">Confirm & Pay</button>
+  <div class="modal-footer" *ngIf="!isViewingInvoice || isPartialPaymentMode" style="margin: 0 -1.5rem -1.5rem; border-top: 1px solid var(--border-color); padding: 1rem 1.5rem; display: flex; justify-content: flex-end; gap: 0.75rem; background: var(--bg-card); border-radius: 0 0 var(--radius-xl) var(--radius-xl);">
+    <button class="btn btn-outline" (click)="closeInvoiceModal()">Close</button>
+    <ng-container *ngIf="!isPartialPaymentMode">
+      <button class="btn btn-secondary" (click)="confirmInvoice(true)">Save as Pending</button>
+      <button class="btn btn-primary" (click)="confirmInvoice(false)">Confirm & Pay</button>
+    </ng-container>
   </div>
 </app-modal>
