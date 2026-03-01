@@ -251,6 +251,7 @@ export interface OfferCondition {
     
     // Advanced Service Matching
     categoryIds?: string[]; // Match services from these categories
+    serviceSelections?: { categoryId?: string, serviceId?: string }[]; // New repeater fields
     matchType?: 'all' | 'any' | 'none' | 'exact'; // Default 'all'
     minQuantity?: number; // Minimum units/sessions/pulses
     

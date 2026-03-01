@@ -236,51 +236,52 @@
                
                 <!-- Service Includes -->
                 <div *ngSwitchCase="'service_includes'">
-                   <div class="form-grid align-items-end">
+                   <div class="form-grid align-items-end mb-3">
                        <div class="form-group mb-0">
                            <label>Match Logic</label>
                            <select [(ngModel)]="cond.parameters.matchType" [ngModelOptions]="{ standalone: true }" class="modern-select">
                                <option value="all">Match ALL (Bundle)</option>
                                <option value="any">Match ANY (One of)</option>
                                <option value="none">Exclude (None of)</option>
-                               <option value="exact">Exact Match Only</option>
+                               <option value="exact">Must Include Only (Exact)</option>
                            </select>
-                       </div>
-                       <div class="form-group mb-0">
-                           <label>Min Quantity / Units</label>
-                           <input type="number" [(ngModel)]="cond.parameters.minQuantity" [ngModelOptions]="{ standalone: true }" placeholder="Qty">
                        </div>
                    </div>
 
-                   <div class="form-grid mt-3">
-                       <div class="form-group mb-0">
-                           <label>Include Categories:</label>
-                           <select (change)="addCategoryToCondition(cond, $event)" class="modern-select">
-                               <option value="">+ Add Category</option>
+                   <!-- Repeater for Service Selection -->
+                   <label class="d-block mb-2"><strong>Services Included:</strong></label>
+                   <div class="package-credits-list mb-3">
+                      <!-- Ensure there is an array to iterate over; initially might be empty or undefined depending on data -->
+                      <!-- We emulate a repeater over selected service groups/rows, assuming each has a categoryId and serviceId. -->
+                      <!-- We will store these in cond.parameters.serviceSelections = [{categoryId: '', serviceId: ''}] -->
+                      <div class="package-credit-item" *ngFor="let sel of (cond.parameters.serviceSelections || []); let si = index">
+                         <div class="credit-row-inputs">
+                            <!-- Category Selection -->
+                            <select [(ngModel)]="sel.categoryId" [ngModelOptions]="{ standalone: true }" (change)="onServiceSelectionCategoryChange(sel)" class="modern-select">
+                               <option value="">All Categories</option>
                                <option *ngFor="let c of categories" [value]="c.id">{{ c.name }}</option>
-                           </select>
-                           <div class="tag-list mt-2">
-                               <span class="tag" *ngFor="let cid of (cond.parameters.categoryIds || [])">
-                                   {{ getCategoryName(cid) }}
-                                   <i class="fa-solid fa-xmark" (click)="removeCategoryFromCondition(cond, cid)"></i>
-                               </span>
-                           </div>
-                       </div>
+                            </select>
 
-                       <div class="form-group mb-0">
-                           <label>Include Specific Services:</label>
-                           <select (change)="addServiceToCondition(cond, $event)" class="modern-select">
-                              <option value="">+ Add Service</option>
-                              <option *ngFor="let s of services" [value]="s.id">{{ s.name }}</option>
-                           </select>
-                           <div class="tag-list mt-2">
-                              <span class="tag" *ngFor="let sid of (cond.parameters.serviceIds || [])">
-                                 {{ getServiceName(sid) }}
-                                 <i class="fa-solid fa-xmark" (click)="removeServiceFromCondition(cond, sid)"></i>
-                              </span>
-                           </div>
-                       </div>
+                            <!-- Service Selection (filtered by selected category) -->
+                            <select [(ngModel)]="sel.serviceId" [ngModelOptions]="{ standalone: true }" class="modern-select">
+                               <!-- If category selected, show 'All Services in Category', else just show all or grouped -->
+                               <option value="">
+                                  {{ sel.categoryId ? 'All Services in Category' : 'Select a Service' }}
+                               </option>
+                               <!-- We filter services visually below, but in code it would be cleaner to use a method -->
+                               <option *ngFor="let s of getFilteredServicesForSelection(cond, sel.categoryId, sel.serviceId)" [value]="s.id">{{ s.name }}</option>
+                            </select>
+
+                            <button class="btn-icon danger" (click)="removeServiceSelection(cond, si)" title="Remove Row">
+                               <i class="fa-solid fa-trash"></i>
+                            </button>
+                         </div>
+                      </div>
                    </div>
+
+                   <button class="btn btn-outline btn-sm" (click)="addServiceSelection(cond)">
+                      <i class="fa-solid fa-plus"></i> Add Service/Category
+                   </button>
                 </div>
 
                <!-- Min Spend -->
@@ -533,9 +534,7 @@
                     </select>
                     <input type="number" [(ngModel)]="credit.quantity" [ngModelOptions]="{ standalone: true }" placeholder="Qty" min="1" class="qty-input">
                     <select [(ngModel)]="credit.unitType" [ngModelOptions]="{ standalone: true }" class="modern-select">
-                      <option value="session">Sessions</option>
-                      <option value="pulse">Pulses</option>
-                      <option value="unit">Units</option>
+                      <option *ngFor="let t of getAvailableUnitTypes(credit.serviceId)" [value]="t">{{ getUnitTypeLabel(t) }}</option>
                     </select>
                     <button class="btn-icon danger" (click)="removePackageCredit(ben, ci)" title="Remove Service">
                       <i class="fa-solid fa-trash"></i>

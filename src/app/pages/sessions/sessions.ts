@@ -459,9 +459,13 @@ export class Sessions implements OnInit, OnDestroy {
           // Partial coverage
           state.creditsToDeduct = state.availableCredits;
           const overage = state.pulsesUsed - state.availableCredits;
-          state.costToPay = overage * pricePerPulse;
-          state.overageDescription = `Extra ${overage} pulses`;
+          state.costToPay = (model.basePrice || 0) + (overage * pricePerPulse);
+          state.overageDescription = `Base fee + Extra ${overage} pulses`;
         }
+      } else {
+        // Even if 0 pulses, still charge base fee if applicable
+        state.costToPay = model.basePrice || 0;
+        state.overageDescription = `Base fee`;
       }
     } else if (state.selectedModelType === 'area') {
       const selectedCount = state.selectedAreas.filter(a => a.isSelected).length;

@@ -172,9 +172,10 @@ export class Appointments implements OnInit {
       next: ({ appointments, patients, doctors, rooms, services }) => {
         this.appointments = appointments;
         this.patients = patients;
-        this.doctors = doctors;
-        this.rooms = rooms;
-        this.services = services;
+        this.doctors = doctors.filter(d => d.isActive);
+        this.rooms = rooms.filter(r => r.isActive);
+        // Bug 11 fix: Filter out inactive services
+        this.services = services.filter(s => s.isActive);
         this.loading = false;
         this.cdr.markForCheck();
       },
@@ -283,7 +284,7 @@ export class Appointments implements OnInit {
             this.booking.newPatient.lastName.trim() !== '' &&
             this.booking.newPatient.phone.trim() !== '';
           // Bug 9.3 fix: Validate email format if provided
-          if (valid && this.booking.newPatient.email.trim() !== '') {
+          if (valid && this.booking.newPatient.email && this.booking.newPatient.email.trim() !== '') {
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             return emailRegex.test(this.booking.newPatient.email.trim());
           }

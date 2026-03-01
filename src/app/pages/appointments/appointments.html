@@ -223,8 +223,8 @@
         </div>
         <div class="form-group">
           <label>Email</label>
-          <input type="email" name="newEmail" [(ngModel)]="booking.newPatient.email" placeholder="email@example.com" #newEmail="ngModel">
-          <span class="error-text" *ngIf="newEmail.invalid && (newEmail.touched || newEmail.dirty)">Please enter a valid email address</span>
+          <input type="email" name="newEmail" pattern="^[^\s@]+@[^\s@]+\.[^\s@]+$" [(ngModel)]="booking.newPatient.email" placeholder="email@example.com" #newEmail="ngModel">
+          <span class="error-text" *ngIf="newEmail.invalid && (newEmail.touched || newEmail.dirty || bookingAttemptedStep1)">Please enter a valid email address</span>
         </div>
       </div>
       <div class="form-row">

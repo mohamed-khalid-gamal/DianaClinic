@@ -38,8 +38,7 @@ export class SidebarComponent implements OnInit, OnDestroy {
     { label: 'Services', icon: 'fa-solid fa-spa', route: '/services' },
     { label: 'Offers', icon: 'fa-solid fa-tags', route: '/offers' },
     { label: 'Billing', icon: 'fa-solid fa-file-invoice-dollar', route: '/billing' },
-    { label: 'Reports', icon: 'fa-solid fa-chart-line', route: '/reports' },
-    { label: 'User Manual', icon: 'fa-solid fa-book-open', route: '/manual' }
+    { label: 'Reports', icon: 'fa-solid fa-chart-line', route: '/reports' }
   ];
 
   constructor(private badgeService: BadgeService) {

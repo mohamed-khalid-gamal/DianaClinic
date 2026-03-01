@@ -190,12 +190,27 @@
       </div>
     </div>
 
-    <div class="detail-actions">
+    <div class="detail-actions" *ngIf="selectedEvent.extendedProps.status === 'scheduled' || selectedEvent.extendedProps.status === 'checked-in'">
+      <button class="btn btn-primary" (click)="updateStatusFromCalendar('in-progress')">
+        <i class="fa-solid fa-play"></i> Start Session
+      </button>
       <button class="btn btn-outline" [routerLink]="['/appointments']" [queryParams]="{date: selectedEvent!.start | date:'yyyy-MM-dd'}">
         <i class="fa-solid fa-calendar"></i> View in Appointments
       </button>
+    </div>
+    
+    <div class="detail-actions" *ngIf="selectedEvent.extendedProps.status === 'in-progress'">
+      <button class="btn btn-primary" (click)="updateStatusFromCalendar('completed')">
+        <i class="fa-solid fa-check-double"></i> Complete Treatment
+      </button>
+    </div>
+
+    <div class="detail-actions" *ngIf="selectedEvent.extendedProps.status === 'completed' || selectedEvent.extendedProps.status === 'billed'">
       <button class="btn btn-primary" routerLink="/billing">
         <i class="fa-solid fa-file-invoice"></i> Go to Billing
+      </button>
+      <button class="btn btn-outline" [routerLink]="['/appointments']" [queryParams]="{date: selectedEvent!.start | date:'yyyy-MM-dd'}">
+        <i class="fa-solid fa-calendar"></i> View in Appointments
       </button>
     </div>
   </div>

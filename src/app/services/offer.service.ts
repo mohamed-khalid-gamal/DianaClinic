@@ -79,10 +79,14 @@ export class OfferService {
     const nonExclusives = applicableOffers.filter(a => !a.offer.isExclusive);
 
     if (exclusives.length > 0) {
-      // Pick the exclusive offer with the highest discount
-      const bestExclusive = exclusives.reduce((best, curr) =>
-        curr.discountAmount > best.discountAmount ? curr : best
-      );
+      // Pick the exclusive offer with the highest PRIORITY, or if equal, highest discount
+      const bestExclusive = exclusives.reduce((best, curr) => {
+        const bestPrio = Math.floor(best.offer.priority || 0);
+        const currPrio = Math.floor(curr.offer.priority || 0);
+        if (currPrio > bestPrio) return curr;
+        if (currPrio < bestPrio) return best;
+        return curr.discountAmount > best.discountAmount ? curr : best;
+      });
       return [bestExclusive];
     }
 
@@ -261,9 +265,10 @@ export class OfferService {
       isMatch = !Array.from(targetIds).some(id => cartHasId(id));
       return isMatch;
     } else if (matchType === 'exact') {
-      // Bug 13.10 fix: 'exact' means exactly one of the target services is in the cart
-      const matchingCount = Array.from(targetIds).filter(id => cartHasId(id)).length;
-      isMatch = matchingCount === 1;
+      // Bug 13.10 & 13.11 fix: 'exact' means cart contains ALL target IDs and NO OTHER target IDs.
+      const hasAllTargets = Array.from(targetIds).every(id => cartHasId(id));
+      const hasNoOthers = Array.from(cartServiceIds).every(id => targetIds.has(id));
+      isMatch = hasAllTargets && hasNoOthers;
     } else {
       // 'all' - Cart must contain ALL target IDs
       isMatch = Array.from(targetIds).every(id => cartHasId(id));

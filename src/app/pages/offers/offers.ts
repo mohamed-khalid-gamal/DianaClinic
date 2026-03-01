@@ -88,6 +88,7 @@ export class Offers implements OnInit {
     this.isEditMode = true;
     this.currentStep = 1;
     this.offerForm = JSON.parse(JSON.stringify(offer));
+    this.mapIdsToServiceSelections(this.offerForm.conditions || []);
     this.showModal = true;
   }
 
@@ -138,6 +139,9 @@ export class Offers implements OnInit {
          parameters: { percent: 10 }
        }];
     }
+
+    // Map serviceSelections back to serviceIds and categoryIds to be backward compatible or for backend storage
+    this.mapServiceSelectionsToIds(this.offerForm.conditions || []);
 
     const offerName = this.offerForm.name;
     this.saving = true;
@@ -205,37 +209,43 @@ export class Offers implements OnInit {
     }
   }
 
-  // Helpers
-  addServiceToCondition(cond: OfferCondition, event: any) {
-    const serviceId = event.target.value;
-    if (!serviceId) return;
-    if (!cond.parameters.serviceIds) cond.parameters.serviceIds = [];
-    if (!cond.parameters.serviceIds.includes(serviceId)) {
-      cond.parameters.serviceIds.push(serviceId);
+  // Service/Category Repeater Selection Helpers for 'service_includes'
+  addServiceSelection(cond: OfferCondition) {
+    if (!cond.parameters.serviceSelections) {
+      cond.parameters.serviceSelections = [];
     }
-    event.target.value = '';
+    cond.parameters.serviceSelections.push({ categoryId: '', serviceId: '' });
   }
 
-  removeServiceFromCondition(cond: OfferCondition, serviceId: string) {
-    if (cond.parameters.serviceIds) {
-      cond.parameters.serviceIds = cond.parameters.serviceIds.filter((id: string) => id !== serviceId);
+  removeServiceSelection(cond: OfferCondition, index: number) {
+    if (cond.parameters.serviceSelections) {
+      cond.parameters.serviceSelections.splice(index, 1);
     }
   }
 
-  addCategoryToCondition(cond: OfferCondition, event: any) {
-    const categoryId = event.target.value;
-    if (!categoryId) return;
-    if (!cond.parameters.categoryIds) cond.parameters.categoryIds = [];
-    if (!cond.parameters.categoryIds.includes(categoryId)) {
-      cond.parameters.categoryIds.push(categoryId);
-    }
-    event.target.value = '';
+  onServiceSelectionCategoryChange(sel: any) {
+    // Reset service selection if category changes to ensure invalid states are cleared
+    sel.serviceId = '';
   }
 
-  removeCategoryFromCondition(cond: OfferCondition, categoryId: string) {
-    if (cond.parameters.categoryIds) {
-      cond.parameters.categoryIds = cond.parameters.categoryIds.filter((id: string) => id !== categoryId);
+  getFilteredServicesForSelection(cond: OfferCondition, categoryId: string, currentServiceId: string): Service[] {
+    let filtered = this.services;
+    
+    // Filter by selected category if provided
+    if (categoryId) {
+      filtered = filtered.filter(s => s.categoryId === categoryId);
     }
+    
+    // Filter out services already selected in OTHER rows to prevent duplicates in the UI repeater
+    if (cond.parameters.serviceSelections) {
+      const selectedServiceIds = cond.parameters.serviceSelections
+        .map((sel: any) => sel.serviceId)
+        .filter((id: string) => id && id !== currentServiceId);
+        
+      filtered = filtered.filter(s => !selectedServiceIds.includes(s.id));
+    }
+    
+    return filtered;
   }
 
   getCategoryName(catId: string): string {
@@ -358,10 +368,12 @@ export class Offers implements OnInit {
     const newCond: OfferCondition = {
       id: crypto.randomUUID(),
       type: type as any,
-      parameters: { serviceIds: [] }
+      parameters: {}
     };
 
-    if (type === 'group') {
+    if (type === 'service_includes') {
+      newCond.parameters.serviceSelections = [];
+    } else if (type === 'group') {
         newCond.logic = 'AND';
         newCond.children = [];
     }
@@ -384,6 +396,49 @@ export class Offers implements OnInit {
       if (idx > -1) {
           targetList.splice(idx, 1);
       }
+  }
+
+  // Pre-process for sending to backend backend: map the repeater objects into simple arrays
+  private mapServiceSelectionsToIds(conditions: OfferCondition[]) {
+    for (const cond of conditions) {
+      if (cond.type === 'service_includes' && cond.parameters.serviceSelections) {
+         cond.parameters.serviceIds = [];
+         cond.parameters.categoryIds = [];
+         for (const sel of cond.parameters.serviceSelections) {
+           if (sel.serviceId) {
+             cond.parameters.serviceIds.push(sel.serviceId);
+           } else if (sel.categoryId) {
+             cond.parameters.categoryIds.push(sel.categoryId);
+           }
+         }
+      }
+      if (cond.type === 'group' && cond.children) {
+        this.mapServiceSelectionsToIds(cond.children);
+      }
+    }
+  }
+
+  // Post-process when loading from backend to populate UI repeater seamlessly
+  private mapIdsToServiceSelections(conditions: OfferCondition[]) {
+    for (const cond of conditions) {
+       if (cond.type === 'service_includes') {
+         cond.parameters.serviceSelections = [];
+         if (cond.parameters.categoryIds) {
+           for (const cid of cond.parameters.categoryIds) {
+             cond.parameters.serviceSelections.push({ categoryId: cid, serviceId: '' });
+           }
+         }
+         if (cond.parameters.serviceIds) {
+           for (const sid of cond.parameters.serviceIds) {
+             const svc = this.services.find(s => s.id === sid);
+             cond.parameters.serviceSelections.push({ categoryId: svc?.categoryId || '', serviceId: sid });
+           }
+         }
+       }
+       if (cond.type === 'group' && cond.children) {
+         this.mapIdsToServiceSelections(cond.children);
+       }
+    }
   }
 
   getEmptyForm(): Partial<Offer> {
@@ -430,6 +485,39 @@ export class Offers implements OnInit {
   updateCreditServiceName(credit: PackageCreditItem): void {
     const service = this.services.find(s => s.id === credit.serviceId);
     credit.serviceName = service?.name || '';
+    if (service) {
+       const availableTypes = this.getAvailableUnitTypes(credit.serviceId);
+       if (!availableTypes.includes(credit.unitType)) {
+           credit.unitType = (availableTypes[0] as any) || 'session';
+       }
+    }
+  }
+
+  getAvailableUnitTypes(serviceId: string): string[] {
+    const service = this.services.find(s => s.id === serviceId);
+    if (!service || !service.pricingModels) return ['session', 'pulse', 'unit']; // fallback
+    
+    const types = new Set<string>();
+    for (const model of service.pricingModels) {
+      if (model.type === 'fixed') {
+        types.add('session');
+        types.add('unit');
+      } else {
+        types.add(model.type);
+      }
+    }
+    return Array.from(types).sort();
+  }
+
+  getUnitTypeLabel(type: string): string {
+    const labels: any = {
+      'session': 'Sessions',
+      'pulse': 'Pulses',
+      'unit': 'Units',
+      'time': 'Time',
+      'area': 'Area'
+    };
+    return labels[type] || type;
   }
 
   getOfferStatus(offer: Offer): { label: string; class: string } {

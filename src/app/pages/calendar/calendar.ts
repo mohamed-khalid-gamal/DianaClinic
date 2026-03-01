@@ -210,4 +210,23 @@ export class CalendarPage implements OnInit {
       timeStyle: 'short'
     });
   }
+
+  // UX 3: Route to end session instead of just setting status to complete
+  updateStatusFromCalendar(status: string) {
+    if (!this.selectedEvent) return;
+    
+    if (status === 'completed') {
+      this.closeEventModal();
+      this.router.navigate(['/sessions/end', this.selectedEvent.id]);
+    } else {
+      this.dataService.updateAppointmentStatus(this.selectedEvent.id, status as any).subscribe({
+        next: () => {
+          this.alertService.success('Status Updated');
+          this.loadData();
+          this.closeEventModal();
+        },
+        error: () => this.alertService.error('Failed to update status')
+      });
+    }
+  }
 }
