@@ -87,7 +87,7 @@
 
   <!-- History List (New) -->
   <div class="appointments-list" *ngIf="activeTab === 'completed'">
-    <div class="history-filters" style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-end; margin-bottom: 1.5rem;">
+    <div class="history-filters">
       <div class="filter-group">
         <label>Patient Name</label>
         <div class="search-box">
@@ -103,11 +103,11 @@
         <label>Date To</label>
         <input type="date" [(ngModel)]="historyDateTo" (change)="onHistoryFilterChange()">
       </div>
-      <div class="filter-group" style="max-width: 120px;">
+      <div class="filter-group">
         <label>Min Price</label>
         <input type="number" [(ngModel)]="historyPriceMin" (change)="onHistoryFilterChange()" placeholder="EGP">
       </div>
-      <div class="filter-group" style="max-width: 120px;">
+      <div class="filter-group">
         <label>Max Price</label>
         <input type="number" [(ngModel)]="historyPriceMax" (change)="onHistoryFilterChange()" placeholder="EGP">
       </div>
