@@ -37,7 +37,7 @@ describe('Manual Page', () => {
   it('loads manual on init', async () => {
     // Manually trigger ngOnInit which calls loadManual
     component.ngOnInit();
-    
+
     // loadManual is async because marked.parse is async
     // We need to wait for promises
     await new Promise(resolve => setTimeout(resolve, 0));

@@ -11,9 +11,9 @@ describe('Services Component', () => {
   let cdrMock: any;
 
   const mockServices: Service[] = [
-    { 
-      id: 's1', 
-      name: 'Service 1', 
+    {
+      id: 's1',
+      name: 'Service 1',
       categoryId: 'c1',
       description: 'Desc',
       duration: 30,
@@ -119,8 +119,8 @@ describe('Services Component', () => {
   });
 
   it('adds new service', () => {
-    component.serviceForm = { 
-      name: 'New Service', 
+    component.serviceForm = {
+      name: 'New Service',
       categoryId: 'c1',
       duration: 30,
       pricingModels: [{ type: 'fixed', basePrice: 100 }]
@@ -135,7 +135,7 @@ describe('Services Component', () => {
 
   it('toggles pricing types', () => {
     component.serviceForm = { pricingModels: [] };
-    
+
     component.togglePricingType('fixed');
     expect(component.serviceForm.pricingModels?.length).toBe(1);
     expect(component.serviceForm.pricingModels?.[0].type).toBe('fixed');

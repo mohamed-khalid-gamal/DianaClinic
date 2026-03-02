@@ -11,9 +11,9 @@ describe('Doctors Component', () => {
   let cdrMock: any;
 
   const mockDoctors: Doctor[] = [
-    { 
-      id: 'd1', 
-      name: 'Dr. Smith', 
+    {
+      id: 'd1',
+      name: 'Dr. Smith',
       specialty: 'Dermatology',
       phone: '01012345678',
       email: 'test@test.com',
@@ -69,7 +69,7 @@ describe('Doctors Component', () => {
   it('adds new doctor', () => {
     component.doctorForm = { name: 'Dr. New', specialty: 'General', phone: '01012345678' };
     component.isEditMode = false;
-    
+
     component.saveDoctor();
 
     expect(dataServiceMock.addDoctor).toHaveBeenCalled();
@@ -88,14 +88,14 @@ describe('Doctors Component', () => {
 
   it('manages shifts', () => {
     component.doctorForm = { workingHours: [] };
-    
+
     component.addShift();
     expect(component.doctorForm.workingHours?.length).toBe(1);
 
     component.removeShift(0);
     expect(component.doctorForm.workingHours?.length).toBe(0);
   });
-  
+
   /*
   it.skip('deletes doctor after confirmation', async () => {
     component.doctors = [...mockDoctors];

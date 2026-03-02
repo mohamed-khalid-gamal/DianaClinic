@@ -58,9 +58,9 @@ describe('Rooms Component', () => {
   it('adds new room', () => {
     component.roomForm = { name: 'New Room', type: 'consultation' };
     component.isEditMode = false;
-    
+
     component.saveRoom();
-    
+
     expect(dataServiceMock.addRoom).toHaveBeenCalled();
     expect(alertServiceMock.created).toHaveBeenCalled();
   });
