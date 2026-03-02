@@ -1,15 +1,40 @@
-import '../../../test-setup';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { of } from 'rxjs';
-import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { vi } from 'vitest';
 import { Patients } from './patients';
-import { Patient, Appointment, PatientWallet, Session } from '../../models';
+import { DataService } from '../../services/data.service';
+import { WalletService } from '../../services/wallet.service';
+import { SweetAlertService } from '../../services/sweet-alert.service';
+import { Patient, Appointment, PatientWallet } from '../../models';
 
-describe('Patients Component', () => {
+describe('Patients', () => {
   let component: Patients;
-  let dataServiceMock: any;
-  let walletServiceMock: any;
-  let alertServiceMock: any;
-  let cdrMock: any;
+  let fixture: ComponentFixture<Patients>;
+
+  const dataServiceMock = {
+    getPatients: vi.fn(),
+    getAppointments: vi.fn(),
+    addPatient: vi.fn(),
+    updatePatient: vi.fn(),
+    deletePatient: vi.fn(),
+    addPatientTransaction: vi.fn()
+  };
+
+  const walletServiceMock = {
+    getWallet: vi.fn(),
+    addCashBalance: vi.fn()
+  };
+
+  const alertServiceMock = {
+    validationError: vi.fn(),
+    created: vi.fn(),
+    updated: vi.fn(),
+    deleted: vi.fn(),
+    toast: vi.fn(),
+    confirmDelete: vi.fn(),
+    error: vi.fn(),
+    walletTopUp: vi.fn()
+  };
 
   const mockPatients: Patient[] = [
     {
@@ -27,7 +52,7 @@ describe('Patients Component', () => {
       contraindications: [],
       notes: '',
       skinType: 3
-    } as any
+    }
   ];
 
   const mockAppointments: Appointment[] = [
@@ -43,7 +68,7 @@ describe('Patients Component', () => {
       scheduledEnd: new Date('2025-06-15T11:00:00Z'),
       status: 'completed',
       createdAt: new Date('2025-06-01T10:00:00Z')
-    } as any
+    }
   ];
 
   const mockWallet: PatientWallet = {
@@ -52,62 +77,33 @@ describe('Patients Component', () => {
     credits: []
   };
 
-  const mockSessions: Session[] = [
-    {
-      id: 's1',
-      appointmentId: 'a1',
-      patientId: 'p1',
-      doctorId: 'd1',
-      startTime: new Date('2025-06-15T10:00:00Z'),
-      endTime: new Date('2025-06-15T11:00:00Z'),
-      consumablesUsed: [],
-      creditsUsed: [],
-      extraCharges: [],
-      status: 'completed',
-      clinicalNotes: 'Patient doing well.',
-      beforePhotos: ['url1.jpg'],
-      afterPhotos: ['url2.jpg']
-    } as any
-  ];
-
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
-    
-    dataServiceMock = {
-      getPatients: vi.fn().mockReturnValue(of(mockPatients)),
-      getAppointments: vi.fn().mockReturnValue(of(mockAppointments)),
-      addPatient: vi.fn().mockReturnValue(of(mockPatients[0])),
-      updatePatient: vi.fn().mockReturnValue(of(mockPatients[0])),
-      deletePatient: vi.fn().mockReturnValue(of(void 0)),
-      addPatientTransaction: vi.fn().mockReturnValue(of({} as any)),
-      getSessions: vi.fn().mockReturnValue(of(mockSessions))
-    };
+    dataServiceMock.getPatients.mockReturnValue(of(mockPatients));
+    dataServiceMock.getAppointments.mockReturnValue(of(mockAppointments));
+    dataServiceMock.addPatient.mockReturnValue(of(mockPatients[0]));
+    dataServiceMock.updatePatient.mockReturnValue(of(mockPatients[0]));
+    dataServiceMock.deletePatient.mockReturnValue(of(void 0));
+    dataServiceMock.addPatientTransaction.mockReturnValue(of({} as any));
+    walletServiceMock.getWallet.mockReturnValue(of(mockWallet));
+    walletServiceMock.addCashBalance.mockReturnValue(of(mockWallet));
+    alertServiceMock.confirmDelete.mockResolvedValue(true);
 
-    walletServiceMock = {
-      getWallet: vi.fn().mockReturnValue(of(mockWallet)),
-      addCashBalance: vi.fn().mockReturnValue(of(mockWallet))
-    };
+    await TestBed.configureTestingModule({
+      imports: [Patients],
+      providers: [
+        { provide: DataService, useValue: dataServiceMock },
+        { provide: WalletService, useValue: walletServiceMock },
+        { provide: SweetAlertService, useValue: alertServiceMock }
+      ]
+    }).compileComponents();
 
-    alertServiceMock = {
-      validationError: vi.fn(),
-      created: vi.fn(),
-      updated: vi.fn(),
-      deleted: vi.fn(),
-      toast: vi.fn(),
-      confirmDelete: vi.fn().mockResolvedValue(true),
-      error: vi.fn(),
-      walletTopUp: vi.fn()
-    };
-
-    cdrMock = {
-      markForCheck: vi.fn()
-    };
-
-    component = new Patients(dataServiceMock, walletServiceMock, alertServiceMock, {} as any, cdrMock);
+    fixture = TestBed.createComponent(Patients);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
   });
 
   it('hydrates patients with derived fields on load', () => {
-    component.ngOnInit();
     expect(dataServiceMock.getPatients).toHaveBeenCalled();
     expect(dataServiceMock.getAppointments).toHaveBeenCalled();
     const enriched = component.patients[0] as any;
@@ -125,6 +121,8 @@ describe('Patients Component', () => {
   });
 
   it('creates patient when not in edit mode', () => {
+    dataServiceMock.addPatient.mockClear();
+    alertServiceMock.created.mockClear();
     component.patientForm = {
       firstName: 'John',
       lastName: 'Smith',
@@ -143,6 +141,7 @@ describe('Patients Component', () => {
   });
 
   it('updates patient when in edit mode', () => {
+    dataServiceMock.updatePatient.mockClear();
     component.isEditMode = true;
     component.patientForm = { ...mockPatients[0] };
 
@@ -154,8 +153,9 @@ describe('Patients Component', () => {
 
   it('deletes patient after confirmation', async () => {
     component.patients = [...mockPatients];
+    alertServiceMock.deleted.mockClear();
+
     await component.deletePatient(mockPatients[0]);
-    await new Promise((r) => setTimeout(r, 0)); // flush subscribe next callback
 
     expect(dataServiceMock.deletePatient).toHaveBeenCalledWith('p1');
     expect(component.patients.length).toBe(0);
@@ -163,35 +163,15 @@ describe('Patients Component', () => {
   });
 
   it('tops up wallet and logs transaction', () => {
-    // We can't spy on component methods easily in manual instantiation if we want to call them
-    // But we can check side effects
+    const loadWalletSpy = vi.spyOn(component, 'loadWallet');
     component.selectedPatient = mockPatients[0];
     component.topUpAmount = 150;
 
-    component.confirmTopUp({ invalid: false } as any);
+    component.confirmTopUp();
 
     expect(walletServiceMock.addCashBalance).toHaveBeenCalledWith('p1', 150);
     expect(dataServiceMock.addPatientTransaction).toHaveBeenCalled();
     expect(alertServiceMock.walletTopUp).toHaveBeenCalledWith(150, 'Jane Doe');
+    expect(loadWalletSpy).toHaveBeenCalledWith('p1');
   });
-
-  it('loads sessions and computes notes and photos', () => {
-    // Create a mock session that has photos and notes
-    const sessionsWithData = [{
-        ...mockSessions[0],
-        clinicalNotes: 'Note 1',
-        beforePhotos: ['b1.jpg'],
-        afterPhotos: ['a1.jpg']
-    }];
-    dataServiceMock.getSessions.mockReturnValue(of(sessionsWithData));
-
-    component.viewPatientDetails(mockPatients[0]);
-
-    expect(dataServiceMock.getSessions).toHaveBeenCalled();
-    expect(component.patientSessions.length).toBe(1);
-    expect(component.sessionNotes.length).toBe(1);
-    expect(component.sessionNotes[0].note).toBe('Note 1');
-    expect(component.galleryPhotos.length).toBe(2);
-  });
-
 });

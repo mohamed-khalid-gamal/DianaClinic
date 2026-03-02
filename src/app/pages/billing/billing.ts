@@ -15,6 +15,7 @@ interface InvoiceItem {
   unitPrice: number;
   total: number;
   serviceId?: string;
+  pricingType?: 'fixed' | 'pulse' | 'area' | 'time';
   isCreditsUsed?: boolean; // Track if paying with credits
   originallyPaidByCredit?: boolean; // New: Track if credits were used during session (so we don't double charge)
 }
@@ -82,6 +83,7 @@ export class Billing implements OnInit {
 
   // Success message
   packageGrantedMessage = '';
+  private selectedAppointmentSessionDate?: Date;
 
   constructor(
     private dataService: DataService,
@@ -221,6 +223,7 @@ export class Billing implements OnInit {
     this.availableOffers = [];
     this.availableCredits = [];
     this.packageGrantedMessage = '';
+    this.selectedAppointmentSessionDate = undefined;
     this.paymentAttempted = false;
     this.invoiceAttempted = false;
     this.isViewingInvoice = viewOnly;
@@ -266,6 +269,7 @@ export class Billing implements OnInit {
           unitPrice: service.price || svc.pricingModels[0]?.basePrice || 0,
           total: isFromCredits ? 0 : (service.price || svc.pricingModels[0]?.basePrice || 0),
           serviceId: svc.id,
+          pricingType: service.pricingType,
           isCreditsUsed: isFromCredits
         });
       }
@@ -275,6 +279,7 @@ export class Billing implements OnInit {
     this.dataService.getSessionByAppointment(appointment.id).subscribe({
       next: session => {
         if (session) {
+            this.selectedAppointmentSessionDate = session.endTime ? new Date(session.endTime) : new Date(session.startTime);
             // 1. Process Consumables - SKIPPED as per user request (inventory tracking only)
             // if(session.consumablesUsed) { ... }
 
@@ -298,6 +303,7 @@ export class Billing implements OnInit {
                         unitPrice: charge.amount,
                         total: charge.amount,
                         serviceId: charge.serviceId,
+                      pricingType: this.selectedAppointment?.services.find(s => s.serviceId === charge.serviceId)?.pricingType,
                         isCreditsUsed: false
                     });
                 }
@@ -321,6 +327,7 @@ export class Billing implements OnInit {
             }
 
         }
+        this.recalculateOffers();
         this.cdr.markForCheck();
       },
       error: () => {
@@ -373,8 +380,25 @@ export class Billing implements OnInit {
       quantity: item.quantity
     }));
 
-    const sessionDate = this.selectedAppointment ? new Date(this.selectedAppointment.scheduledStart) : undefined;
+    const sessionDate = this.selectedAppointmentSessionDate
+      ? new Date(this.selectedAppointmentSessionDate)
+      : (this.selectedAppointment ? new Date(this.selectedAppointment.scheduledStart) : undefined);
     this.availableOffers = this.offerService.evaluateOffers(cart, this.selectedPatient, this.offers, this.services, usageStats, 'billing', sessionDate);
+
+    // Bug 13 fix: Keep offer chosen at end-session visible in billing even if offer is now inactive.
+    if (this.selectedAppointment?.offerId) {
+      const pinnedOffer = this.offers.find(o => o.id === this.selectedAppointment!.offerId);
+      if (pinnedOffer) {
+        const forcedOffer = { ...pinnedOffer, isActive: true };
+        const pinnedApplied = this.offerService.evaluateOffers(cart, this.selectedPatient, [forcedOffer], this.services, usageStats, 'billing', sessionDate);
+        if (pinnedApplied.length > 0) {
+          const exists = this.availableOffers.some(a => a.offer.id === pinnedApplied[0].offer.id);
+          if (!exists) {
+            this.availableOffers = [pinnedApplied[0], ...this.availableOffers];
+          }
+        }
+      }
+    }
 
     // Bug 13.1 fix: Auto-select all non-exclusive offers if none selected yet
     if (this.availableOffers.length > 0 && this.selectedAppliedOffers.length === 0) {
@@ -444,13 +468,25 @@ export class Billing implements OnInit {
       const credit = this.availableCredits.find(c => c.serviceId === item.serviceId && c.remaining > 0);
       const svc = this.services.find(s => s.id === item.serviceId);
       if (credit && svc) {
-        // Check if credit type is compatible with any of the service's pricing models
+        const expectedPricingType = item.pricingType || this.selectedAppointment?.services.find(s => s.serviceId === item.serviceId)?.pricingType;
         const creditType = credit.unitType;
-        const compatibleModel = svc.pricingModels.some(m => {
-          if (creditType === 'session' || creditType === 'unit') return m.type === 'fixed';
-          return m.type === creditType;
-        });
+        let compatibleModel = false;
+
+        if (expectedPricingType) {
+          if (creditType === 'session' || creditType === 'unit') {
+            compatibleModel = expectedPricingType === 'fixed';
+          } else {
+            compatibleModel = expectedPricingType === creditType;
+          }
+        } else {
+          compatibleModel = svc.pricingModels.some(m => {
+            if (creditType === 'session' || creditType === 'unit') return m.type === 'fixed';
+            return m.type === creditType;
+          });
+        }
+
         if (!compatibleModel) {
+          this.alertService.validationError('This credit type does not match the selected billing type for this service.');
           return; // Don't allow mismatched credit usage
         }
       }
@@ -490,6 +526,13 @@ export class Billing implements OnInit {
 
   payFullAmount() {
     this.newPayment.amount = Math.round(this.remainingBalance * 100) / 100;
+    if (this.newPayment.amount <= 0) return;
+
+    if (this.isPartialPaymentMode) {
+      this.submitAdditionalPayment();
+      return;
+    }
+
     this.addPayment();
   }
 
@@ -541,7 +584,9 @@ export class Billing implements OnInit {
           patientId: this.selectedPatient?.id ?? '',
           appointmentId: this.selectedAppointment?.id ?? '',
           sessionId: session?.id || null,
-          appliedOfferId: this.selectedAppliedOffers.length > 0 ? this.selectedAppliedOffers[0].offer.id : null,
+          appliedOfferId: this.selectedAppliedOffers.length > 0
+            ? this.selectedAppliedOffers[0].offer.id
+            : (this.selectedAppointment?.offerId || null),
           items: this.invoiceItems.map(item => ({
             description: item.description,
             quantity: item.quantity,
@@ -612,7 +657,7 @@ export class Billing implements OnInit {
 
   submitAdditionalPayment() {
     if (this.isProcessingInvoice || !this.selectedInvoiceId) return;
-    
+
     this.paymentAttempted = true;
     if (!this.newPayment.type) {
       this.alertService.validationError('Select a payment method');
@@ -647,12 +692,12 @@ export class Billing implements OnInit {
     ).subscribe({
       next: (updatedInvoice) => {
         this.isProcessingInvoice = false;
-        
+
         // Update local state to reflect the new payment
         this.payments.push({ ...this.newPayment });
         this.newPayment = { type: 'cash', amount: 0 };
         this.paymentAttempted = false;
-        
+
         // Update the invoice in the list
         const idx = this.invoices.findIndex(inv => inv.id === updatedInvoice.id);
         if (idx > -1) {

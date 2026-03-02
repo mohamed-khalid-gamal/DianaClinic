@@ -2,7 +2,7 @@ import { Component, OnInit, OnDestroy, ChangeDetectorRef, ChangeDetectionStrateg
 import { environment } from '../../../environments/environment';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterModule, Router } from '@angular/router';
+import { RouterModule, Router, ActivatedRoute } from '@angular/router';
 import { forkJoin, Observable, of } from 'rxjs';
 import { PageHeaderComponent, ModalComponent, StatCardComponent } from '../../components/shared';
 import { DataService } from '../../services/data.service';
@@ -57,6 +57,7 @@ interface ActiveSession {
 })
 export class Sessions implements OnInit, OnDestroy {
   private intervalId: ReturnType<typeof setInterval> | null = null;
+  private pendingEndSessionAppointmentId: string | null = null;
   appointments: Appointment[] = [];
   patients: Patient[] = [];
   doctors: Doctor[] = [];
@@ -98,10 +99,20 @@ export class Sessions implements OnInit, OnDestroy {
     private offerService: OfferService,
     private alertService: SweetAlertService,
     private cdr: ChangeDetectorRef,
-    private router: Router
+    private router: Router,
+    private route?: ActivatedRoute
   ) {}
 
   ngOnInit() {
+    if (this.route?.queryParams) {
+      this.route.queryParams.subscribe(params => {
+        this.pendingEndSessionAppointmentId = params['endSession'] || null;
+        if (this.pendingEndSessionAppointmentId && !this.loading) {
+          this.tryOpenEndSessionFromQuery();
+        }
+      });
+    }
+
     this.loadData();
     // Update elapsed time every minute
     this.intervalId = setInterval(() => this.updateElapsedTimes(), 60000);
@@ -135,6 +146,7 @@ export class Sessions implements OnInit, OnDestroy {
         this.inventory = inventory;
         this.offers = offers;
         this.buildActiveSessions();
+        this.tryOpenEndSessionFromQuery();
         this.loading = false;
         this.cdr.markForCheck();
       },
@@ -162,6 +174,30 @@ export class Sessions implements OnInit, OnDestroy {
       deviceUsage: [],
       notes: ''
     }));
+  }
+
+  private clearEndSessionQueryParam() {
+    this.router.navigate([], {
+      queryParams: { endSession: null },
+      queryParamsHandling: 'merge',
+      replaceUrl: true
+    });
+  }
+
+  private tryOpenEndSessionFromQuery() {
+    if (!this.pendingEndSessionAppointmentId) return;
+
+    const session = this.activeSessions.find(s => s.appointment.id === this.pendingEndSessionAppointmentId);
+    if (!session) {
+      this.alertService.validationError('This appointment is not in progress. Start the session first, then end it from Sessions.');
+      this.pendingEndSessionAppointmentId = null;
+      this.clearEndSessionQueryParam();
+      return;
+    }
+
+    this.pendingEndSessionAppointmentId = null;
+    this.clearEndSessionQueryParam();
+    this.openEndSessionModal(session);
   }
 
   updateElapsedTimes() {
@@ -288,7 +324,7 @@ export class Sessions implements OnInit, OnDestroy {
 
     // Initialize consumables list
     this.endSessionConsumables = [];
-    
+
     // Pre-fill from defined service consumables
     session.services.forEach(svc => {
       if (svc.consumables) {
@@ -324,21 +360,22 @@ export class Sessions implements OnInit, OnDestroy {
           if (!svc) continue;
 
           const credit = credits.find(c => c.serviceId === apptSvc.serviceId && c.remaining > 0);
-          
+
           // Determine default model logic
           // 1. If credit exists, try to match its unitType to a pricing model BUT ONLY if service supports it
           // 2. Else default to the first pricing model
-          
+
           let defaultModelType: 'fixed' | 'pulse' | 'area' | 'time' = svc.pricingModels[0].type;
-          
+
           if (credit && svc.pricingModels.length > 0) {
              // Try to find a pricing model that matches the credit type
              let matchingModel = null;
-             
-             if (credit.unitType === 'pulse') matchingModel = svc.pricingModels.find(m => m.type === 'pulse');
+
+             if (credit.unitType === 'session' || credit.unitType === 'unit') matchingModel = svc.pricingModels.find(m => m.type === 'fixed');
+             else if (credit.unitType === 'pulse') matchingModel = svc.pricingModels.find(m => m.type === 'pulse');
              else if (credit.unitType === 'area') matchingModel = svc.pricingModels.find(m => m.type === 'area');
              else if (credit.unitType === 'time') matchingModel = svc.pricingModels.find(m => m.type === 'time');
-             
+
              // If we found a model that matches the credit, use it
              if (matchingModel) {
                defaultModelType = matchingModel.type;
@@ -391,10 +428,10 @@ export class Sessions implements OnInit, OnDestroy {
     state.pulsesUsed = 0;
     state.timeUsed = 0;
     state.selectedAreas.forEach(a => a.isSelected = false);
-    
+
     // Update available credits for the new mode
     this.updateCreditsForMode(state);
-    
+
     this.calculateBilling(state);
   }
 
@@ -403,12 +440,12 @@ export class Sessions implements OnInit, OnDestroy {
     // Find credit that matches the selected model type
     // mapping: fixed -> session, pulse -> pulse, area -> area, time -> time
     // unit -> matches any (generic)
-    
+
     const targetType = state.selectedModelType === 'fixed' ? 'session' : state.selectedModelType;
-    
-    const credit = this.endSessionPatientCredits.find(c => 
-      c.serviceId === state.serviceId && 
-      c.remaining > 0 && 
+
+    const credit = this.endSessionPatientCredits.find(c =>
+      c.serviceId === state.serviceId &&
+      c.remaining > 0 &&
       (c.unitType === targetType || c.unitType === 'unit')
     );
 
@@ -437,15 +474,15 @@ export class Sessions implements OnInit, OnDestroy {
     // Check if user has relevant credits for this mode
     // We assume credit unitType loosely matches or is 'unit'/'session'
     // If Mode is Pulse, we need Pulse credits (or generic credits used as pulses?)
-    // Implementation assumption: availableCredits applies to the selected mode 
+    // Implementation assumption: availableCredits applies to the selected mode
     // IF the credit unit type matches OR is 'unit'/'session' (generic).
-    // Stricter check: 
+    // Stricter check:
     // - Pulse Mode needs 'pulse' credits
     // - Area Mode needs 'area' or 'unit' credits
     // - Time Mode needs 'time' or 'unit' credits
     // - Fixed Mode needs 'session' or 'unit' credits
 
-    const hasMatchingCredits = state.availableCredits > 0; 
+    const hasMatchingCredits = state.availableCredits > 0;
     // We can refine matching logic here if needed, but for now assuming displayed availableCredits are applicable.
 
     if (state.selectedModelType === 'pulse') {
@@ -477,7 +514,7 @@ export class Sessions implements OnInit, OnDestroy {
         } else {
           state.creditsToDeduct = state.availableCredits;
           const areasToPay = selectedCount - state.availableCredits;
-          
+
           // Which areas to pay for? The most expensive ones or just average?
           // Strategy: Pay for the remaining ones. We iterate and mark checked ones as paid until credits run out?
           // Or just sum price of *last* N areas?
@@ -485,18 +522,18 @@ export class Sessions implements OnInit, OnDestroy {
           // Simplistic approach: Sum price of all selected, subtract (credits * avg price)? No.
           // Better: We identify exactly which areas are covered?
           // User requirement: "take what he have and the remaning pay as normal"
-          
+
           // Let's calculate total price of selected areas
-          // Then subtract value of credits? 
+          // Then subtract value of credits?
           // If 1 Credit = 1 Area, effectively we create a discount equal to the price of the covered areas.
           // To favor the patient, we cover the MOST EXPENSIVE areas with credits first.
-          
+
           const selected = state.selectedAreas.filter(a => a.isSelected).sort((a, b) => b.price - a.price);
-          
+
           // First N covered by credits
           let covered = 0;
           let toPay = 0;
-          
+
           selected.forEach((area, index) => {
             if (index < state.availableCredits) {
               covered++;
@@ -504,7 +541,7 @@ export class Sessions implements OnInit, OnDestroy {
               toPay += area.price;
             }
           });
-          
+
           state.costToPay = toPay;
           state.overageDescription = `Pay for ${selectedCount - covered} areas`;
         }
@@ -538,7 +575,7 @@ export class Sessions implements OnInit, OnDestroy {
   }
 
   getTotalPayable(): number {
-    return this.endSessionServiceStates.reduce((sum, s) => sum + s.costToPay, 0) + 
+    return this.endSessionServiceStates.reduce((sum, s) => sum + s.costToPay, 0) +
            this.extraCharges.reduce((sum, c) => sum + c.amount, 0);
   }
 
@@ -828,6 +865,7 @@ export class Sessions implements OnInit, OnDestroy {
       appointmentId: session.appointment.id,
       patientId: patientId,
       doctorId: session.doctor.id,
+      offerId: this.endSessionSelectedOfferId || null,
       startTime: session.startTime,
       endTime: new Date(),
       notes: this.sessionNotes,

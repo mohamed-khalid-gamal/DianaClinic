@@ -33,6 +33,10 @@ describe('Services Component', () => {
     { id: 'd1', name: 'Dr. Smith' } as any
   ];
 
+  const mockRoomTypes = [
+    { id: 'rt1', name: 'Treatment' }
+  ];
+
   const mockInventoryCategories: InventoryCategory[] = [
     { id: 'ic1', name: 'Consumable' },
     { id: 'ic2', name: 'Equipment' }
@@ -50,6 +54,7 @@ describe('Services Component', () => {
       getDoctors: vi.fn().mockReturnValue(of(mockDoctors)),
       getInventory: vi.fn().mockReturnValue(of(mockInventory)),
       getInventoryCategories: vi.fn().mockReturnValue(of(mockInventoryCategories)),
+      getRoomTypes: vi.fn().mockReturnValue(of(mockRoomTypes)),
       addService: vi.fn().mockReturnValue(of(mockServices[0])),
       updateService: vi.fn().mockReturnValue(of(mockServices[0])),
       deleteService: vi.fn().mockReturnValue(of(void 0)),

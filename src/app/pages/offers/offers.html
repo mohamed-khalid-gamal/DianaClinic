@@ -166,7 +166,7 @@
           </div>
         </div>
       </div>
-      
+
       <div class="form-section">
         <h5>Status & Options</h5>
         <div class="form-grid">
@@ -196,7 +196,7 @@
           <h5>Targeting Rules</h5>
           <p class="hint">Define who gets this offer and when. Leave empty to apply to everyone.</p>
         </div>
-      
+
       <!-- Recursive Template for Condition Node -->
       <ng-template #conditionNode let-cond="cond" let-parent="parent" let-isLast="isLast">
          <div class="condition-card" [class.group-card]="cond.type === 'group'" [class.nested-card]="!!parent">
@@ -225,7 +225,7 @@
                     <span class="badge" [class.badge-primary]="cond.logic === 'AND'" [class.badge-secondary]="cond.logic === 'OR'">{{ cond.logic }}</span>
                   </div>
                </div>
-               
+
                <div class="add-condition-inline mt-3">
                   <ng-container *ngTemplateOutlet="addConditionDropdown; context: {parentParam: cond}"></ng-container>
                </div>
@@ -233,7 +233,7 @@
 
             <!-- Parameter Inputs for Single Rules -->
             <div class="cond-params" [ngSwitch]="cond.type" *ngIf="cond.type !== 'group'">
-               
+
                 <!-- Service Includes -->
                 <div *ngSwitchCase="'service_includes'">
                    <div class="form-grid align-items-end mb-3">
@@ -308,8 +308,8 @@
                  <div class="form-group mb-0">
                    <label>Days Active</label>
                    <div class="modern-days-selector">
-                       <button type="button" *ngFor="let day of [0,1,2,3,4,5,6]; let idx = index" 
-                               class="day-btn" 
+                       <button type="button" *ngFor="let day of [0,1,2,3,4,5,6]; let idx = index"
+                               class="day-btn"
                                [class.active]="cond.parameters.daysOfWeek?.includes(day)"
                                (click)="cond.parameters.daysOfWeek = cond.parameters.daysOfWeek || []; cond.parameters.daysOfWeek.includes(day) ? cond.parameters.daysOfWeek.splice(cond.parameters.daysOfWeek.indexOf(day), 1) : cond.parameters.daysOfWeek.push(day)">
                            {{ ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][idx] }}
@@ -321,7 +321,7 @@
                <!-- Patient Attributes -->
                <div *ngSwitchCase="'customer_attribute'" class="form-grid sentence-builder">
                    <div class="form-group mb-0">
-                       <select [(ngModel)]="cond.parameters.attributeName" [ngModelOptions]="{ standalone: true }" class="modern-select">
+                     <select [(ngModel)]="cond.parameters.attributeName" (ngModelChange)="onCustomerAttributeChange(cond)" [ngModelOptions]="{ standalone: true }" class="modern-select">
                            <option value="" disabled selected>Select Attribute</option>
                            <option value="age">Age</option>
                            <option value="gender">Gender</option>
@@ -331,15 +331,25 @@
                    </div>
                    <div class="form-group mb-0">
                        <select [(ngModel)]="cond.operator" [ngModelOptions]="{ standalone: true }" class="modern-select">
-                           <option value="equals">Equals</option>
-                           <option value="not_equals">Not Equals</option>
-                           <option value="greater_than">Greater Than</option>
-                           <option value="less_than">Less Than</option>
-                           <option value="contains">Contains</option>
+                       <option *ngFor="let operator of getCustomerAttributeOperators(cond.parameters.attributeName)" [value]="operator.value">{{ operator.label }}</option>
                        </select>
                    </div>
                    <div class="form-group mb-0">
-                       <input type="text" [(ngModel)]="cond.parameters.attributeValue" [ngModelOptions]="{ standalone: true }" placeholder="Value">
+                     <ng-container [ngSwitch]="cond.parameters.attributeName">
+                     <select *ngSwitchCase="'gender'" [(ngModel)]="cond.parameters.attributeValue" [ngModelOptions]="{ standalone: true }" class="modern-select">
+                       <option value="female">Female</option>
+                       <option value="male">Male</option>
+                     </select>
+                     <select *ngSwitchCase="'skinType'" [(ngModel)]="cond.parameters.attributeValue" [ngModelOptions]="{ standalone: true }" class="modern-select">
+                       <option [ngValue]="1">1</option>
+                       <option [ngValue]="2">2</option>
+                       <option [ngValue]="3">3</option>
+                       <option [ngValue]="4">4</option>
+                       <option [ngValue]="5">5</option>
+                       <option [ngValue]="6">6</option>
+                     </select>
+                     <input *ngSwitchDefault type="text" [(ngModel)]="cond.parameters.attributeValue" [ngModelOptions]="{ standalone: true }" placeholder="Value">
+                     </ng-container>
                    </div>
                </div>
 
@@ -364,7 +374,7 @@
                        <input type="number" [(ngModel)]="cond.parameters.threshold" [ngModelOptions]="{ standalone: true }" placeholder="Value">
                    </div>
                </div>
-               
+
                <!-- Patient Tags -->
                <div *ngSwitchCase="'patient_tag'">
                   <div class="form-group mb-0">
@@ -450,7 +460,7 @@
               <span class="badge badge-primary">AND</span>
             </div>
          </div>
-         
+
          <div class="mt-4 pt-4 border-top">
             <label class="d-block mb-2 fw-semibold">Add Another Requirement (AND):</label>
             <div style="max-width: 400px;">
@@ -458,7 +468,7 @@
             </div>
          </div>
       </div>
-      
+
       <!-- Empty State -->
       <div class="empty-state-box text-center p-5" *ngIf="!offerForm.conditions || offerForm.conditions.length === 0">
          <div class="empty-state-icon mb-4">
@@ -466,7 +476,7 @@
          </div>
          <h4>Who gets this offer?</h4>
          <p class="text-muted mx-auto" style="max-width: 400px;">Currently, this offer applies to <strong>everyone</strong>. Add rules to restrict it to specific patients or situations.</p>
-         
+
          <div class="quick-actions d-flex flex-wrap justify-content-center gap-2 my-4">
            <button type="button" class="btn btn-outline-primary" (click)="addCondition(null, 'min_spend')">
              <i class="fa-solid fa-money-bill-wave me-1"></i> Min Spend
@@ -478,12 +488,12 @@
              <i class="fa-solid fa-calendar-days me-1"></i> Special Dates
            </button>
          </div>
-         
+
          <div class="or-divider my-4 position-relative">
             <hr>
             <span class="position-absolute top-50 start-50 translate-middle bg-white px-3 text-muted small fw-semibold tracking-wider">OR ADD CUSTOM RULE</span>
          </div>
-         
+
          <div class="mt-3 d-flex justify-content-center">
             <div style="width: 400px;">
                <ng-container *ngTemplateOutlet="addConditionDropdown; context: {parentParam: null}"></ng-container>

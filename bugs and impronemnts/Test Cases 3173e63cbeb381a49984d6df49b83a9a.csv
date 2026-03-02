@@ -1,0 +1,19 @@
+﻿ID,Feature,Test Case,Pre-conditions,Steps,Expected Result,Actual Result,Select,Attachments,Fixed,Retest
+9.3,Appointment,adding new patient in appointment,,"1. add appointment
+2. enter invalid email",error message valid email required,it accepts any thing and at the end appears unknown error,Bug,image%201.png,No,
+12.3,Billing,paying partial bill using Full button,,"  1. pay part of a bill and set it pending
+  2. in pending click Full button to pay the full bill",pays the full bill,there is no button to save and “Add and save” button rejects to save as it considers the paid amount is zero while we paid using Full button,Bug,image%202.png,No,
+13,Offers,inactivate offer,,"1. add offer
+2. complete session
+3. inactivate the offer
+4. complete another session
+5. activate the offer",the bell that have been generated still has the offer but the new one not,"the offer disappears from the first session, and after reactivating the offer it appeared in all bells",Bug,,No,Ask the client if it’s a bug or not
+13.6,Offers,package service type,"  1. add service with specific payment method (like fixed price)
+  2. add package includes the same service but with different type (like pulse)","  1. make patient buy this package
+  2. add appointment to that service
+  3. end the session by End session 
+  4. pay the bill",refuses to use credit as the payment method is different,refuses to use credit in End session but uses any type of credit when paying the bill,Bug,,No,still uses any type of credit when paying the bill (like uses pulse hair removal credit while I specified in end session fixed price as payment method)
+13.12,Offers,new patients,,make an offer with new patients only constraint,appears to new patients only,appears to all patients,Bug,image%203.png,No,now it doesn’t appear to any patient even the new ones
+13.12,Offers,patient attributes,,make an offer and specify any categorical attribute like gender in patient attributes,male or female,numerical comparison and option “contains” is not useful,Bug,image%204.png,No,
+14,Report,buy package revenue,"  1. add package
+  2. add patient",make the patient pay for a package,adds package cost to the total revenue,doesn’t add the package cost revenue,Bug,,No,

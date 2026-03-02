@@ -7,6 +7,8 @@ import { SweetAlertService } from '../../services/sweet-alert.service';
 
 interface RevenueStats {
   totalRevenue: number;
+  invoiceRevenue: number;
+  packageRevenue: number;
   totalInvoices: number;
   totalPayments: number;
   averageInvoice: number;
@@ -137,6 +139,8 @@ export class Reports implements OnInit {
     // Revenue stats
     if (this.revenueStats) {
       csv += `Revenue,Total Revenue,${this.revenueStats.totalRevenue}\n`;
+      csv += `Revenue,Invoice Revenue,${this.revenueStats.invoiceRevenue || 0}\n`;
+      csv += `Revenue,Package Revenue,${this.revenueStats.packageRevenue || 0}\n`;
       csv += `Revenue,Total Invoices,${this.revenueStats.totalInvoices}\n`;
       csv += `Revenue,Average Invoice,${this.revenueStats.averageInvoice.toFixed(2)}\n\n`;
     }

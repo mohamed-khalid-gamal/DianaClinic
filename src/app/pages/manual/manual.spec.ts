@@ -6,6 +6,8 @@ import { ManualPage } from './manual';
 // Mock marked
 vi.mock('marked', () => ({
   marked: {
+    Renderer: vi.fn().mockImplementation(() => ({})),
+    use: vi.fn(),
     parse: vi.fn().mockResolvedValue('<h1>Manual</h1>')
   }
 }));

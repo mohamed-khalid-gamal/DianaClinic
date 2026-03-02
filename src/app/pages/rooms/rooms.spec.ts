@@ -14,9 +14,14 @@ describe('Rooms Component', () => {
     { id: 'r1', name: 'Room 1', type: 'treatment', isActive: true, capacity: 1, floor: '1' } as any
   ];
 
+  const mockRoomTypes = [
+    { id: 'rt1', name: 'Treatment' }
+  ];
+
   beforeEach(() => {
     dataServiceMock = {
       getRooms: vi.fn().mockReturnValue(of(mockRooms)),
+      getRoomTypes: vi.fn().mockReturnValue(of(mockRoomTypes)),
       addRoom: vi.fn().mockReturnValue(of(mockRooms[0])),
       updateRoom: vi.fn().mockReturnValue(of(mockRooms[0])),
       deleteRoom: vi.fn().mockReturnValue(of(void 0))

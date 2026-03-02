@@ -56,7 +56,7 @@ export class OfferService {
 
         if (o.usageLimitPerPatient && stats.patientCount >= o.usageLimitPerPatient) return false;
         if (o.totalUsageLimit && stats.globalCount >= o.totalUsageLimit) return false;
-        
+
         return true;
       });
     }
@@ -119,13 +119,13 @@ export class OfferService {
 
       case 'new_patient':
          // Bug 13.12a fix: Use visitCount instead of creation date
-         const isNew = (patient.visitCount || 0) === 0;
+        const isNew = (patient.visitCount || 0) <= 1;
          return isNew;
 
       case 'patient_tag':
         // Check if patient has any of the required tags (match against real tags + medical fields)
         if (!condition.parameters.tags || condition.parameters.tags.length === 0) return true;
-        
+
         const patientTags = [
             ...(patient.tags || []),            // Real marketing tags
             String(patient.skinType || ''),
@@ -133,7 +133,7 @@ export class OfferService {
             ...(patient.chronicConditions || []),
             ...(patient.contraindications || [])
         ].filter(Boolean).map(t => t.toLowerCase());
-        
+
         const targetTags = condition.parameters.tags.map(t => t.toLowerCase());
 
         if (condition.operator === 'not_contains' || condition.operator === 'not_in') {
@@ -153,7 +153,7 @@ export class OfferService {
 
       case 'time_range':
         return this.evaluateTimeRange(condition, evaluationDate);
-      
+
       case 'day_of_week':
         return this.evaluateDayOfWeek(condition, evaluationDate);
 
@@ -162,7 +162,7 @@ export class OfferService {
 
       case 'visit_count':
         // Now using real visit count from backend
-        return this.compareValues(patient.visitCount || 0, condition.parameters.threshold || 0, condition.operator || 'greater_than'); 
+        return this.compareValues(patient.visitCount || 0, condition.parameters.threshold || 0, condition.operator || 'greater_than');
 
       case 'cart_property':
          return this.evaluateCartProperty(condition, cart, services);
@@ -175,13 +175,13 @@ export class OfferService {
   private evaluateTimeRange(condition: OfferCondition, evaluationDate: Date): boolean {
       if (!condition.parameters.startTime || !condition.parameters.endTime) return true;
       const currentMinutes = evaluationDate.getHours() * 60 + evaluationDate.getMinutes();
-      
+
       const [startH, startM] = condition.parameters.startTime.split(':').map(Number);
       const startMinutes = startH * 60 + startM;
-      
+
       const [endH, endM] = condition.parameters.endTime.split(':').map(Number);
       const endMinutes = endH * 60 + endM;
-      
+
       if (endMinutes < startMinutes) {
           // Overnight range (e.g. 22:00 to 02:00)
           return currentMinutes >= startMinutes || currentMinutes <= endMinutes;
@@ -198,7 +198,7 @@ export class OfferService {
   private evaluateAttribute(condition: OfferCondition, patient: Patient): boolean {
       const attr = condition.parameters.attributeName;
       if (!attr) return true;
-      
+
       let value: any = undefined;
 
       // Handle derived or mapped attributes
@@ -220,7 +220,7 @@ export class OfferService {
       if (typeof target === 'number') {
           value = Number(value);
       }
-      
+
       switch (operator) {
           case 'equals': return String(value).toLowerCase() === String(target).toLowerCase();
           case 'not_equals': return String(value).toLowerCase() !== String(target).toLowerCase();
@@ -247,14 +247,14 @@ export class OfferService {
         .forEach(s => targetIds.add(s.id));
     }
 
-    if (targetIds.size === 0) return true; 
+    if (targetIds.size === 0) return true;
 
     // 2. Determine matches based on matchType
     const matchType = params.matchType || 'all';
-    
+
     // Check coverage
     const cartHasId = (id: string) => cartServiceIds.has(id);
-    
+
     let isMatch = false;
 
     if (matchType === 'any') {
@@ -281,7 +281,7 @@ export class OfferService {
        // Count quantity of items in cart that match the target set
        const matchingCartItems = cart.filter(i => targetIds.has(i.serviceId));
        const totalUnits = matchingCartItems.reduce((sum, item) => sum + item.quantity, 0);
-       
+
        if (totalUnits < params.minQuantity) return false;
     }
 
@@ -291,7 +291,7 @@ export class OfferService {
   private evaluateCartProperty(condition: OfferCondition, cart: CartItem[], allServices: Service[]): boolean {
       const prop = condition.parameters.attributeName; // 'totalQuantity', 'totalItems', 'distinctCategories'
       let value = 0;
-      
+
       if (prop === 'totalQuantity') {
           value = cart.reduce((sum, item) => sum + item.quantity, 0);
       } else if (prop === 'totalItems') { // Distinct service IDs
@@ -306,7 +306,7 @@ export class OfferService {
           });
           value = cats.size;
       }
-      
+
       return this.compareValues(value, condition.parameters.threshold, condition.operator || 'greater_than');
   }
 

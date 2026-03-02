@@ -15,7 +15,7 @@ describe('Doctors Component', () => {
       id: 'd1', 
       name: 'Dr. Smith', 
       specialty: 'Dermatology',
-      phone: '123',
+      phone: '01012345678',
       email: 'test@test.com',
       isActive: true,
       workingHours: [],
@@ -67,7 +67,7 @@ describe('Doctors Component', () => {
   });
 
   it('adds new doctor', () => {
-    component.doctorForm = { name: 'Dr. New', specialty: 'General', phone: '555' };
+    component.doctorForm = { name: 'Dr. New', specialty: 'General', phone: '01012345678' };
     component.isEditMode = false;
     
     component.saveDoctor();

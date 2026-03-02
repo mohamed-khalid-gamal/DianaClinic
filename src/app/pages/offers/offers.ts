@@ -18,6 +18,24 @@ import { Offer, Service, OfferCondition, OfferBenefit, PackageCreditItem, Servic
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class Offers implements OnInit {
+  readonly customerAttributeOperators: Record<string, { value: string; label: string }[]> = {
+    default: [
+      { value: 'equals', label: 'Equals' },
+      { value: 'not_equals', label: 'Not Equals' },
+      { value: 'contains', label: 'Contains' }
+    ],
+    numeric: [
+      { value: 'equals', label: 'Equals' },
+      { value: 'not_equals', label: 'Not Equals' },
+      { value: 'greater_than', label: 'Greater Than' },
+      { value: 'less_than', label: 'Less Than' }
+    ],
+    gender: [
+      { value: 'equals', label: 'Equals' },
+      { value: 'not_equals', label: 'Not Equals' }
+    ]
+  };
+
   loading = true;
   saving = false;
   offers: Offer[] = [];
@@ -262,7 +280,7 @@ export class Offers implements OnInit {
       const selectedServiceIds = cond.parameters.serviceSelections
         .filter((sel: any, i: number) => i !== index && sel.serviceId)
         .map((sel: any) => sel.serviceId);
-        
+
       if (selectedServiceIds.length > 0) {
          filtered = filtered.filter(s => !selectedServiceIds.includes(s.id));
       }
@@ -275,7 +293,7 @@ export class Offers implements OnInit {
          filtered = filtered.filter(s => !fullySelectedCategoryIds.includes(s.categoryId));
       }
     }
-    
+
     return filtered;
   }
 
@@ -342,7 +360,7 @@ export class Offers implements OnInit {
     switch (benefit.type) {
       case 'percent_off': return `${benefit.parameters.percent || 0}% Off`;
       case 'fixed_amount_off': return `EGP ${benefit.parameters.fixedAmount || 0} Off`;
-      case 'grant_package': 
+      case 'grant_package':
         const totalQty = (benefit.parameters.packageCredits || []).reduce((sum: number, c: any) => sum + (c.quantity || 0), 0);
         return `${totalQty} Sessions for EGP ${benefit.parameters.fixedPrice || 0}`;
       default: return benefit.type;
@@ -363,8 +381,8 @@ export class Offers implements OnInit {
          case 'new_patient': return 'New Patients Only';
          case 'min_spend': return `Spend > EGP ${cond.parameters.minAmount}`;
          case 'service_includes': return `Requires specific services`;
-         case 'patient_tag': 
-             const op = cond.operator === 'not_contains' ? 'NOT' : ''; 
+         case 'patient_tag':
+             const op = cond.operator === 'not_contains' ? 'NOT' : '';
              return `Tags ${op}: ${(cond.parameters.tags || []).join(', ')}`;
          case 'date_range': return `Date range condition`;
          case 'specific_patient': return `${(cond.parameters.patientIds || []).length} specific patient(s)`;
@@ -392,6 +410,35 @@ export class Offers implements OnInit {
       'cart_property': 'Invoice Property'
     };
     return labels[type] || type;
+  }
+
+  getCustomerAttributeOperators(attributeName?: string): { value: string; label: string }[] {
+    if (attributeName === 'gender') return this.customerAttributeOperators.gender;
+    if (attributeName === 'age' || attributeName === 'visitCount' || attributeName === 'skinType') {
+      return this.customerAttributeOperators.numeric;
+    }
+    return this.customerAttributeOperators.default;
+  }
+
+  onCustomerAttributeChange(cond: OfferCondition) {
+    const operators = this.getCustomerAttributeOperators(cond.parameters.attributeName);
+    if (!operators.some(o => o.value === cond.operator)) {
+      cond.operator = operators[0].value;
+    }
+
+    if (cond.parameters.attributeName === 'gender') {
+      const value = String(cond.parameters.attributeValue || '').toLowerCase();
+      if (value !== 'male' && value !== 'female') {
+        cond.parameters.attributeValue = 'female';
+      }
+    }
+
+    if (cond.parameters.attributeName === 'skinType') {
+      const skinType = Number(cond.parameters.attributeValue);
+      if (!Number.isInteger(skinType) || skinType < 1 || skinType > 6) {
+        cond.parameters.attributeValue = 1;
+      }
+    }
   }
 
   // Wizard Helpers - Recursive
@@ -422,7 +469,7 @@ export class Offers implements OnInit {
   removeCondition(parent: OfferCondition | null, id: string) {
       const targetList = parent ? parent.children : this.offerForm.conditions;
       if (!targetList) return;
-      
+
       const idx = targetList.findIndex(c => c.id === id);
       if (idx > -1) {
           targetList.splice(idx, 1);
@@ -527,7 +574,7 @@ export class Offers implements OnInit {
   getAvailableUnitTypes(serviceId: string): string[] {
     const service = this.services.find(s => s.id === serviceId);
     if (!service || !service.pricingModels) return ['session', 'pulse', 'unit']; // fallback
-    
+
     const types = new Set<string>();
     for (const model of service.pricingModels) {
       if (model.type === 'fixed') {

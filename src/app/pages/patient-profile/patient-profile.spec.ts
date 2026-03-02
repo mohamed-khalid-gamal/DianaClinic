@@ -61,7 +61,7 @@ describe('Patient Profile Page', () => {
     } as any
   ];
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.clearAllMocks();
 
     dataServiceMock = {
@@ -99,6 +99,15 @@ describe('Patient Profile Page', () => {
         { provide: CalendarService, useValue: calendarServiceMock }
       ]
     });
+
+    TestBed.overrideComponent(PatientProfile, {
+      set: {
+        template: '<div></div>',
+        styles: ['']
+      }
+    });
+
+    await TestBed.compileComponents();
 
     const fixture = TestBed.createComponent(PatientProfile);
     component = fixture.componentInstance;

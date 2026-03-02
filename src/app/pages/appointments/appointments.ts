@@ -7,7 +7,7 @@ import { DataService } from '../../services/data.service';
 import { Appointment, Patient, Doctor, Room, Service } from '../../models';
 import { SweetAlertService } from '../../services/sweet-alert.service';
 import { getAppointmentStatusColor } from '../../utils/status-colors';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 
 interface TimeSlot {
   time: string;
@@ -96,7 +96,8 @@ export class Appointments implements OnInit {
     private dataService: DataService,
     private alertService: SweetAlertService,
     private cdr: ChangeDetectorRef,
-    private route: ActivatedRoute
+    private route?: ActivatedRoute,
+    private router?: Router
   ) {}
 
   ngOnInit() {
@@ -105,15 +106,17 @@ export class Appointments implements OnInit {
     this.generateTimeSlots();
 
     // Bug 10.1 fix: Navigate to appointment date if passed as query param
-    this.route.queryParams.subscribe(params => {
-      if (params['date']) {
-        const parts = params['date'].split('-');
-        if (parts.length === 3) {
-          this.currentDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
-          this.cdr.markForCheck();
+    if (this.route?.queryParams) {
+      this.route.queryParams.subscribe(params => {
+        if (params['date']) {
+          const parts = params['date'].split('-');
+          if (parts.length === 3) {
+            this.currentDate = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, parseInt(parts[2]));
+            this.cdr.markForCheck();
+          }
         }
-      }
-    });
+      });
+    }
   }
 
   get weekDays(): { date: Date; label: string }[] {
@@ -444,7 +447,7 @@ export class Appointments implements OnInit {
     // If NO services define requirements, ALL rooms are candidates.
     const allRequiredTypes = new Set<string>();
     let hasRoomRequirements = false;
-    
+
     segmentServices.forEach(s => {
         if (s.requiredRoomTypes && s.requiredRoomTypes.length > 0) {
             hasRoomRequirements = true;
@@ -460,9 +463,9 @@ export class Appointments implements OnInit {
 
     // 3. Filter Candidate Doctors (Static permissions)
     let candidateDoctors = this.doctors.filter(d => d.isActive);
-    
+
     // Filter by Service Allowed IDs
-    candidateDoctors = candidateDoctors.filter(d => 
+    candidateDoctors = candidateDoctors.filter(d =>
         segmentServices.every(s => !s.allowedDoctorIds?.length || s.allowedDoctorIds.includes(d.id))
     );
 
@@ -493,7 +496,7 @@ export class Appointments implements OnInit {
 
         // 4. Find Free Resources for this specific slot
         const freeRooms = candidateRooms.filter(room => !this.hasConflicts(slotStart, slotEnd, undefined, room.id));
-        
+
         // 5. Find Available Doctors
         // Must be free strictly (no conflicts) AND working at this time
         let slotDoctors = candidateDoctors.filter(doc => this.isDoctorAvailable(doc, slotStart, slotEnd, dayOfWeek));
@@ -511,7 +514,7 @@ export class Appointments implements OnInit {
             const accessibleFreeRooms = freeRooms.filter(room => {
                 // Constraint 1: Shift assignment
                 if (shiftRoomId && room.id !== shiftRoomId) return false;
-                
+
                 // Constraint 2: General Assignment
                 if (doc.assignedRooms && doc.assignedRooms.length > 0 && !doc.assignedRooms.includes(room.id)) return false;
 
@@ -631,7 +634,16 @@ export class Appointments implements OnInit {
           this.cdr.markForCheck();
         },
         error: (err: any) => {
-          this.alertService.error('Failed to create patient: ' + (err.error?.error || 'Unknown error'));
+          const backendErrors = err?.error?.errors as Record<string, string[]> | undefined;
+          let message = err?.error?.error || err?.error?.message;
+
+          if (!message && backendErrors) {
+            const firstField = Object.keys(backendErrors)[0];
+            const firstFieldMessage = firstField ? backendErrors[firstField]?.[0] : undefined;
+            message = firstFieldMessage || 'Validation failed';
+          }
+
+          this.alertService.error('Failed to create patient: ' + (message || 'Unknown error'));
         }
       });
     } else {
@@ -829,7 +841,8 @@ export class Appointments implements OnInit {
   async updateStatus(apt: Appointment, status: Appointment['status']) {
     // Bug 10.2 fix: Prevent direct 'completed' status — must use End Session in Sessions page
     if (status === 'completed') {
-      this.alertService.validationError('To complete an appointment, use the "End Session" feature in the Sessions page. This ensures proper inventory deduction and session records.');
+      this.alertService.warning('End session required', 'Redirecting to Sessions to complete treatment safely.');
+      this.router?.navigate(['/sessions'], { queryParams: { endSession: apt.id } });
       return;
     }
     if (status === 'cancelled') {
@@ -928,9 +941,9 @@ export class Appointments implements OnInit {
 
     // 2. Filter Doctors by Requirements & Assignments
     let eligibleDoctors = this.doctors.filter(d => d.isActive);
-    
+
     // Filter by Service Allowed IDs
-    eligibleDoctors = eligibleDoctors.filter(d => 
+    eligibleDoctors = eligibleDoctors.filter(d =>
         rescheduleServices.every(s => !s.allowedDoctorIds?.length || s.allowedDoctorIds.includes(d.id))
     );
 

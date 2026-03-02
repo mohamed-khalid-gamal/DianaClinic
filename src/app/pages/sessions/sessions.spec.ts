@@ -13,27 +13,27 @@ describe('Sessions Component', () => {
   let cdrMock: any;
 
   const mockAppts: Appointment[] = [
-    { 
-      id: 'a1', 
-      patientId: 'p1', 
+    {
+      id: 'a1',
+      patientId: 'p1',
       doctorId: 'd1',
-      status: 'in-progress', 
+      status: 'in-progress',
       scheduledStart: new Date(),
       services: [{ serviceId: 's1', price: 100 }]
     } as any,
-    { 
-      id: 'a2', 
-      patientId: 'p2', 
+    {
+      id: 'a2',
+      patientId: 'p2',
       status: 'checked-in',
-      services: [] 
+      services: []
     } as any
   ];
 
   const mockServices: Service[] = [
-    { 
-      id: 's1', 
-      name: 'Laser Service', 
-      pricingModels: [{ type: 'pulse', basePrice: 50, pricePerUnit: 1 }] 
+    {
+      id: 's1',
+      name: 'Laser Service',
+      pricingModels: [{ type: 'pulse', basePrice: 50, pricePerUnit: 1 }]
     } as any
   ];
 
@@ -100,7 +100,7 @@ describe('Sessions Component', () => {
   it('starts session from checked-in appointment', () => {
     const apt = mockAppts[1]; // checked-in
     component.patients = mockPatients;
-    
+
     component.startSession(apt);
 
     expect(dataServiceMock.updateAppointmentStatus).toHaveBeenCalledWith('a2', 'in-progress');
@@ -118,19 +118,20 @@ describe('Sessions Component', () => {
 
     // Case 1: 0 pulses
     component.calculateBilling(serviceState);
-    expect(serviceState.costToPay).toBe(0);
+    // Base fee applies even when no pulses are entered
+    expect(serviceState.costToPay).toBe(50);
 
     // Case 2: 10 pulses, no credits
     serviceState.pulsesUsed = 10;
     component.calculateBilling(serviceState);
-    // Cost = (10 - 0) * 10 = 100
-    expect(serviceState.costToPay).toBe(100);
+    // Cost = base fee 50 + (10 * 10) = 150
+    expect(serviceState.costToPay).toBe(150);
 
     // Case 3: 10 pulses, 5 credits
     serviceState.availableCredits = 5;
     component.calculateBilling(serviceState);
-    // Cost = (10 - 5) * 10 = 50
-    expect(serviceState.costToPay).toBe(50);
+    // Cost = base fee 50 + ((10 - 5) * 10) = 100
+    expect(serviceState.costToPay).toBe(100);
     expect(serviceState.creditsToDeduct).toBe(5);
 
     // Case 4: 10 pulses, 15 credits
@@ -152,7 +153,7 @@ describe('Sessions Component', () => {
     component.calculateBilling(serviceState);
     expect(serviceState.costToPay).toBe(0); // For fixed, costToPay usually handled by Invoice logic unless we add "extra"?
     // Logic in component: if availableCredits >= 1, deduct 1. Else costToPay = 0 (implies standard billing later)
-    
+
     // Case 2: 1 credit
     serviceState.availableCredits = 1;
     component.calculateBilling(serviceState);
@@ -160,11 +161,11 @@ describe('Sessions Component', () => {
   });
 
   it('opens end session modal and initializes state', () => {
-    component.activeSessions = [{ 
-      appointment: mockAppts[0], 
+    component.activeSessions = [{
+      appointment: mockAppts[0],
       patient: mockPatients[0],
       room: { id: 'r1' } as any,
-      services: mockServices 
+      services: mockServices
     } as any];
     component.services = mockServices;
 
@@ -180,17 +181,17 @@ describe('Sessions Component', () => {
 
   it('confirms end session', () => {
     // Setup state
-    component.selectedSession = { 
-      appointment: mockAppts[0], 
+    component.selectedSession = {
+      appointment: mockAppts[0],
       patient: mockPatients[0],
       doctor: { id: 'd1' } as any,
-      services: [] 
+      services: []
     } as any;
     component.endSessionServiceStates = [];
     component.extraCharges = [];
-    
+
     component.confirmEndSession();
-    
+
     expect(dataServiceMock.completeSession).toHaveBeenCalled();
     expect(alertServiceMock.sessionEnded).toHaveBeenCalled();
   });

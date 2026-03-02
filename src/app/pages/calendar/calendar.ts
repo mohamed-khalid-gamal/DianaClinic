@@ -214,10 +214,10 @@ export class CalendarPage implements OnInit {
   // UX 3: Route to end session instead of just setting status to complete
   updateStatusFromCalendar(status: string) {
     if (!this.selectedEvent) return;
-    
+
     if (status === 'completed') {
       this.closeEventModal();
-      this.router.navigate(['/sessions/end', this.selectedEvent.id]);
+      this.router.navigate(['/sessions'], { queryParams: { endSession: this.selectedEvent.id } });
     } else {
       this.dataService.updateAppointmentStatus(this.selectedEvent.id, status as any).subscribe({
         next: () => {

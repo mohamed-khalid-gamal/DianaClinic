@@ -47,6 +47,18 @@
       label="Total Revenue">
     </app-stat-card>
     <app-stat-card
+      icon="fa-solid fa-file-invoice-dollar"
+      iconBg="rgba(59, 130, 246, 0.1)"
+      [value]="formatCurrency(revenueStats.invoiceRevenue || 0)"
+      label="Invoice Revenue">
+    </app-stat-card>
+    <app-stat-card
+      icon="fa-solid fa-box-open"
+      iconBg="rgba(139, 92, 246, 0.1)"
+      [value]="formatCurrency(revenueStats.packageRevenue || 0)"
+      label="Package Revenue">
+    </app-stat-card>
+    <app-stat-card
       icon="fa-solid fa-file-invoice"
       iconBg="rgba(59, 130, 246, 0.1)"
       [value]="revenueStats.totalInvoices"

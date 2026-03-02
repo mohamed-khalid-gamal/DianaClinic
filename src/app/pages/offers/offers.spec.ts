@@ -1,14 +1,32 @@
-import '../../../test-setup';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { of, throwError } from 'rxjs';
-import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { vi } from 'vitest';
 import { Offers } from './offers';
+import { DataService } from '../../services/data.service';
+import { SweetAlertService } from '../../services/sweet-alert.service';
 import { Offer } from '../../models';
 
-describe('Offers Component', () => {
+describe('Offers', () => {
   let component: Offers;
-  let dataServiceMock: any;
-  let alertServiceMock: any;
-  let cdrMock: any;
+  let fixture: ComponentFixture<Offers>;
+
+  const dataServiceMock = {
+    getOffers: vi.fn(),
+    getServices: vi.fn(),
+    addOffer: vi.fn(),
+    updateOffer: vi.fn(),
+    deleteOffer: vi.fn()
+  };
+
+  const alertServiceMock = {
+    validationError: vi.fn(),
+    created: vi.fn(),
+    updated: vi.fn(),
+    deleted: vi.fn(),
+    toast: vi.fn(),
+    confirmDelete: vi.fn(),
+    error: vi.fn()
+  };
 
   const mockOffers: Offer[] = [
     {
@@ -23,42 +41,36 @@ describe('Offers Component', () => {
       validUntil: new Date('2025-12-31'),
       priority: 1,
       createdAt: new Date('2025-01-01')
-    } as any
+    }
   ];
 
   const mockServices = [
     { id: 'svc1', name: 'Laser Hair Removal', price: 1000, duration: 30 }
   ];
 
-  beforeEach(() => {
-    dataServiceMock = {
-      getOffers: vi.fn().mockReturnValue(of(mockOffers)),
-      getServices: vi.fn().mockReturnValue(of(mockServices)),
-      getCategories: vi.fn().mockReturnValue(of([])),
-      addOffer: vi.fn().mockReturnValue(of(mockOffers[0])),
-      updateOffer: vi.fn().mockReturnValue(of(mockOffers[0])),
-      deleteOffer: vi.fn().mockReturnValue(of(void 0))
-    };
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    dataServiceMock.getOffers.mockReturnValue(of(mockOffers));
+    dataServiceMock.getServices.mockReturnValue(of(mockServices as any));
+    dataServiceMock.addOffer.mockReturnValue(of(mockOffers[0]));
+    dataServiceMock.updateOffer.mockReturnValue(of(mockOffers[0]));
+    dataServiceMock.deleteOffer.mockReturnValue(of(void 0));
+    alertServiceMock.confirmDelete.mockResolvedValue(true);
 
-    alertServiceMock = {
-      validationError: vi.fn(),
-      created: vi.fn(),
-      updated: vi.fn(),
-      deleted: vi.fn(),
-      toast: vi.fn(),
-      confirmDelete: vi.fn().mockResolvedValue(true),
-      error: vi.fn()
-    };
+    await TestBed.configureTestingModule({
+      imports: [Offers],
+      providers: [
+        { provide: DataService, useValue: dataServiceMock },
+        { provide: SweetAlertService, useValue: alertServiceMock }
+      ]
+    }).compileComponents();
 
-    cdrMock = {
-      markForCheck: vi.fn()
-    };
-
-    component = new Offers(dataServiceMock, alertServiceMock, {} as any, cdrMock);
+    fixture = TestBed.createComponent(Offers);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
   });
 
   it('loads offers and services on init', () => {
-    component.ngOnInit();
     expect(dataServiceMock.getOffers).toHaveBeenCalled();
     expect(dataServiceMock.getServices).toHaveBeenCalled();
     expect(component.offers.length).toBe(1);
@@ -66,6 +78,8 @@ describe('Offers Component', () => {
   });
 
   it('adds default benefit when none provided on create', () => {
+    dataServiceMock.addOffer.mockClear();
+    alertServiceMock.created.mockClear();
     component.offerForm = { name: 'Summer Sale', benefits: [] };
     component.isEditMode = false;
 
@@ -86,6 +100,7 @@ describe('Offers Component', () => {
   });
 
   it('updates offer when in edit mode', () => {
+    dataServiceMock.updateOffer.mockClear();
     component.offerForm = { ...mockOffers[0] };
     component.isEditMode = true;
 
@@ -97,26 +112,29 @@ describe('Offers Component', () => {
 
   it('toggles status and toasts on success', () => {
     const offer = { ...mockOffers[0], isActive: true };
-    
+    dataServiceMock.updateOffer.mockClear();
+    alertServiceMock.toast.mockClear();
+
     component.toggleOfferStatus(offer);
 
     expect(dataServiceMock.updateOffer).toHaveBeenCalledWith(expect.objectContaining({ isActive: false }));
     expect(alertServiceMock.toast).toHaveBeenCalled();
   });
 
-  it('reverts status and shows error on failure', async () => {
+  it('reverts status and shows error on failure', () => {
     const offer = { ...mockOffers[0], isActive: true };
     dataServiceMock.updateOffer.mockReturnValue(throwError(() => new Error('fail')));
 
     component.toggleOfferStatus(offer);
-    await new Promise((r) => setTimeout(r, 0)); // wait for subscribe error callback
 
     expect(offer.isActive).toBe(true);
     expect(alertServiceMock.error).toHaveBeenCalled();
   });
 
   it('deletes offer after confirmation', async () => {
-    component.ngOnInit(); // Load initial data
+    component.offers = [...mockOffers];
+    alertServiceMock.deleted.mockClear();
+
     await component.deleteOffer(mockOffers[0]);
 
     expect(dataServiceMock.deleteOffer).toHaveBeenCalledWith('1');
