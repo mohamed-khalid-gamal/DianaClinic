@@ -213,7 +213,15 @@ export class Reports implements OnInit {
       return;
     }
 
+    const generatedAtUtc = new Date().toISOString();
     let csv = 'Report Type,Metric,Value\n';
+    csv += `Meta,Generated At (UTC),${generatedAtUtc}\n`;
+    csv += `Meta,Period Type,${this.periodType}\n`;
+    csv += `Meta,Current Range,${this.selectedRangeLabel || 'N/A'}\n`;
+    if (this.previousRangeLabel) {
+      csv += `Meta,Previous Range,${this.previousRangeLabel}\n`;
+    }
+    csv += '\n';
 
     // Revenue stats
     if (this.revenueStats) {
@@ -246,8 +254,10 @@ export class Reports implements OnInit {
       csv += `Reconciliation,Service-attributed Revenue,${this.serviceAttributedRevenue}\n`;
       csv += `Reconciliation,Doctor-attributed Revenue,${this.doctorAttributedRevenue}\n`;
       csv += `Reconciliation,Package Revenue (Unattributed),${this.revenueStats.packageRevenue || 0}\n`;
-      csv += `Reconciliation,Invoice Revenue Gap,${this.invoiceAttributionGap}\n`;
-      csv += `Reconciliation,Total Revenue Gap,${this.totalAttributionGap}\n\n`;
+      csv += `Reconciliation,Invoice Revenue Gap,${this.formatSignedCurrency(this.invoiceAttributionGap)}\n`;
+      csv += `Reconciliation,Total Revenue Gap,${this.formatSignedCurrency(this.totalAttributionGap)}\n`;
+      csv += 'Reconciliation,Formula (Invoice Gap),Invoice Revenue - Service-attributed Revenue\n';
+      csv += 'Reconciliation,Formula (Total Gap),Total Revenue - (Doctor-attributed Revenue + Package Revenue)\n\n';
     }
 
     // Appointment stats
@@ -302,16 +312,19 @@ export class Reports implements OnInit {
 
     const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
     const margin = 14;
+    const generatedAtUtc = new Date().toISOString();
 
     doc.setFontSize(16);
     doc.text('Clinic Reports & Analytics', margin, 14);
     doc.setFontSize(10);
     doc.text(`Current Period: ${this.selectedRangeLabel || 'N/A'}`, margin, 20);
+    doc.text(`Period Type: ${this.periodType}`, margin, 25);
+    doc.text(`Generated At (UTC): ${generatedAtUtc}`, margin, 30);
     if (this.previousRangeLabel) {
-      doc.text(`Previous Period: ${this.previousRangeLabel}`, margin, 25);
+      doc.text(`Previous Period: ${this.previousRangeLabel}`, margin, 35);
     }
 
-    let yPos = 30;
+    let yPos = this.previousRangeLabel ? 40 : 35;
 
     const addSectionTitle = (title: string) => {
       if (yPos > 265) {
@@ -388,10 +401,22 @@ export class Reports implements OnInit {
         ['Service-attributed Revenue', this.formatCurrency(this.serviceAttributedRevenue)],
         ['Doctor-attributed Revenue', this.formatCurrency(this.doctorAttributedRevenue)],
         ['Package Revenue (Unattributed)', this.formatCurrency(this.revenueStats?.packageRevenue || 0)],
-        ['Invoice Revenue Gap', this.formatCurrency(this.invoiceAttributionGap)],
-        ['Total Revenue Gap', this.formatCurrency(this.totalAttributionGap)]
+        ['Invoice Revenue Gap', this.formatSignedCurrency(this.invoiceAttributionGap)],
+        ['Total Revenue Gap', this.formatSignedCurrency(this.totalAttributionGap)]
       ]
     );
+
+    if (yPos > 270) {
+      doc.addPage();
+      yPos = 15;
+    }
+    doc.setFontSize(9);
+    const reconciliationNote =
+      'Invoice Revenue Gap = Invoice Revenue - Service-attributed Revenue. ' +
+      'Total Revenue Gap = Total Revenue - (Doctor-attributed Revenue + Package Revenue).';
+    const wrappedNote = doc.splitTextToSize(reconciliationNote, 180);
+    doc.text(wrappedNote, margin, yPos);
+    yPos += wrappedNote.length * 4 + 4;
 
     addSectionTitle('Room Utilization');
     addSimpleTable(
