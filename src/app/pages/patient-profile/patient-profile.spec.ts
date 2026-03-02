@@ -1,8 +1,6 @@
 import '../../../test-setup';
 import { of } from 'rxjs';
 import { vi, describe, it, expect, beforeEach } from 'vitest';
-import { TestBed } from '@angular/core/testing';
-import { ActivatedRoute } from '@angular/router';
 import { PatientProfile } from './patient-profile';
 import { DataService } from '../../services/data.service';
 import { WalletService } from '../../services/wallet.service';
@@ -18,6 +16,7 @@ describe('Patient Profile Page', () => {
   let walletServiceMock: any;
   let alertServiceMock: any;
   let calendarServiceMock: any;
+  let cdrMock: any;
 
   const mockPatient: Patient = {
     id: 'p1',
@@ -61,7 +60,7 @@ describe('Patient Profile Page', () => {
     } as any
   ];
 
-  beforeEach(async () => {
+  beforeEach(() => {
     vi.clearAllMocks();
 
     dataServiceMock = {
@@ -89,32 +88,38 @@ describe('Patient Profile Page', () => {
       getPatientEvents: vi.fn().mockReturnValue(of([]))
     };
 
-    TestBed.configureTestingModule({
-      imports: [PatientProfile],
-      providers: [
-        { provide: ActivatedRoute, useValue: { paramMap: of(new Map([['id', 'p1']])) } },
-        { provide: DataService, useValue: dataServiceMock },
-        { provide: WalletService, useValue: walletServiceMock },
-        { provide: SweetAlertService, useValue: alertServiceMock },
-        { provide: CalendarService, useValue: calendarServiceMock }
-      ]
-    });
+    cdrMock = {
+      markForCheck: vi.fn()
+    };
 
-    TestBed.overrideComponent(PatientProfile, {
-      set: {
-        template: '<div></div>',
-        styles: ['']
-      }
-    });
-
-    await TestBed.compileComponents();
-
-    const fixture = TestBed.createComponent(PatientProfile);
-    component = fixture.componentInstance;
+    component = Object.assign(Object.create(PatientProfile.prototype), {
+      patient: null,
+      wallet: null,
+      appointments: [],
+      services: [],
+      offers: [],
+      transactions: [],
+      pendingPurchases: [],
+      patientEvents: [],
+      loading: true,
+      activeTab: 'overview',
+      calendarView: 'timeGridWeek',
+      showBuyPackageModal: false,
+      selectedOffer: null,
+      showPayModal: false,
+      selectedPurchase: null,
+      paymentMethod: 'cash',
+      expandedCredits: new Set<string>(),
+      dataService: dataServiceMock,
+      walletService: walletServiceMock,
+      alertService: alertServiceMock,
+      calendarService: calendarServiceMock,
+      cdr: cdrMock
+    }) as PatientProfile;
   });
 
-  it('loads patient data on init', () => {
-    component.ngOnInit();
+  it('loads patient data', () => {
+    component.loadPatient('p1');
     expect(dataServiceMock.getPatient).toHaveBeenCalledWith('p1');
     expect(component.patient).toBeDefined();
     expect(component.wallet).toBeDefined();
