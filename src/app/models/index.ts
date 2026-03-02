@@ -232,14 +232,14 @@ export interface Offer {
 
 export interface OfferCondition {
   id: string;
-  type: 'group' | 'service_includes' | 'min_spend' | 'new_patient' | 'patient_tag' | 'date_range' | 'specific_patient' 
+  type: 'group' | 'service_includes' | 'min_spend' | 'new_patient' | 'patient_tag' | 'date_range' | 'specific_patient'
         | 'time_range' | 'day_of_week' | 'visit_count' | 'customer_attribute' | 'cart_property';
   logic?: 'AND' | 'OR'; // For 'group' type
   children?: OfferCondition[]; // For 'group' type
-  
+
   // Generic operator for value comparison
   operator?: 'equals' | 'not_equals' | 'greater_than' | 'less_than' | 'contains' | 'not_contains' | 'in' | 'not_in' | 'one_of' | 'all_of';
-  
+
   parameters: {
     // Existing fields
     serviceIds?: string[];
@@ -248,13 +248,13 @@ export interface OfferCondition {
     patientIds?: string[];
     startDate?: Date;
     endDate?: Date;
-    
+
     // Advanced Service Matching
     categoryIds?: string[]; // Match services from these categories
     serviceSelections?: { categoryId?: string, serviceId?: string }[]; // New repeater fields
     matchType?: 'all' | 'any' | 'none' | 'exact'; // Default 'all'
     minQuantity?: number; // Minimum units/sessions/pulses
-    
+
     // New fields
     startTime?: string; // HH:mm
     endTime?: string; // HH:mm

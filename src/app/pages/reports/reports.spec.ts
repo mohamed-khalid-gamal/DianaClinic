@@ -55,7 +55,7 @@ describe('Reports Component', () => {
   /*
   it('exports to CSV', () => {
     component.serviceRevenue = [{ service: 'Svc', revenue: 100, count: 1 }];
-    
+
     // Mock DOM
     global.URL.createObjectURL = vi.fn();
     global.URL.revokeObjectURL = vi.fn();
