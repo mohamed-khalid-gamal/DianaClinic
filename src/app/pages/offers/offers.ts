@@ -18,7 +18,7 @@ import { Offer, Service, OfferCondition, OfferBenefit, PackageCreditItem, Servic
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class Offers implements OnInit {
-  readonly customerAttributeOperators: Record<string, { value: string; label: string }[]> = {
+  readonly customerAttributeOperators: Record<'default' | 'numeric' | 'gender', { value: NonNullable<OfferCondition['operator']>; label: string }[]> = {
     default: [
       { value: 'equals', label: 'Equals' },
       { value: 'not_equals', label: 'Not Equals' },
@@ -412,18 +412,21 @@ export class Offers implements OnInit {
     return labels[type] || type;
   }
 
-  getCustomerAttributeOperators(attributeName?: string): { value: string; label: string }[] {
-    if (attributeName === 'gender') return this.customerAttributeOperators.gender;
+  getCustomerAttributeOperators(attributeName?: string): { value: NonNullable<OfferCondition['operator']>; label: string }[] {
+    if (attributeName === 'gender') return this.customerAttributeOperators['gender'];
     if (attributeName === 'age' || attributeName === 'visitCount' || attributeName === 'skinType') {
-      return this.customerAttributeOperators.numeric;
+      return this.customerAttributeOperators['numeric'];
     }
-    return this.customerAttributeOperators.default;
+    return this.customerAttributeOperators['default'];
   }
 
   onCustomerAttributeChange(cond: OfferCondition) {
     const operators = this.getCustomerAttributeOperators(cond.parameters.attributeName);
     if (!operators.some(o => o.value === cond.operator)) {
-      cond.operator = operators[0].value;
+      const firstOperator = operators[0]?.value;
+      if (firstOperator) {
+        cond.operator = firstOperator;
+      }
     }
 
     if (cond.parameters.attributeName === 'gender') {

@@ -85,6 +85,12 @@ export class Billing implements OnInit {
   packageGrantedMessage = '';
   private selectedAppointmentSessionDate?: Date;
 
+  private normalizePricingType(value?: string): InvoiceItem['pricingType'] {
+    return value === 'fixed' || value === 'pulse' || value === 'area' || value === 'time'
+      ? value
+      : undefined;
+  }
+
   constructor(
     private dataService: DataService,
     private offerService: OfferService,
@@ -269,7 +275,7 @@ export class Billing implements OnInit {
           unitPrice: service.price || svc.pricingModels[0]?.basePrice || 0,
           total: isFromCredits ? 0 : (service.price || svc.pricingModels[0]?.basePrice || 0),
           serviceId: svc.id,
-          pricingType: service.pricingType,
+          pricingType: this.normalizePricingType(service.pricingType),
           isCreditsUsed: isFromCredits
         });
       }
@@ -303,7 +309,7 @@ export class Billing implements OnInit {
                         unitPrice: charge.amount,
                         total: charge.amount,
                         serviceId: charge.serviceId,
-                      pricingType: this.selectedAppointment?.services.find(s => s.serviceId === charge.serviceId)?.pricingType,
+                      pricingType: this.normalizePricingType(this.selectedAppointment?.services.find(s => s.serviceId === charge.serviceId)?.pricingType),
                         isCreditsUsed: false
                     });
                 }
