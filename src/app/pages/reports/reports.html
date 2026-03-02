@@ -1,9 +1,14 @@
 <app-page-header
   title="Reports & Analytics"
   subtitle="Financial and operational insights">
-  <button class="btn btn-outline" (click)="exportToCSV()">
-    <i class="fa-solid fa-download"></i> Export CSV
-  </button>
+  <div class="header-actions">
+    <button class="btn btn-outline" (click)="printReport()">
+      <i class="fa-solid fa-print"></i> Print
+    </button>
+    <button class="btn btn-outline" (click)="exportToCSV()">
+      <i class="fa-solid fa-download"></i> Export CSV
+    </button>
+  </div>
 </app-page-header>
 
 <!-- Date Filters -->
@@ -31,6 +36,18 @@
   </div>
 </div>
 
+<div class="tab-bar" *ngIf="!loading">
+  <button class="tab-btn" [class.active]="activeTab === 'overview'" (click)="setTab('overview')">Overview</button>
+  <button class="tab-btn" [class.active]="activeTab === 'revenue'" (click)="setTab('revenue')">Revenue</button>
+  <button class="tab-btn" [class.active]="activeTab === 'operations'" (click)="setTab('operations')">Operations</button>
+  <button class="tab-btn" [class.active]="activeTab === 'utilization'" (click)="setTab('utilization')">Utilization</button>
+</div>
+
+<div class="range-summary" *ngIf="!loading && selectedRangeLabel">
+  <span class="range-chip">Current: {{ selectedRangeLabel }}</span>
+  <span class="range-chip muted" *ngIf="previousRangeLabel">Previous: {{ previousRangeLabel }}</span>
+</div>
+
 <!-- Loading State -->
 <div class="page-loading" *ngIf="loading">
   <div class="spinner"></div>
@@ -38,12 +55,13 @@
 </div>
 
 <div *ngIf="!loading">
-  <!-- Revenue Stats -->
-  <div class="stats-row" *ngIf="revenueStats">
+  <!-- Overview -->
+  <div class="stats-row" *ngIf="revenueStats && activeTab === 'overview'">
     <app-stat-card
       icon="fa-solid fa-dollar-sign"
       iconBg="rgba(34, 197, 94, 0.1)"
       [value]="formatCurrency(revenueStats.totalRevenue)"
+      [trend]="comparison?.totalRevenueTrend"
       label="Total Revenue">
     </app-stat-card>
     <app-stat-card
@@ -62,18 +80,19 @@
       icon="fa-solid fa-file-invoice"
       iconBg="rgba(59, 130, 246, 0.1)"
       [value]="revenueStats.totalInvoices"
+      [trend]="comparison?.totalInvoicesTrend"
       label="Total Invoices">
     </app-stat-card>
     <app-stat-card
       icon="fa-solid fa-chart-line"
       iconBg="rgba(139, 92, 246, 0.1)"
       [value]="formatCurrency(revenueStats.averageInvoice)"
+      [trend]="comparison?.averageInvoiceTrend"
       label="Average Invoice">
     </app-stat-card>
   </div>
 
-  <!-- Appointment Stats -->
-  <div class="stats-row" *ngIf="appointmentStats">
+  <div class="stats-row" *ngIf="appointmentStats && activeTab === 'overview'">
     <app-stat-card
       icon="fa-solid fa-calendar-check"
       iconBg="rgba(34, 197, 94, 0.1)"
@@ -84,6 +103,7 @@
       icon="fa-solid fa-check-circle"
       iconBg="rgba(34, 197, 94, 0.1)"
       [value]="formatPercent(appointmentStats.completionRate)"
+      [trend]="comparison?.completionRateTrend"
       label="Completion Rate">
     </app-stat-card>
     <app-stat-card
@@ -100,8 +120,7 @@
     </app-stat-card>
   </div>
 
-  <!-- Patient Stats -->
-  <div class="stats-row" *ngIf="patientStats">
+  <div class="stats-row" *ngIf="patientStats && activeTab === 'overview'">
     <app-stat-card
       icon="fa-solid fa-users"
       iconBg="rgba(59, 130, 246, 0.1)"
@@ -112,6 +131,7 @@
       icon="fa-solid fa-user-plus"
       iconBg="rgba(34, 197, 94, 0.1)"
       [value]="patientStats.newPatients"
+      [trend]="comparison?.newPatientsTrend"
       label="New Patients">
     </app-stat-card>
     <app-stat-card
@@ -124,12 +144,44 @@
       icon="fa-solid fa-heart"
       iconBg="rgba(236, 72, 153, 0.1)"
       [value]="formatPercent(patientStats.retentionRate)"
+      [trend]="comparison?.retentionRateTrend"
       label="Retention Rate">
     </app-stat-card>
   </div>
 
-  <!-- Revenue by Service -->
-  <div class="section-card">
+  <div class="chart-grid" *ngIf="activeTab === 'overview'">
+    <div class="section-card chart-card">
+      <div class="section-header">
+        <h3><i class="fa-solid fa-chart-pie"></i> Appointment Status Mix</h3>
+      </div>
+      <div class="chart-container">
+        <canvas baseChart [type]="'doughnut'" [data]="appointmentStatusChartData" [options]="pieChartOptions"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Revenue -->
+  <div class="chart-grid" *ngIf="activeTab === 'revenue'">
+    <div class="section-card chart-card">
+      <div class="section-header">
+        <h3><i class="fa-solid fa-chart-line"></i> Revenue Trend</h3>
+      </div>
+      <div class="chart-container">
+        <canvas baseChart [type]="'line'" [data]="revenueTrendChartData" [options]="lineChartOptions"></canvas>
+      </div>
+    </div>
+
+    <div class="section-card chart-card">
+      <div class="section-header">
+        <h3><i class="fa-solid fa-chart-pie"></i> Service Revenue Share</h3>
+      </div>
+      <div class="chart-container">
+        <canvas baseChart [type]="'doughnut'" [data]="serviceRevenueChartData" [options]="pieChartOptions"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-card" *ngIf="activeTab === 'revenue'">
     <div class="section-header">
       <h3><i class="fa-solid fa-chart-bar"></i> Top Services by Revenue</h3>
     </div>
@@ -145,7 +197,7 @@
         <tbody>
           <tr *ngFor="let item of serviceRevenue">
             <td>{{ item.service }}</td>
-            <td>{{ item.count }}</td>
+            <td>{{ formatNumber(item.count) }}</td>
             <td class="revenue">{{ formatCurrency(item.revenue) }}</td>
           </tr>
         </tbody>
@@ -156,10 +208,12 @@
     </div>
   </div>
 
-  <!-- Revenue by Doctor -->
-  <div class="section-card">
+  <div class="section-card" *ngIf="activeTab === 'revenue'">
     <div class="section-header">
       <h3><i class="fa-solid fa-user-doctor"></i> Doctor Performance</h3>
+    </div>
+    <div class="chart-container compact">
+      <canvas baseChart [type]="'bar'" [data]="doctorRevenueChartData" [options]="verticalBarOptions"></canvas>
     </div>
     <div class="table-container">
       <table class="data-table">
@@ -173,7 +227,7 @@
         <tbody>
           <tr *ngFor="let item of doctorRevenue">
             <td>{{ item.doctor }}</td>
-            <td>{{ item.appointmentCount }}</td>
+            <td>{{ formatNumber(item.appointmentCount) }}</td>
             <td class="revenue">{{ formatCurrency(item.revenue) }}</td>
           </tr>
         </tbody>
@@ -184,8 +238,7 @@
     </div>
   </div>
 
-  <!-- Revenue by Period -->
-  <div class="section-card">
+  <div class="section-card" *ngIf="activeTab === 'revenue'">
     <div class="section-header">
       <h3><i class="fa-solid fa-chart-line"></i> Revenue Trend</h3>
     </div>
@@ -201,7 +254,7 @@
         <tbody>
           <tr *ngFor="let item of periodRevenue">
             <td>{{ item.period }}</td>
-            <td>{{ item.count }}</td>
+            <td>{{ formatNumber(item.count) }}</td>
             <td class="revenue">{{ formatCurrency(item.revenue) }}</td>
           </tr>
         </tbody>
@@ -209,6 +262,106 @@
       <div class="empty-state" *ngIf="periodRevenue.length === 0">
         <p>No trend data available</p>
       </div>
+    </div>
+  </div>
+
+  <!-- Operations -->
+  <div class="section-card" *ngIf="activeTab === 'operations'">
+    <div class="section-header">
+      <h3><i class="fa-solid fa-user-doctor"></i> Doctor Performance</h3>
+    </div>
+    <div class="table-container">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Doctor</th>
+            <th>Appointments</th>
+            <th>Revenue</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let item of doctorRevenue">
+            <td>{{ item.doctor }}</td>
+            <td>{{ formatNumber(item.appointmentCount) }}</td>
+            <td class="revenue">{{ formatCurrency(item.revenue) }}</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="empty-state" *ngIf="doctorRevenue.length === 0">
+        <p>No doctor data available</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Utilization -->
+  <div class="chart-grid" *ngIf="activeTab === 'utilization'">
+    <div class="section-card chart-card">
+      <div class="section-header">
+        <h3><i class="fa-solid fa-door-open"></i> Room Utilization (%)</h3>
+      </div>
+      <div class="chart-container">
+        <canvas baseChart [type]="'bar'" [data]="roomUtilizationChartData" [options]="horizontalBarOptions"></canvas>
+      </div>
+    </div>
+    <div class="section-card chart-card">
+      <div class="section-header">
+        <h3><i class="fa-solid fa-microchip"></i> Device Units Used</h3>
+      </div>
+      <div class="chart-container">
+        <canvas baseChart [type]="'bar'" [data]="deviceUtilizationChartData" [options]="horizontalBarOptions"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-card" *ngIf="activeTab === 'utilization'">
+    <div class="section-header">
+      <h3><i class="fa-solid fa-door-open"></i> Room Utilization Details</h3>
+    </div>
+    <div class="table-container">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Room</th>
+            <th>Bookings</th>
+            <th>Hours</th>
+            <th>Utilization</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let item of roomUtilization">
+            <td>{{ item.roomName }}</td>
+            <td>{{ formatNumber(item.totalBookings) }}</td>
+            <td>{{ formatHours(item.totalHours) }}</td>
+            <td>{{ formatPercent(item.utilizationRate) }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="section-card" *ngIf="activeTab === 'utilization'">
+    <div class="section-header">
+      <h3><i class="fa-solid fa-microchip"></i> Device Usage Details</h3>
+    </div>
+    <div class="table-container">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Device</th>
+            <th>Usages</th>
+            <th>Total Units</th>
+            <th>Avg/Usage</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let item of deviceUtilization">
+            <td>{{ item.deviceName }}</td>
+            <td>{{ formatNumber(item.totalUsages) }}</td>
+            <td>{{ formatNumber(item.totalUnits) }}</td>
+            <td>{{ item.avgUnitsPerUsage.toFixed(2) }}</td>
+          </tr>
+        </tbody>
+      </table>
     </div>
   </div>
 </div>

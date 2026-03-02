@@ -16,12 +16,16 @@ describe('Reports Component', () => {
       getRevenueByDoctor: vi.fn().mockReturnValue(of([])),
       getRevenueByPeriod: vi.fn().mockReturnValue(of([])),
       getAppointmentStats: vi.fn().mockReturnValue(of({})),
-      getPatientStats: vi.fn().mockReturnValue(of({}))
+      getPatientStats: vi.fn().mockReturnValue(of({})),
+      getComparisonStats: vi.fn().mockReturnValue(of({})),
+      getRoomUtilization: vi.fn().mockReturnValue(of([])),
+      getDeviceUtilization: vi.fn().mockReturnValue(of([]))
     };
 
     alertServiceMock = {
       validationError: vi.fn(),
-      success: vi.fn()
+      success: vi.fn(),
+      toast: vi.fn()
     };
 
     cdrMock = {

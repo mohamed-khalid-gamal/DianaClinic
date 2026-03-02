@@ -1,67 +1,35 @@
 import { Component, OnInit, ChangeDetectorRef, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { forkJoin } from 'rxjs';
+import { BaseChartDirective } from 'ng2-charts';
+import { ChartData, ChartOptions } from 'chart.js';
 import { PageHeaderComponent, StatCardComponent } from '../../components/shared';
 import { DataService } from '../../services/data.service';
 import { SweetAlertService } from '../../services/sweet-alert.service';
-
-interface RevenueStats {
-  totalRevenue: number;
-  invoiceRevenue: number;
-  packageRevenue: number;
-  totalInvoices: number;
-  totalPayments: number;
-  averageInvoice: number;
-  startDate: Date;
-  endDate: Date;
-}
-
-interface ServiceRevenue {
-  service: string;
-  revenue: number;
-  count: number;
-}
-
-interface DoctorRevenue {
-  doctor: string;
-  revenue: number;
-  appointmentCount: number;
-}
-
-interface PeriodRevenue {
-  period: string;
-  revenue: number;
-  count: number;
-}
-
-interface AppointmentStats {
-  total: number;
-  completed: number;
-  cancelled: number;
-  noShow: number;
-  scheduled: number;
-  completionRate: number;
-  cancellationRate: number;
-  noShowRate: number;
-}
-
-interface PatientStats {
-  totalPatients: number;
-  newPatients: number;
-  activePatients: number;
-  retentionRate: number;
-}
+import {
+  RevenueStats,
+  ServiceRevenue,
+  DoctorRevenue,
+  PeriodRevenue,
+  AppointmentStats,
+  PatientStats,
+  ReportComparison,
+  RoomUtilization,
+  DeviceUtilization
+} from '../../models';
 
 @Component({
   selector: 'app-reports',
   standalone: true,
-  imports: [CommonModule, FormsModule, PageHeaderComponent, StatCardComponent],
+  imports: [CommonModule, FormsModule, PageHeaderComponent, StatCardComponent, BaseChartDirective],
   templateUrl: './reports.html',
   styleUrl: './reports.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class Reports implements OnInit {
   loading = false;
+  activeTab: 'overview' | 'revenue' | 'operations' | 'utilization' = 'overview';
 
   // Date filters
   startDate: string = '';
@@ -75,6 +43,78 @@ export class Reports implements OnInit {
   periodRevenue: PeriodRevenue[] = [];
   appointmentStats: AppointmentStats | null = null;
   patientStats: PatientStats | null = null;
+  comparison: ReportComparison | null = null;
+  roomUtilization: RoomUtilization[] = [];
+  deviceUtilization: DeviceUtilization[] = [];
+
+  readonly lineChartOptions: ChartOptions<'line'> = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: (context) => `Revenue: ${this.formatCurrency(context.parsed.y || 0)}`
+        }
+      }
+    },
+    scales: {
+      y: {
+        ticks: {
+          callback: (value) => this.formatCompactCurrency(Number(value))
+        }
+      }
+    }
+  };
+
+  readonly pieChartOptions: ChartOptions<'doughnut'> = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { position: 'bottom' },
+      tooltip: {
+        callbacks: {
+          label: (context) => `${context.label}: ${this.formatCurrency(Number(context.raw || 0))}`
+        }
+      }
+    }
+  };
+
+  readonly verticalBarOptions: ChartOptions<'bar'> = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: (context) => `Revenue: ${this.formatCurrency(context.parsed.y || 0)}`
+        }
+      }
+    },
+    scales: {
+      y: {
+        ticks: {
+          callback: (value) => this.formatCompactCurrency(Number(value))
+        }
+      }
+    }
+  };
+
+  readonly horizontalBarOptions: ChartOptions<'bar'> = {
+    responsive: true,
+    maintainAspectRatio: false,
+    indexAxis: 'y',
+    plugins: {
+      legend: { display: false }
+    },
+    scales: {
+      x: {
+        ticks: {
+          callback: (value) => `${Number(value).toFixed(0)}`
+        }
+      }
+    }
+  };
 
   constructor(
     private dataService: DataService,
@@ -94,33 +134,57 @@ export class Reports implements OnInit {
     this.loadReports();
   }
 
+  setTab(tab: 'overview' | 'revenue' | 'operations' | 'utilization') {
+    this.activeTab = tab;
+  }
+
   formatDate(date: Date): string {
     return date.toISOString().split('T')[0];
   }
 
   loadReports() {
+    if (!this.startDate || !this.endDate) {
+      this.alertService.validationError('Start and end dates are required');
+      return;
+    }
+
+    if (new Date(this.startDate) > new Date(this.endDate)) {
+      this.alertService.validationError('Start date cannot be after end date');
+      return;
+    }
+
     this.loading = true;
     const params = `?startDate=${this.startDate}&endDate=${this.endDate}`;
 
-    Promise.all([
-      this.dataService.getRevenueStats(params).toPromise(),
-      this.dataService.getRevenueByService(params).toPromise(),
-      this.dataService.getRevenueByDoctor(params).toPromise(),
-      this.dataService.getRevenueByPeriod(params, this.periodType).toPromise(),
-      this.dataService.getAppointmentStats(params).toPromise(),
-      this.dataService.getPatientStats(params).toPromise()
-    ]).then(([revenue, serviceRev, doctorRev, periodRev, aptStats, patStats]) => {
-      this.revenueStats = revenue as RevenueStats;
-      this.serviceRevenue = (serviceRev as ServiceRevenue[]).slice(0, 10); // Top 10
-      this.doctorRevenue = doctorRev as DoctorRevenue[];
-      this.periodRevenue = periodRev as PeriodRevenue[];
-      this.appointmentStats = aptStats as AppointmentStats;
-      this.patientStats = patStats as PatientStats;
-      this.loading = false;
-      this.cdr.markForCheck();
-    }).catch(() => {
-      this.loading = false;
-      this.cdr.markForCheck();
+    forkJoin({
+      revenue: this.dataService.getRevenueStats(params),
+      serviceRev: this.dataService.getRevenueByService(params),
+      doctorRev: this.dataService.getRevenueByDoctor(params),
+      periodRev: this.dataService.getRevenueByPeriod(params, this.periodType),
+      aptStats: this.dataService.getAppointmentStats(params),
+      patStats: this.dataService.getPatientStats(params),
+      comparison: this.dataService.getComparisonStats(params),
+      roomUtilization: this.dataService.getRoomUtilization(params),
+      deviceUtilization: this.dataService.getDeviceUtilization(params)
+    }).subscribe({
+      next: ({ revenue, serviceRev, doctorRev, periodRev, aptStats, patStats, comparison, roomUtilization, deviceUtilization }) => {
+        this.revenueStats = revenue;
+        this.serviceRevenue = serviceRev.slice(0, 10);
+        this.doctorRevenue = doctorRev;
+        this.periodRevenue = periodRev;
+        this.appointmentStats = aptStats;
+        this.patientStats = patStats;
+        this.comparison = comparison;
+        this.roomUtilization = roomUtilization;
+        this.deviceUtilization = deviceUtilization;
+        this.loading = false;
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.loading = false;
+        this.alertService.toast('Failed to load reports', 'error');
+        this.cdr.markForCheck();
+      }
     });
   }
 
@@ -177,6 +241,20 @@ export class Reports implements OnInit {
       csv += `Patients,Retention Rate,${this.patientStats.retentionRate.toFixed(1)}%\n`;
     }
 
+    if (this.roomUtilization.length) {
+      csv += '\nRoom Utilization,Room,Bookings,Hours,Utilization Rate\n';
+      this.roomUtilization.forEach(r => {
+        csv += `Room,${r.roomName},${r.totalBookings},${r.totalHours},${r.utilizationRate}%\n`;
+      });
+    }
+
+    if (this.deviceUtilization.length) {
+      csv += '\nDevice Utilization,Device,Usages,Units,Avg Units Per Usage\n';
+      this.deviceUtilization.forEach(d => {
+        csv += `Device,${d.deviceName},${d.totalUsages},${d.totalUnits},${d.avgUnitsPerUsage}\n`;
+      });
+    }
+
     // Download
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
@@ -189,8 +267,135 @@ export class Reports implements OnInit {
     this.alertService.success('Report exported successfully');
   }
 
+  printReport() {
+    window.print();
+  }
+
+  get revenueTrendChartData(): ChartData<'line'> {
+    return {
+      labels: this.periodRevenue.map(item => item.period),
+      datasets: [
+        {
+          data: this.periodRevenue.map(item => item.revenue),
+          label: 'Revenue',
+          borderColor: '#3b82f6',
+          backgroundColor: 'rgba(59, 130, 246, 0.2)',
+          fill: true,
+          tension: 0.3
+        }
+      ]
+    };
+  }
+
+  get serviceRevenueChartData(): ChartData<'doughnut'> {
+    const top = this.serviceRevenue.slice(0, 6);
+    return {
+      labels: top.map(item => item.service),
+      datasets: [
+        {
+          data: top.map(item => item.revenue),
+          backgroundColor: ['#3b82f6', '#8b5cf6', '#22c55e', '#f59e0b', '#ef4444', '#06b6d4']
+        }
+      ]
+    };
+  }
+
+  get doctorRevenueChartData(): ChartData<'bar'> {
+    const top = this.doctorRevenue.slice(0, 8);
+    return {
+      labels: top.map(item => item.doctor),
+      datasets: [
+        {
+          data: top.map(item => item.revenue),
+          label: 'Revenue',
+          backgroundColor: '#8b5cf6'
+        }
+      ]
+    };
+  }
+
+  get appointmentStatusChartData(): ChartData<'doughnut'> {
+    return {
+      labels: ['Completed', 'Cancelled', 'No Show', 'Scheduled'],
+      datasets: [
+        {
+          data: [
+            this.appointmentStats?.completed || 0,
+            this.appointmentStats?.cancelled || 0,
+            this.appointmentStats?.noShow || 0,
+            this.appointmentStats?.scheduled || 0
+          ],
+          backgroundColor: ['#22c55e', '#ef4444', '#f59e0b', '#3b82f6']
+        }
+      ]
+    };
+  }
+
+  get roomUtilizationChartData(): ChartData<'bar'> {
+    const top = this.roomUtilization.slice(0, 10);
+    return {
+      labels: top.map(item => item.roomName),
+      datasets: [
+        {
+          data: top.map(item => item.utilizationRate),
+          label: 'Utilization %',
+          backgroundColor: '#06b6d4'
+        }
+      ]
+    };
+  }
+
+  get deviceUtilizationChartData(): ChartData<'bar'> {
+    const top = this.deviceUtilization.slice(0, 10);
+    return {
+      labels: top.map(item => item.deviceName),
+      datasets: [
+        {
+          data: top.map(item => item.totalUnits),
+          label: 'Units Used',
+          backgroundColor: '#f59e0b'
+        }
+      ]
+    };
+  }
+
   formatCurrency(amount: number): string {
-    return `$${amount.toFixed(2)}`;
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'EGP',
+      maximumFractionDigits: 2
+    }).format(amount || 0);
+  }
+
+  formatCompactCurrency(amount: number): string {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'EGP',
+      notation: 'compact',
+      maximumFractionDigits: 1
+    }).format(amount || 0);
+  }
+
+  formatNumber(value: number): string {
+    return new Intl.NumberFormat('en-US').format(value || 0);
+  }
+
+  formatHours(value: number): string {
+    return `${(value || 0).toFixed(1)} h`;
+  }
+
+  get selectedRangeLabel(): string {
+    if (!this.startDate || !this.endDate) return '';
+    const start = new Date(this.startDate).toLocaleDateString('en-US', { dateStyle: 'medium' });
+    const end = new Date(this.endDate).toLocaleDateString('en-US', { dateStyle: 'medium' });
+    return `${start} - ${end}`;
+  }
+
+  get previousRangeLabel(): string {
+    if (!this.comparison?.previousStartDate || !this.comparison?.previousEndDate) return '';
+    const start = new Date(this.comparison.previousStartDate).toLocaleDateString('en-US', { dateStyle: 'medium' });
+    const end = new Date(this.comparison.previousEndDate).toLocaleDateString('en-US', { dateStyle: 'medium' });
+    return `${start} - ${end}`;
   }
 
   formatPercent(value: number): string {

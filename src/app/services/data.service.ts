@@ -4,7 +4,8 @@ import { Observable, of, forkJoin } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 import {
   Patient, Doctor, Room, RoomType, Device, InventoryItem, InventoryCategory,
-  ServiceCategory, Service, Offer, Appointment, Alert, PatientWallet, PatientTransaction, PackagePurchase, Session, Invoice
+  ServiceCategory, Service, Offer, Appointment, Alert, PatientWallet, PatientTransaction, PackagePurchase, Session, Invoice,
+  RevenueStats, ServiceRevenue, DoctorRevenue, PeriodRevenue, AppointmentStats, PatientStats, ReportComparison, RoomUtilization, DeviceUtilization
 } from '../models';
 
 @Injectable({
@@ -427,28 +428,40 @@ export class DataService {
   }
 
   // Reports
-  getRevenueStats(params: string): Observable<any> {
-    return this.http.get(`${this.apiBase}/reports/revenue${params}`);
+  getRevenueStats(params: string): Observable<RevenueStats> {
+    return this.http.get<RevenueStats>(`${this.apiBase}/reports/revenue${params}`);
   }
 
-  getRevenueByService(params: string): Observable<any> {
-    return this.http.get(`${this.apiBase}/reports/revenue-by-service${params}`);
+  getRevenueByService(params: string): Observable<ServiceRevenue[]> {
+    return this.http.get<ServiceRevenue[]>(`${this.apiBase}/reports/revenue-by-service${params}`);
   }
 
-  getRevenueByDoctor(params: string): Observable<any> {
-    return this.http.get(`${this.apiBase}/reports/revenue-by-doctor${params}`);
+  getRevenueByDoctor(params: string): Observable<DoctorRevenue[]> {
+    return this.http.get<DoctorRevenue[]>(`${this.apiBase}/reports/revenue-by-doctor${params}`);
   }
 
-  getRevenueByPeriod(params: string, period: string): Observable<any> {
-    return this.http.get(`${this.apiBase}/reports/revenue-by-period${params}&period=${period}`);
+  getRevenueByPeriod(params: string, period: string): Observable<PeriodRevenue[]> {
+    return this.http.get<PeriodRevenue[]>(`${this.apiBase}/reports/revenue-by-period${params}&period=${period}`);
   }
 
-  getAppointmentStats(params: string): Observable<any> {
-    return this.http.get(`${this.apiBase}/reports/appointments-stats${params}`);
+  getAppointmentStats(params: string): Observable<AppointmentStats> {
+    return this.http.get<AppointmentStats>(`${this.apiBase}/reports/appointments-stats${params}`);
   }
 
-  getPatientStats(params: string): Observable<any> {
-    return this.http.get(`${this.apiBase}/reports/patient-stats${params}`);
+  getPatientStats(params: string): Observable<PatientStats> {
+    return this.http.get<PatientStats>(`${this.apiBase}/reports/patient-stats${params}`);
+  }
+
+  getComparisonStats(params: string): Observable<ReportComparison> {
+    return this.http.get<ReportComparison>(`${this.apiBase}/reports/comparison${params}`);
+  }
+
+  getRoomUtilization(params: string): Observable<RoomUtilization[]> {
+    return this.http.get<RoomUtilization[]>(`${this.apiBase}/reports/room-utilization${params}`);
+  }
+
+  getDeviceUtilization(params: string): Observable<DeviceUtilization[]> {
+    return this.http.get<DeviceUtilization[]>(`${this.apiBase}/reports/device-utilization${params}`);
   }
 
   private parseUtcDate(input: any): Date {

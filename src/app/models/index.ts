@@ -400,3 +400,76 @@ export interface Alert {
   isRead: boolean;
   createdAt: Date;
 }
+
+// Reports
+export interface RevenueStats {
+  totalRevenue: number;
+  invoiceRevenue: number;
+  packageRevenue: number;
+  totalInvoices: number;
+  totalPayments: number;
+  averageInvoice: number;
+  startDate: Date;
+  endDate: Date;
+}
+
+export interface ServiceRevenue {
+  service: string;
+  revenue: number;
+  count: number;
+}
+
+export interface DoctorRevenue {
+  doctor: string;
+  revenue: number;
+  appointmentCount: number;
+}
+
+export interface PeriodRevenue {
+  period: string;
+  revenue: number;
+  count: number;
+}
+
+export interface AppointmentStats {
+  total: number;
+  completed: number;
+  cancelled: number;
+  noShow: number;
+  scheduled: number;
+  completionRate: number;
+  cancellationRate: number;
+  noShowRate: number;
+}
+
+export interface PatientStats {
+  totalPatients: number;
+  newPatients: number;
+  activePatients: number;
+  retentionRate: number;
+}
+
+export interface ReportComparison {
+  totalRevenueTrend: number;
+  totalInvoicesTrend: number;
+  averageInvoiceTrend: number;
+  completionRateTrend: number;
+  newPatientsTrend: number;
+  retentionRateTrend: number;
+  previousStartDate: Date;
+  previousEndDate: Date;
+}
+
+export interface RoomUtilization {
+  roomName: string;
+  totalBookings: number;
+  totalHours: number;
+  utilizationRate: number;
+}
+
+export interface DeviceUtilization {
+  deviceName: string;
+  totalUsages: number;
+  totalUnits: number;
+  avgUnitsPerUsage: number;
+}
