@@ -434,9 +434,12 @@ export interface PeriodRevenue {
 export interface AppointmentStats {
   total: number;
   completed: number;
+  billed: number;
   cancelled: number;
   noShow: number;
   scheduled: number;
+  checkedIn: number;
+  inProgress: number;
   completionRate: number;
   cancellationRate: number;
   noShowRate: number;

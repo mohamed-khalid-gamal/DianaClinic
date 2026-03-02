@@ -4,6 +4,8 @@ import { FormsModule } from '@angular/forms';
 import { forkJoin } from 'rxjs';
 import { BaseChartDirective } from 'ng2-charts';
 import { ChartData, ChartOptions } from 'chart.js';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { PageHeaderComponent, StatCardComponent } from '../../components/shared';
 import { DataService } from '../../services/data.service';
 import { SweetAlertService } from '../../services/sweet-alert.service';
@@ -75,6 +77,19 @@ export class Reports implements OnInit {
       tooltip: {
         callbacks: {
           label: (context) => `${context.label}: ${this.formatCurrency(Number(context.raw || 0))}`
+        }
+      }
+    }
+  };
+
+  readonly countPieChartOptions: ChartOptions<'doughnut'> = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { position: 'bottom' },
+      tooltip: {
+        callbacks: {
+          label: (context) => `${context.label}: ${this.formatNumber(Number(context.raw || 0))}`
         }
       }
     }
@@ -223,6 +238,18 @@ export class Reports implements OnInit {
     });
     csv += '\n';
 
+    // Revenue reconciliation
+    if (this.revenueStats) {
+      csv += 'Revenue Reconciliation,Metric,Value\n';
+      csv += `Reconciliation,Total Revenue,${this.revenueStats.totalRevenue}\n`;
+      csv += `Reconciliation,Invoice Revenue,${this.revenueStats.invoiceRevenue || 0}\n`;
+      csv += `Reconciliation,Service-attributed Revenue,${this.serviceAttributedRevenue}\n`;
+      csv += `Reconciliation,Doctor-attributed Revenue,${this.doctorAttributedRevenue}\n`;
+      csv += `Reconciliation,Package Revenue (Unattributed),${this.revenueStats.packageRevenue || 0}\n`;
+      csv += `Reconciliation,Invoice Revenue Gap,${this.invoiceAttributionGap}\n`;
+      csv += `Reconciliation,Total Revenue Gap,${this.totalAttributionGap}\n\n`;
+    }
+
     // Appointment stats
     if (this.appointmentStats) {
       csv += 'Appointments,Metric,Count,Rate\n';
@@ -267,8 +294,133 @@ export class Reports implements OnInit {
     this.alertService.success('Report exported successfully');
   }
 
-  printReport() {
-    window.print();
+  exportToPDF() {
+    if (!this.revenueStats && !this.appointmentStats && !this.patientStats) {
+      this.alertService.validationError('No data to export');
+      return;
+    }
+
+    const doc = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+    const margin = 14;
+
+    doc.setFontSize(16);
+    doc.text('Clinic Reports & Analytics', margin, 14);
+    doc.setFontSize(10);
+    doc.text(`Current Period: ${this.selectedRangeLabel || 'N/A'}`, margin, 20);
+    if (this.previousRangeLabel) {
+      doc.text(`Previous Period: ${this.previousRangeLabel}`, margin, 25);
+    }
+
+    let yPos = 30;
+
+    const addSectionTitle = (title: string) => {
+      if (yPos > 265) {
+        doc.addPage();
+        yPos = 15;
+      }
+      doc.setFontSize(12);
+      doc.text(title, margin, yPos);
+      yPos += 2;
+    };
+
+    const addSimpleTable = (head: string[][], body: (string | number)[][]) => {
+      autoTable(doc, {
+        startY: yPos + 2,
+        head,
+        body,
+        margin: { left: margin, right: margin },
+        styles: { fontSize: 9 },
+        headStyles: { fillColor: [59, 130, 246] }
+      });
+      yPos = (doc as any).lastAutoTable.finalY + 8;
+    };
+
+    addSectionTitle('Overview Stats');
+    addSimpleTable(
+      [['Metric', 'Value']],
+      [
+        ['Total Revenue', this.formatCurrency(this.revenueStats?.totalRevenue || 0)],
+        ['Invoice Revenue', this.formatCurrency(this.revenueStats?.invoiceRevenue || 0)],
+        ['Package Revenue', this.formatCurrency(this.revenueStats?.packageRevenue || 0)],
+        ['Total Invoices', this.formatNumber(this.revenueStats?.totalInvoices || 0)],
+        ['Average Invoice', this.formatCurrency(this.revenueStats?.averageInvoice || 0)],
+        ['Total Appointments', this.formatNumber(this.appointmentStats?.total || 0)],
+        ['Completion Rate', this.formatPercent(this.appointmentStats?.completionRate || 0)],
+        ['Cancellation Rate', this.formatPercent(this.appointmentStats?.cancellationRate || 0)],
+        ['No-Show Rate', this.formatPercent(this.appointmentStats?.noShowRate || 0)],
+        ['Total Patients', this.formatNumber(this.patientStats?.totalPatients || 0)],
+        ['New Patients', this.formatNumber(this.patientStats?.newPatients || 0)],
+        ['Active Patients', this.formatNumber(this.patientStats?.activePatients || 0)],
+        ['Retention Rate', this.formatPercent(this.patientStats?.retentionRate || 0)]
+      ]
+    );
+
+    addSectionTitle('Top Services by Revenue');
+    addSimpleTable(
+      [['Service', 'Count', 'Revenue']],
+      this.serviceRevenue.length
+        ? this.serviceRevenue.map(item => [item.service, this.formatNumber(item.count), this.formatCurrency(item.revenue)])
+        : [['No data', '-', '-']]
+    );
+
+    addSectionTitle('Doctor Performance');
+    addSimpleTable(
+      [['Doctor', 'Appointments', 'Revenue']],
+      this.doctorRevenue.length
+        ? this.doctorRevenue.map(item => [item.doctor, this.formatNumber(item.appointmentCount), this.formatCurrency(item.revenue)])
+        : [['No data', '-', '-']]
+    );
+
+    addSectionTitle('Revenue Trend');
+    addSimpleTable(
+      [['Period', 'Transactions', 'Revenue']],
+      this.periodRevenue.length
+        ? this.periodRevenue.map(item => [item.period, this.formatNumber(item.count), this.formatCurrency(item.revenue)])
+        : [['No data', '-', '-']]
+    );
+
+    addSectionTitle('Revenue Reconciliation');
+    addSimpleTable(
+      [['Metric', 'Value']],
+      [
+        ['Total Revenue', this.formatCurrency(this.revenueStats?.totalRevenue || 0)],
+        ['Invoice Revenue', this.formatCurrency(this.revenueStats?.invoiceRevenue || 0)],
+        ['Service-attributed Revenue', this.formatCurrency(this.serviceAttributedRevenue)],
+        ['Doctor-attributed Revenue', this.formatCurrency(this.doctorAttributedRevenue)],
+        ['Package Revenue (Unattributed)', this.formatCurrency(this.revenueStats?.packageRevenue || 0)],
+        ['Invoice Revenue Gap', this.formatCurrency(this.invoiceAttributionGap)],
+        ['Total Revenue Gap', this.formatCurrency(this.totalAttributionGap)]
+      ]
+    );
+
+    addSectionTitle('Room Utilization');
+    addSimpleTable(
+      [['Room', 'Bookings', 'Hours', 'Utilization']],
+      this.roomUtilization.length
+        ? this.roomUtilization.map(item => [
+            item.roomName,
+            this.formatNumber(item.totalBookings),
+            this.formatHours(item.totalHours),
+            this.formatPercent(item.utilizationRate)
+          ])
+        : [['No data', '-', '-', '-']]
+    );
+
+    addSectionTitle('Device Utilization');
+    addSimpleTable(
+      [['Device', 'Usages', 'Total Units', 'Avg/Usage']],
+      this.deviceUtilization.length
+        ? this.deviceUtilization.map(item => [
+            item.deviceName,
+            this.formatNumber(item.totalUsages),
+            this.formatNumber(item.totalUnits),
+            item.avgUnitsPerUsage.toFixed(2)
+          ])
+        : [['No data', '-', '-', '-']]
+    );
+
+    doc.save(`clinic-report-${this.startDate}-to-${this.endDate}.pdf`);
+    this.alertService.success('PDF exported successfully');
   }
 
   get revenueTrendChartData(): ChartData<'line'> {
@@ -316,16 +468,19 @@ export class Reports implements OnInit {
 
   get appointmentStatusChartData(): ChartData<'doughnut'> {
     return {
-      labels: ['Completed', 'Cancelled', 'No Show', 'Scheduled'],
+      labels: ['Completed', 'Billed', 'In Progress', 'Checked In', 'Scheduled', 'No Show', 'Cancelled'],
       datasets: [
         {
           data: [
             this.appointmentStats?.completed || 0,
-            this.appointmentStats?.cancelled || 0,
+            this.appointmentStats?.billed || 0,
+            this.appointmentStats?.inProgress || 0,
+            this.appointmentStats?.checkedIn || 0,
+            this.appointmentStats?.scheduled || 0,
             this.appointmentStats?.noShow || 0,
-            this.appointmentStats?.scheduled || 0
+            this.appointmentStats?.cancelled || 0,
           ],
-          backgroundColor: ['#22c55e', '#ef4444', '#f59e0b', '#3b82f6']
+          backgroundColor: ['#22c55e', '#6366f1', '#06b6d4', '#0ea5e9', '#3b82f6', '#f59e0b', '#ef4444']
         }
       ]
     };
@@ -367,6 +522,20 @@ export class Reports implements OnInit {
     }).format(amount || 0);
   }
 
+  formatSignedCurrency(amount: number): string {
+    const normalized = amount || 0;
+    const formatted = this.formatCurrency(Math.abs(normalized));
+    if (normalized > 0) {
+      return `+${formatted}`;
+    }
+
+    if (normalized < 0) {
+      return `-${formatted}`;
+    }
+
+    return formatted;
+  }
+
   formatCompactCurrency(amount: number): string {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -400,5 +569,32 @@ export class Reports implements OnInit {
 
   formatPercent(value: number): string {
     return `${value.toFixed(1)}%`;
+  }
+
+  get serviceAttributedRevenue(): number {
+    return this.serviceRevenue.reduce((sum, item) => sum + (item.revenue || 0), 0);
+  }
+
+  get doctorAttributedRevenue(): number {
+    return this.doctorRevenue.reduce((sum, item) => sum + (item.revenue || 0), 0);
+  }
+
+  get invoiceAttributionGap(): number {
+    const invoiceRevenue = this.revenueStats?.invoiceRevenue || 0;
+    return invoiceRevenue - this.serviceAttributedRevenue;
+  }
+
+  get totalAttributionGap(): number {
+    const totalRevenue = this.revenueStats?.totalRevenue || 0;
+    const attributedTotal = this.doctorAttributedRevenue + (this.revenueStats?.packageRevenue || 0);
+    return totalRevenue - attributedTotal;
+  }
+
+  getGapClass(gap: number): string {
+    if (Math.abs(gap) < 0.01) {
+      return 'gap-ok';
+    }
+
+    return gap > 0 ? 'gap-positive' : 'gap-negative';
   }
 }
