@@ -379,7 +379,7 @@
                <div *ngSwitchCase="'patient_tag'">
                   <div class="form-group mb-0">
                      <label>Patient Tags</label>
-                     <app-tag-input [(tags)]="cond.parameters.tags" tagClass="primary" placeholder="Add tag (e.g. VIP) and press Enter"></app-tag-input>
+                     <app-tag-input name="tags" [(ngModel)]="cond.parameters.tags" [ngModelOptions]="{ standalone: true }" tagClass="primary" placeholder="Add tag (e.g. VIP) and press Enter"></app-tag-input>
                      <span class="hint-text">Press Enter or type comma to add tag</span>
                   </div>
                   <div class="mt-3 toggle-wrapper" (click)="cond.operator = cond.operator === 'not_contains' ? 'contains' : 'not_contains'">

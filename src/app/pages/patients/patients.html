@@ -272,25 +272,25 @@
 
     <div class="form-group full-width">
       <label>Allergies</label>
-      <app-tag-input [(tags)]="patientForm.allergies" tagClass="danger" placeholder="Add allergy (e.g. Lidocaine) and press Enter"></app-tag-input>
+      <app-tag-input name="allergies" [(ngModel)]="patientForm.allergies" tagClass="danger" placeholder="Add allergy (e.g. Lidocaine) and press Enter"></app-tag-input>
       <span class="hint-text">Press Enter or type comma to add</span>
     </div>
 
     <div class="form-group full-width">
       <label>Chronic Conditions</label>
-      <app-tag-input [(tags)]="patientForm.chronicConditions" tagClass="warning" placeholder="Add condition (e.g. Diabetes) and press Enter"></app-tag-input>
+      <app-tag-input name="chronicConditions" [(ngModel)]="patientForm.chronicConditions" tagClass="warning" placeholder="Add condition (e.g. Diabetes) and press Enter"></app-tag-input>
       <span class="hint-text">Press Enter or type comma to add</span>
     </div>
 
     <div class="form-group full-width">
       <label>Contraindications</label>
-      <app-tag-input [(tags)]="patientForm.contraindications" tagClass="danger" placeholder="Add contraindication (e.g. Pregnancy) and press Enter"></app-tag-input>
+      <app-tag-input name="contraindications" [(ngModel)]="patientForm.contraindications" tagClass="danger" placeholder="Add contraindication (e.g. Pregnancy) and press Enter"></app-tag-input>
       <span class="hint-text">Press Enter or type comma to add</span>
     </div>
 
     <div class="form-group full-width">
       <label>Tags (VIP, High Value, etc.)</label>
-      <app-tag-input [(tags)]="patientForm.tags" tagClass="primary" placeholder="Add tag (e.g. VIP) and press Enter"></app-tag-input>
+      <app-tag-input name="tags" [(ngModel)]="patientForm.tags" tagClass="primary" placeholder="Add tag (e.g. VIP) and press Enter"></app-tag-input>
       <span class="hint-text">Used for targeted offers and promotions. Press Enter or type comma to add</span>
     </div>
 

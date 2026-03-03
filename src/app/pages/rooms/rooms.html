@@ -63,7 +63,7 @@
 
     <div class="form-group full-width">
       <label>Equipment</label>
-      <app-tag-input [(tags)]="roomForm.equipment" tagClass="primary" placeholder="Add equipment (e.g. Laser) and press Enter"></app-tag-input>
+      <app-tag-input name="equipment" [(ngModel)]="roomForm.equipment" tagClass="primary" placeholder="Add equipment (e.g. Laser) and press Enter"></app-tag-input>
       <span class="hint-text">Press Enter or type comma to add equipment</span>
     </div>
 

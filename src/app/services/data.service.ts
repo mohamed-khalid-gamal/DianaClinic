@@ -423,6 +423,7 @@ export class DataService {
       allergies: patient.allergies,
       chronicConditions: patient.chronicConditions,
       contraindications: patient.contraindications,
+      tags: patient.tags,
       notes: patient.notes
     };
   }
