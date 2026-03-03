@@ -23,11 +23,11 @@ import { FormsModule, NG_VALUE_ACCESSOR, ControlValueAccessor } from '@angular/f
           [disabled]="disabled"
           class="tag-input-field"
         />
-        <button 
-          *ngIf="inputValue.trim().length > 0" 
-          type="button" 
-          class="inline-add-btn" 
-          (mousedown)="addTagFromButton($event)" 
+        <button
+          *ngIf="inputValue.trim().length > 0"
+          type="button"
+          class="inline-add-btn"
+          (mousedown)="addTagFromButton($event)"
           [disabled]="disabled">
           Add
         </button>
