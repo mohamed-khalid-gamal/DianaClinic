@@ -5,6 +5,11 @@
   transition: margin-left 0.3s ease;
 }
 
+:host-context(body.sidebar-collapsed) .main-content,
+body.sidebar-collapsed .main-content {
+  margin-left: var(--sidebar-collapsed);
+}
+
 // Tablet - sidebar collapsed by default would be nice
 @media (max-width: 1024px) {
   .main-content {
@@ -14,7 +19,9 @@
 
 // Mobile - no sidebar, add mobile header space
 @media (max-width: 768px) {
-  .main-content {
+  .main-content,
+  :host-context(body.sidebar-collapsed) .main-content,
+  body.sidebar-collapsed .main-content {
     margin-left: 0;
     padding: 1rem;
     padding-top: calc(var(--mobile-nav-height) + 1rem);

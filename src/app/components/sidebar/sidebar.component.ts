@@ -69,6 +69,11 @@ export class SidebarComponent implements OnInit, OnDestroy {
 
   toggleCollapse() {
     this.collapsed = !this.collapsed;
+    if (this.collapsed) {
+      document.body.classList.add('sidebar-collapsed');
+    } else {
+      document.body.classList.remove('sidebar-collapsed');
+    }
   }
 
   toggleMobileMenu() {
