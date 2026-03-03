@@ -450,6 +450,9 @@ export class Offers implements OnInit {
     } else if (type === 'group') {
         newCond.logic = 'AND';
         newCond.children = [];
+    } else if (type === 'patient_tag') {
+        newCond.operator = 'contains';
+        newCond.parameters.tags = [];
     }
 
     if (parent && parent.type === 'group') {

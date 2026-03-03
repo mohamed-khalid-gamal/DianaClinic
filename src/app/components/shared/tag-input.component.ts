@@ -172,12 +172,8 @@ export class TagInputComponent implements ControlValueAccessor {
   onChange = (tags: string[]) => {};
   onTouched = () => {};
 
-  writeValue(value: string[]): void {
-    if (value) {
-      this.tags = [...value];
-    } else {
-      this.tags = [];
-    }
+  writeValue(value: string[] | null | undefined): void {
+    this.tags = Array.isArray(value) ? [...value] : [];
   }
 
   registerOnChange(fn: any): void {
