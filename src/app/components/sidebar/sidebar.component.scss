@@ -13,16 +13,16 @@
 
   &.collapsed {
     width: var(--sidebar-collapsed);
-    
+
     .logo-area {
       padding: 0;
       justify-content: center;
     }
-    
+
     .nav-item {
       justify-content: center;
       padding: 0.75rem;
-      
+
       .label {
         display: none;
       }
@@ -46,7 +46,7 @@
   &.mobile {
     transform: translateX(-100%);
     box-shadow: none;
-    
+
     &.mobile-open {
       transform: translateX(0);
       box-shadow: var(--shadow-lg);
@@ -60,7 +60,7 @@
   align-items: center;
   padding: 0 1.5rem;
   border-bottom: 1px solid var(--border-color);
-  
+
   .logo-img {
     height: 40px;
     width: auto;
@@ -85,7 +85,7 @@
     cursor: pointer;
     padding: 0.5rem;
     border-radius: var(--radius-md);
-    
+
     &:hover {
       background: var(--bg-body);
       color: var(--text-main);
@@ -109,17 +109,17 @@
   margin-bottom: 0.25rem;
   transition: all 0.2s;
   position: relative;
-  
+
   &:hover {
     background-color: var(--primary-light);
     color: var(--primary-dark);
   }
-  
+
   &.active {
     background-color: var(--primary-color);
     color: white;
   }
-  
+
   i {
     width: 20px;
     text-align: center;
@@ -176,7 +176,7 @@
   width: 100%;
   text-align: left;
   border-radius: var(--radius-md);
-  
+
   &:hover {
     background: var(--bg-body);
   }
@@ -211,7 +211,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  
+
   &:hover {
     background: var(--bg-body);
   }
@@ -221,7 +221,7 @@
   display: flex;
   align-items: center;
   height: 100%;
-  
+
   .logo-img {
     height: 28px;
     width: auto;
