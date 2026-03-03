@@ -22,7 +22,6 @@ describe('Patients', () => {
 
   const walletServiceMock = {
     getWallet: vi.fn(),
-    addCashBalance: vi.fn()
   };
 
   const alertServiceMock = {
@@ -32,8 +31,7 @@ describe('Patients', () => {
     deleted: vi.fn(),
     toast: vi.fn(),
     confirmDelete: vi.fn(),
-    error: vi.fn(),
-    walletTopUp: vi.fn()
+    error: vi.fn()
   };
 
   const mockPatients: Patient[] = [
@@ -73,7 +71,6 @@ describe('Patients', () => {
 
   const mockWallet: PatientWallet = {
     patientId: 'p1',
-    cashBalance: 200,
     credits: []
   };
 
@@ -86,7 +83,6 @@ describe('Patients', () => {
     dataServiceMock.deletePatient.mockReturnValue(of(void 0));
     dataServiceMock.addPatientTransaction.mockReturnValue(of({} as any));
     walletServiceMock.getWallet.mockReturnValue(of(mockWallet));
-    walletServiceMock.addCashBalance.mockReturnValue(of(mockWallet));
     alertServiceMock.confirmDelete.mockResolvedValue(true);
 
     await TestBed.configureTestingModule({
@@ -160,18 +156,5 @@ describe('Patients', () => {
     expect(dataServiceMock.deletePatient).toHaveBeenCalledWith('p1');
     expect(component.patients.length).toBe(0);
     expect(alertServiceMock.deleted).toHaveBeenCalledWith('Patient', 'Jane Doe');
-  });
-
-  it('tops up wallet and logs transaction', () => {
-    const loadWalletSpy = vi.spyOn(component, 'loadWallet');
-    component.selectedPatient = mockPatients[0];
-    component.topUpAmount = 150;
-
-    component.confirmTopUp();
-
-    expect(walletServiceMock.addCashBalance).toHaveBeenCalledWith('p1', 150);
-    expect(dataServiceMock.addPatientTransaction).toHaveBeenCalled();
-    expect(alertServiceMock.walletTopUp).toHaveBeenCalledWith(150, 'Jane Doe');
-    expect(loadWalletSpy).toHaveBeenCalledWith('p1');
   });
 });

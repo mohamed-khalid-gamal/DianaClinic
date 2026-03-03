@@ -164,7 +164,7 @@ export class SweetAlertService {
    * Display a success message for created items
    */
   created(itemType: string, itemName?: string): Promise<SweetAlertResult> {
-    const message = itemName 
+    const message = itemName
       ? `${itemType} "${itemName}" has been created successfully.`
       : `${itemType} has been created successfully.`;
     return this.toast(message, 'success');
@@ -174,7 +174,7 @@ export class SweetAlertService {
    * Display a success message for updated items
    */
   updated(itemType: string, itemName?: string): Promise<SweetAlertResult> {
-    const message = itemName 
+    const message = itemName
       ? `${itemType} "${itemName}" has been updated successfully.`
       : `${itemType} has been updated successfully.`;
     return this.toast(message, 'success');
@@ -184,7 +184,7 @@ export class SweetAlertService {
    * Display a success message for deleted items
    */
   deleted(itemType: string, itemName?: string): Promise<SweetAlertResult> {
-    const message = itemName 
+    const message = itemName
       ? `${itemType} "${itemName}" has been deleted.`
       : `${itemType} has been deleted.`;
     return this.toast(message, 'success');
@@ -212,7 +212,7 @@ export class SweetAlertService {
     if (additionalMessage) {
       text += `\n${additionalMessage}`;
     }
-    
+
     return Swal.fire({
       title: 'Invoice Paid',
       text,
@@ -237,16 +237,6 @@ export class SweetAlertService {
     return this.success(
       'Session Completed',
       `Session for ${patientName} has been completed and moved to billing.`
-    );
-  }
-
-  /**
-   * Display wallet top-up confirmation
-   */
-  walletTopUp(amount: number, patientName: string): Promise<SweetAlertResult> {
-    return this.success(
-      'Wallet Topped Up',
-      `${amount} EGP has been added to ${patientName}'s wallet.`
     );
   }
 

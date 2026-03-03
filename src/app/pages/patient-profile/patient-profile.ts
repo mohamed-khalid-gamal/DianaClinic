@@ -181,8 +181,6 @@ export class PatientProfile implements OnInit {
         return 'Package';
       case 'credit_usage':
         return 'Credit Used';
-      case 'wallet_topup':
-        return 'Top Up';
       default:
         return 'Transaction';
     }
@@ -198,8 +196,6 @@ export class PatientProfile implements OnInit {
         return 'badge-info';
       case 'credit_usage':
         return 'badge-warning';
-      case 'wallet_topup':
-        return 'badge-primary';
       default:
         return 'badge-muted';
     }
@@ -368,8 +364,8 @@ export class PatientProfile implements OnInit {
   }
 
   getUsageHistory(credit: ServiceCredit): PatientTransaction[] {
-      return this.transactions.filter(tx => 
-          tx.type === 'credit_usage' && 
+      return this.transactions.filter(tx =>
+          tx.type === 'credit_usage' &&
           tx.serviceId === credit.serviceId &&
           (!credit.packageId || tx.packageId === credit.packageId) // Match package if exists
       );

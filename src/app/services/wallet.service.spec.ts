@@ -25,7 +25,6 @@ describe('WalletService', () => {
     const mockWallet: PatientWallet = {
       id: 'w1',
       patientId: 'p1',
-      cashBalance: 100,
       credits: [{ serviceId: 's1', serviceName: 'Service', remaining: 5, total: 10, expiresAt: '2023-01-01', unitType: 'session' }],
       transactions: [],
       createdAt: new Date(),
@@ -35,23 +34,10 @@ describe('WalletService', () => {
     httpClientMock.get.mockReturnValue(of(mockWallet));
 
     service.getWallet('p1').subscribe(wallet => {
-      expect(wallet.cashBalance).toBe(100);
       expect(wallet.credits[0].expiresAt).toBeInstanceOf(Date);
     });
 
     expect(httpClientMock.get).toHaveBeenCalledWith('/api/patients/p1/wallet');
-  });
-
-  it('addCashBalance should post amount', () => {
-    httpClientMock.post.mockReturnValue(of({}));
-    service.addCashBalance('p1', 50).subscribe();
-    expect(httpClientMock.post).toHaveBeenCalledWith('/api/patients/p1/wallet/topup', { amount: 50 });
-  });
-
-  it('deductCashBalance should post amount', () => {
-    httpClientMock.post.mockReturnValue(of({}));
-    service.deductCashBalance('p1', 30).subscribe();
-    expect(httpClientMock.post).toHaveBeenCalledWith('/api/patients/p1/wallet/deduct', { amount: 30 });
   });
 
   it('redeemCredit should post serviceId and units', () => {

@@ -1,7 +1,7 @@
 .patients-container {
   display: flex;
   gap: 1.5rem;
-  
+
   &.with-panel {
     .table-section {
       flex: 1;
@@ -32,13 +32,13 @@
   align-items: center;
   padding: 1.25rem 1.5rem;
   border-bottom: 1px solid var(--border-color);
-  
+
   h3 {
     margin: 0;
     font-size: 1rem;
     font-weight: 600;
   }
-  
+
   .close-btn {
     background: transparent;
     border: none;
@@ -47,7 +47,7 @@
     color: var(--text-muted);
     padding: 0.25rem 0.5rem;
     border-radius: var(--radius-md);
-    
+
     &:hover {
       background: var(--bg-body);
     }
@@ -87,7 +87,7 @@
     margin: 0;
     font-size: 1.25rem;
   }
-  
+
   p {
     margin: 0.25rem 0 0;
     color: var(--text-muted);
@@ -97,7 +97,7 @@
 
 .info-section {
   margin-bottom: 1.5rem;
-  
+
   h4 {
     font-size: 0.875rem;
     color: var(--text-muted);
@@ -116,13 +116,13 @@
 .info-item {
   display: flex;
   flex-direction: column;
-  
+
   .label {
     font-size: 0.75rem;
     color: var(--text-muted);
     margin-bottom: 0.25rem;
   }
-  
+
   .value {
     font-weight: 500;
   }
@@ -139,17 +139,17 @@
   border-radius: 9999px;
   font-size: 0.75rem;
   font-weight: 500;
-  
+
   &.danger {
     background: rgba(239, 68, 68, 0.1);
     color: var(--danger);
   }
-  
+
   &.warning {
     background: rgba(245, 158, 11, 0.1);
     color: var(--warning);
   }
-  
+
 .status-scheduled { background: rgba(128, 38, 50, 0.15); color: var(--primary-color); }
 .status-checked-in { background: rgba(65, 22, 28, 0.15); color: var(--success); }
 .status-in-progress { background: rgba(65, 22, 28, 0.15); color: var(--warning); }
@@ -164,7 +164,7 @@
     justify-content: space-between;
     align-items: center;
     margin-bottom: 0.75rem;
-    
+
     h4 {
       margin: 0;
     }
@@ -179,34 +179,34 @@
   gap: 1.5rem;
   color: var(--primary-light);
   margin-bottom: 1rem;
-  
+
   .wallet-balance, .wallet-credits {
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    
+
     i {
       font-size: 1.5rem;
       opacity: 0.8;
     }
-    
+
     .balance-info, .credits-info {
       display: flex;
       flex-direction: column;
     }
-    
+
     .label {
       font-size: 0.7rem;
       opacity: 0.8;
       text-transform: uppercase;
       letter-spacing: 0.05em;
     }
-    
+
     .amount {
       font-size: 1.25rem;
       font-weight: 700;
     }
-    
+
     .count {
       font-size: 1.1rem;
       font-weight: 600;
@@ -218,7 +218,7 @@
   background: var(--bg-body);
   border-radius: var(--radius-md);
   padding: 1rem;
-  
+
   h5 {
     font-size: 0.8rem;
     color: var(--text-muted);
@@ -226,43 +226,43 @@
     text-transform: uppercase;
     letter-spacing: 0.05em;
   }
-  
+
   .credit-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: 0.75rem 0;
     border-bottom: 1px solid var(--border-color);
-    
+
     &:last-child {
       border-bottom: none;
       padding-bottom: 0;
     }
-    
+
     .credit-info {
       display: flex;
       flex-direction: column;
-      
+
       .service-name {
         font-weight: 500;
         font-size: 0.9rem;
       }
-      
+
       .expiry {
         font-size: 0.75rem;
         color: var(--text-muted);
       }
     }
-    
+
     .credit-count {
       text-align: right;
-      
+
       .remaining {
         font-size: 1.25rem;
         font-weight: 700;
         color: var(--primary-color);
       }
-      
+
       .total {
         font-size: 0.875rem;
         color: var(--text-muted);
@@ -276,30 +276,11 @@
   border-radius: var(--radius-md);
   padding: 1rem;
   text-align: center;
-  
+
   p {
     margin: 0;
     color: var(--text-muted);
     font-size: 0.875rem;
-  }
-}
-
-.topup-form {
-  p {
-    margin: 0 0 1rem;
-    color: var(--text-muted);
-  }
-  
-  .current-balance {
-    margin-top: 1rem;
-    padding: 0.75rem;
-    background: var(--bg-body);
-    border-radius: var(--radius-md);
-    font-size: 0.875rem;
-    
-    strong {
-      color: var(--success);
-    }
   }
 }
 
@@ -308,13 +289,13 @@
   border-radius: var(--radius-lg);
   padding: 2rem;
   text-align: center;
-  
+
   .icon {
     font-size: 2rem;
     display: block;
     margin-bottom: 0.5rem;
   }
-  
+
   p {
     color: var(--text-muted);
     margin: 0 0 1rem;
@@ -327,7 +308,7 @@
   margin-top: 1.5rem;
   padding-top: 1.5rem;
   border-top: 1px solid var(--border-color);
-  
+
   .btn {
     flex: 1;
   }
@@ -343,18 +324,18 @@
 .form-group {
   display: flex;
   flex-direction: column;
-  
+
   &.full-width {
     grid-column: span 2;
   }
-  
+
   label {
     font-size: 0.875rem;
     font-weight: 500;
     margin-bottom: 0.5rem;
     color: var(--text-main);
   }
-  
+
   input, select, textarea {
     padding: 0.75rem;
     border: 1px solid var(--border-color);
@@ -363,16 +344,16 @@
     outline: none;
     transition: border-color 0.2s;
     font-family: inherit;
-    
+
     &:focus {
       border-color: var(--primary-color);
     }
-    
+
     &::placeholder {
       color: var(--text-muted);
     }
   }
-  
+
   textarea {
     resize: vertical;
   }
@@ -427,7 +408,7 @@
     height: 100%;
     object-fit: cover;
     transition: transform 0.3s;
-    
+
     &:hover {
       transform: scale(1.05);
     }
@@ -471,7 +452,7 @@
   .patients-container {
     flex-direction: column;
   }
-  
+
   .detail-panel {
     width: 100%;
     max-height: none;

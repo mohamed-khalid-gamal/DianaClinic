@@ -27,7 +27,6 @@ describe('Patient Profile Page', () => {
 
   const mockWallet: PatientWallet = {
     patientId: 'p1',
-    cashBalance: 0,
     credits: [
       { serviceId: 's1', serviceName: 'Laser', remaining: 5, total: 5, unitType: 'session' }
     ]

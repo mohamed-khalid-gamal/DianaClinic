@@ -98,17 +98,9 @@
       <div class="info-section wallet-section">
         <div class="section-header">
           <h4>Wallet & Credits</h4>
-          <button class="btn btn-sm btn-outline" (click)="openTopUpModal()">+ Top Up</button>
         </div>
 
         <div class="wallet-card" *ngIf="selectedWallet">
-          <div class="wallet-balance">
-            <i class="fa-solid fa-wallet"></i>
-            <div class="balance-info">
-              <span class="label">Cash Balance</span>
-              <span class="amount">EGP {{ selectedWallet.cashBalance | number:'1.2-2' }}</span>
-            </div>
-          </div>
 
           <div class="wallet-credits">
             <i class="fa-solid fa-ticket"></i>
@@ -287,27 +279,6 @@
     <div class="form-group full-width">
       <label>Notes</label>
       <textarea name="notes" [(ngModel)]="patientForm.notes" rows="3" placeholder="Additional notes..."></textarea>
-    </div>
-  </form>
-</app-modal>
-
-<!-- Top Up Wallet Modal -->
-<app-modal
-  [isOpen]="showTopUpModal"
-  title="Top Up Wallet"
-  (closed)="closeTopUpModal()"
-  confirmText="Add Balance"
-  (confirmed)="confirmTopUp(topUpFormRef)">
-
-  <form #topUpFormRef="ngForm" class="topup-form">
-    <p>Add cash balance to {{ selectedPatient?.firstName }}'s wallet</p>
-    <div class="form-group">
-      <label>Amount (EGP)</label>
-      <input type="number" name="topUpAmount" required min="0.01" [(ngModel)]="topUpAmount" placeholder="Enter amount" #topUpAmount="ngModel">
-      <span class="error-text" *ngIf="topUpAmount.invalid && (topUpAmount.touched || topUpAmount.dirty)">Amount must be greater than 0</span>
-    </div>
-    <div class="current-balance" *ngIf="selectedWallet">
-      Current Balance: <strong>EGP {{ selectedWallet.cashBalance | number:'1.2-2' }}</strong>
     </div>
   </form>
 </app-modal>

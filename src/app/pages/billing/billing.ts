@@ -586,13 +586,17 @@ export class Billing implements OnInit {
     this.isProcessingInvoice = true;
     this.dataService.getSessionByAppointment(this.selectedAppointment!.id).pipe(
       switchMap(session => {
+        const hasPayments = this.payments.length > 0;
+        const shouldApplyOffer = !saveAsPending || hasPayments;
         const invoicePayload = {
           patientId: this.selectedPatient?.id ?? '',
           appointmentId: this.selectedAppointment?.id ?? '',
           sessionId: session?.id || null,
-          appliedOfferId: this.selectedAppliedOffers.length > 0
-            ? this.selectedAppliedOffers[0].offer.id
-            : (this.selectedAppointment?.offerId || null),
+          appliedOfferId: shouldApplyOffer
+            ? (this.selectedAppliedOffers.length > 0
+              ? this.selectedAppliedOffers[0].offer.id
+              : (this.selectedAppointment?.offerId || null))
+            : null,
           items: this.invoiceItems.map(item => ({
             description: item.description,
             quantity: item.quantity,
@@ -654,8 +658,6 @@ export class Billing implements OnInit {
       error: (err: any) => {
         this.isProcessingInvoice = false;
         console.error('Invoice creation failed', err);
-        const errorMessage = err.error?.error || err.error?.message || 'Failed to create invoice. Please try again.';
-        this.alertService.error(errorMessage);
         this.cdr.markForCheck();
       }
     });

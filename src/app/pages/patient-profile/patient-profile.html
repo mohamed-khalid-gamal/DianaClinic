@@ -33,10 +33,6 @@
     </div>
     <div class="wallet-summary" *ngIf="wallet">
       <div class="wallet-item">
-        <span class="label">Cash Balance</span>
-        <span class="value">EGP {{ wallet.cashBalance | number:'1.2-2' }}</span>
-      </div>
-      <div class="wallet-item">
         <span class="label">Credits Remaining</span>
         <span class="value" *ngIf="creditBreakdown.length; else noBreakdown">
           <span *ngFor="let cb of creditBreakdown; let last = last">
@@ -165,7 +161,7 @@
                <i class="fa-solid" [class.fa-chevron-down]="!isCreditExpanded(credit)" [class.fa-chevron-up]="isCreditExpanded(credit)"></i>
             </div>
           </div>
-          
+
           <!-- Expanded Usage History -->
           <div class="credit-history" *ngIf="isCreditExpanded(credit)" style="background: #f9f9f9; padding: 10px; border-bottom: 1px solid #eee;">
               <h5 style="margin: 0 0 10px 0; font-size: 0.9rem; color: #555;">Usage History</h5>
@@ -332,9 +328,6 @@
       <select [(ngModel)]="paymentMethod">
         <option value="cash">Cash</option>
         <option value="card">Card</option>
-        <option value="wallet" *ngIf="wallet && wallet.cashBalance >= selectedPurchase.price">
-          Wallet (Balance: EGP {{ wallet.cashBalance | number:'1.2-2' }})
-        </option>
       </select>
     </div>
   </div>

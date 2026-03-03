@@ -22,7 +22,6 @@ export interface Patient {
 
 export interface PatientWallet {
   patientId: string;
-  cashBalance: number;
   credits: ServiceCredit[];
 }
 
@@ -60,7 +59,7 @@ export interface PatientTransaction {
   id: string;
   patientId: string;
   date: Date;
-  type: 'payment' | 'refund' | 'credit_purchase' | 'credit_usage' | 'wallet_topup';
+  type: 'payment' | 'refund' | 'credit_purchase' | 'credit_usage';
   description: string;
   amount: number;
   method?: 'cash' | 'card' | 'wallet' | 'credits';

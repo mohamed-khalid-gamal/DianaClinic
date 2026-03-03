@@ -67,6 +67,10 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
 function formatValidationErrors(error: HttpErrorResponse): string {
   const body = error.error;
 
+  if (typeof body === 'string' && body.trim().length > 0) {
+    return body;
+  }
+
   // Check for field-level errors dictionary (ASP.NET ModelState or custom middleware)
   const errors: Record<string, string[]> | undefined = body?.errors;
 

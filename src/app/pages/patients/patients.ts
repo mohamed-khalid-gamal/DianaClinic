@@ -33,8 +33,6 @@ export class Patients implements OnInit {
   showModal = false;
   showDetailPanel = false;
   isEditMode = false;
-  showTopUpModal = false;
-  topUpAmount = 0;
 
   columns: TableColumn[] = [
     { key: 'fullName', label: 'Name' },
@@ -254,55 +252,6 @@ export class Patients implements OnInit {
     this.selectedWallet = null;
     this.patientSessions = [];
     this.cdr.markForCheck();
-  }
-
-  // Wallet Actions
-  openTopUpModal() {
-    this.topUpAmount = 0;
-    this.showTopUpModal = true;
-  }
-
-  closeTopUpModal() {
-    this.showTopUpModal = false;
-  }
-
-  confirmTopUp(form?: NgForm) {
-    if (form && form.invalid) {
-      form.form.markAllAsTouched();
-      this.alertService.validationError('Please enter a valid amount');
-      return;
-    }
-
-    if (!this.selectedPatient) {
-      this.alertService.validationError('Select a patient before topping up');
-      return;
-    }
-    if (this.topUpAmount <= 0) {
-      this.alertService.validationError('Top up amount must be greater than 0');
-      return;
-    }
-
-    if (this.selectedPatient && this.topUpAmount > 0) {
-      const patientName = `${this.selectedPatient.firstName} ${this.selectedPatient.lastName}`;
-      this.walletService.addCashBalance(this.selectedPatient.id, this.topUpAmount).pipe(
-        switchMap(() => this.dataService.addPatientTransaction({
-          patientId: this.selectedPatient!.id,
-          date: new Date(),
-          type: 'wallet_topup',
-          description: 'Wallet top-up',
-          amount: this.topUpAmount,
-          method: 'cash'
-        }))
-      ).subscribe({
-        next: () => {
-          this.loadWallet(this.selectedPatient!.id);
-          this.alertService.walletTopUp(this.topUpAmount, patientName);
-          this.closeTopUpModal();
-          this.cdr.markForCheck();
-        },
-        error: () => {} // Handled globally
-      });
-    }
   }
 
   getTotalCredits(): number {

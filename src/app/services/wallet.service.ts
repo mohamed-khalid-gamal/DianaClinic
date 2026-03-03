@@ -23,26 +23,6 @@ export class WalletService {
   }
 
   /**
-   * Add cash balance to patient wallet
-   */
-  addCashBalance(patientId: string, amount: number): Observable<PatientWallet> {
-    return this.http.post<PatientWallet>(
-      `${this.apiBase}/patients/${patientId}/wallet/topup`,
-      { amount }
-    );
-  }
-
-  /**
-   * Deduct cash balance from patient wallet
-   */
-  deductCashBalance(patientId: string, amount: number): Observable<PatientWallet> {
-    return this.http.post<PatientWallet>(
-      `${this.apiBase}/patients/${patientId}/wallet/deduct`,
-      { amount }
-    );
-  }
-
-  /**
    * Add service credits (from package purchase)
    */
   addCredit(patientId: string, credit: ServiceCredit): Observable<PatientWallet> {
