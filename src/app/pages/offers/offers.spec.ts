@@ -13,6 +13,10 @@ describe('Offers', () => {
   const dataServiceMock = {
     getOffers: vi.fn(),
     getServices: vi.fn(),
+    getCategories: vi.fn(),
+    getProducts: vi.fn(),
+    getBrands: vi.fn(),
+    getPatients: vi.fn(),
     addOffer: vi.fn(),
     updateOffer: vi.fn(),
     deleteOffer: vi.fn()
@@ -52,6 +56,10 @@ describe('Offers', () => {
     vi.clearAllMocks();
     dataServiceMock.getOffers.mockReturnValue(of(mockOffers));
     dataServiceMock.getServices.mockReturnValue(of(mockServices as any));
+    dataServiceMock.getCategories.mockReturnValue(of([]));
+    dataServiceMock.getProducts.mockReturnValue(of([]));
+    dataServiceMock.getBrands.mockReturnValue(of([]));
+    dataServiceMock.getPatients.mockReturnValue(of([]));
     dataServiceMock.addOffer.mockReturnValue(of(mockOffers[0]));
     dataServiceMock.updateOffer.mockReturnValue(of(mockOffers[0]));
     dataServiceMock.deleteOffer.mockReturnValue(of(void 0));

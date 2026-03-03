@@ -150,6 +150,11 @@
     color: var(--warning);
   }
 
+  &.primary {
+    background: rgba(59, 130, 246, 0.1);
+    color: var(--primary-color);
+  }
+
 .status-scheduled { background: rgba(128, 38, 50, 0.15); color: var(--primary-color); }
 .status-checked-in { background: rgba(65, 22, 28, 0.15); color: var(--success); }
 .status-in-progress { background: rgba(65, 22, 28, 0.15); color: var(--warning); }

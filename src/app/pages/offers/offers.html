@@ -378,8 +378,9 @@
                <!-- Patient Tags -->
                <div *ngSwitchCase="'patient_tag'">
                   <div class="form-group mb-0">
-                     <label>Patient Tags (comma-separated)</label>
-                     <input type="text" [ngModel]="joinArray(cond.parameters.tags)" (ngModelChange)="cond.parameters.tags = splitText($event)" [ngModelOptions]="{ standalone: true }" placeholder="e.g. VIP, Employee">
+                     <label>Patient Tags</label>
+                     <app-tag-input [(tags)]="cond.parameters.tags" tagClass="primary" placeholder="Add tag (e.g. VIP) and press Enter"></app-tag-input>
+                     <span class="hint-text">Press Enter or type comma to add tag</span>
                   </div>
                   <div class="mt-3 toggle-wrapper" (click)="cond.operator = cond.operator === 'not_contains' ? 'contains' : 'not_contains'">
                       <div class="toggle" [class.active]="cond.operator === 'not_contains'"></div>

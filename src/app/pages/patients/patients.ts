@@ -13,11 +13,12 @@ import { WalletService } from '../../services/wallet.service';
 import { SweetAlertService } from '../../services/sweet-alert.service';
 import { FormErrorService } from '../../services/form-error.service';
 import { Patient, PatientWallet, ServiceCredit, Appointment, Session } from '../../models';
+import { TagInputComponent } from '../../components/shared/tag-input.component';
 
 @Component({
   selector: 'app-patients',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, PageHeaderComponent, DataTableComponent, ModalComponent],
+  imports: [CommonModule, FormsModule, RouterModule, PageHeaderComponent, DataTableComponent, ModalComponent, TagInputComponent],
   templateUrl: './patients.html',
   styleUrl: './patients.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -279,14 +280,6 @@ export class Patients implements OnInit {
       tags: [],
       notes: ''
     };
-  }
-
-  joinArray(arr?: string[]): string {
-    return (arr || []).join(', ');
-  }
-
-  splitText(text: string): string[] {
-    return text.split(',').map(s => s.trim()).filter(s => s.length > 0);
   }
 
   getSkinTypeLabel(type?: number): string {

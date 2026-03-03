@@ -8,11 +8,12 @@ import { DataService } from '../../services/data.service';
 import { SweetAlertService } from '../../services/sweet-alert.service';
 import { FormErrorService } from '../../services/form-error.service';
 import { Offer, Service, OfferCondition, OfferBenefit, PackageCreditItem, ServiceCategory, Patient } from '../../models';
+import { TagInputComponent } from '../../components/shared/tag-input.component';
 
 @Component({
   selector: 'app-offers',
   standalone: true,
-  imports: [CommonModule, FormsModule, PageHeaderComponent, ModalComponent],
+  imports: [CommonModule, FormsModule, PageHeaderComponent, ModalComponent, TagInputComponent],
   templateUrl: './offers.html',
   styleUrl: './offers.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -324,14 +325,6 @@ export class Offers implements OnInit {
     if (cond.parameters.patientIds) {
       cond.parameters.patientIds = cond.parameters.patientIds.filter((id: string) => id !== pId);
     }
-  }
-
-  joinArray(arr?: string[]): string {
-    return (arr || []).join(', ');
-  }
-
-  splitText(text: string): string[] {
-    return text.split(',').map(t => t.trim()).filter(t => t.length > 0);
   }
 
   formatDate(date: Date | undefined): string {

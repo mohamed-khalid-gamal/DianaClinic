@@ -1,6 +1,7 @@
 import { Component, OnInit, ChangeDetectorRef, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, NgForm } from '@angular/forms';
+import { RouterModule } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 import { forkJoin } from 'rxjs';
 import { PageHeaderComponent, DataTableComponent, ModalComponent, TableColumn } from '../../components/shared';
@@ -8,11 +9,12 @@ import { DataService } from '../../services/data.service';
 import { SweetAlertService } from '../../services/sweet-alert.service';
 import { FormErrorService } from '../../services/form-error.service';
 import { Room, RoomType } from '../../models';
+import { TagInputComponent } from '../../components/shared/tag-input.component';
 
 @Component({
   selector: 'app-rooms',
   standalone: true,
-  imports: [CommonModule, FormsModule, PageHeaderComponent, DataTableComponent, ModalComponent],
+  imports: [CommonModule, FormsModule, RouterModule, PageHeaderComponent, DataTableComponent, ModalComponent, TagInputComponent],
   templateUrl: './rooms.html',
   styleUrl: './rooms.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -256,13 +258,5 @@ export class Rooms implements OnInit {
       },
       error: () => {} // Handled globally
     });
-  }
-
-  joinArray(arr?: string[]): string {
-    return (arr || []).join(', ');
-  }
-
-  splitText(text: string): string[] {
-    return text.split(',').map(s => s.trim()).filter(s => s.length > 0);
   }
 }

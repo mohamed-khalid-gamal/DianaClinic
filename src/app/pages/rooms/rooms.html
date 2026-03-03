@@ -63,8 +63,8 @@
 
     <div class="form-group full-width">
       <label>Equipment</label>
-      <input type="text" name="equipment" [ngModel]="joinArray(roomForm.equipment)" (ngModelChange)="roomForm.equipment = splitText($event)" placeholder="Comma-separated, e.g., Laser, Cryotherapy, Sterilizer">
-      <span class="hint-text">Separate multiple items with commas</span>
+      <app-tag-input [(tags)]="roomForm.equipment" tagClass="primary" placeholder="Add equipment (e.g. Laser) and press Enter"></app-tag-input>
+      <span class="hint-text">Press Enter or type comma to add equipment</span>
     </div>
 
     <div class="form-group">

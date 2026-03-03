@@ -94,6 +94,24 @@
         </div>
       </div>
 
+      <div class="info-section" *ngIf="selectedPatient.contraindications?.length">
+        <h4>Contraindications</h4>
+        <div class="tags">
+          <span class="tag danger" *ngFor="let contraindication of selectedPatient.contraindications">
+            {{ contraindication }}
+          </span>
+        </div>
+      </div>
+
+      <div class="info-section" *ngIf="selectedPatient.tags?.length">
+        <h4>Tags</h4>
+        <div class="tags">
+          <span class="tag primary" *ngFor="let tag of selectedPatient.tags">
+            {{ tag }}
+          </span>
+        </div>
+      </div>
+
       <!-- Wallet Section - Dynamic Data -->
       <div class="info-section wallet-section">
         <div class="section-header">
@@ -254,26 +272,26 @@
 
     <div class="form-group full-width">
       <label>Allergies</label>
-      <input type="text" name="allergies" [ngModel]="joinArray(patientForm.allergies)" (ngModelChange)="patientForm.allergies = splitText($event)" placeholder="Comma-separated, e.g., Lidocaine, Latex">
-      <span class="hint-text">Separate multiple allergies with commas</span>
+      <app-tag-input [(tags)]="patientForm.allergies" tagClass="danger" placeholder="Add allergy (e.g. Lidocaine) and press Enter"></app-tag-input>
+      <span class="hint-text">Press Enter or type comma to add</span>
     </div>
 
     <div class="form-group full-width">
       <label>Chronic Conditions</label>
-      <input type="text" name="chronicConditions" [ngModel]="joinArray(patientForm.chronicConditions)" (ngModelChange)="patientForm.chronicConditions = splitText($event)" placeholder="Comma-separated, e.g., Diabetes, Hypertension">
-      <span class="hint-text">Separate multiple conditions with commas</span>
+      <app-tag-input [(tags)]="patientForm.chronicConditions" tagClass="warning" placeholder="Add condition (e.g. Diabetes) and press Enter"></app-tag-input>
+      <span class="hint-text">Press Enter or type comma to add</span>
     </div>
 
     <div class="form-group full-width">
       <label>Contraindications</label>
-      <input type="text" name="contraindications" [ngModel]="joinArray(patientForm.contraindications)" (ngModelChange)="patientForm.contraindications = splitText($event)" placeholder="Comma-separated, e.g., Pregnancy, Photosensitivity">
-      <span class="hint-text">Separate multiple contraindications with commas</span>
+      <app-tag-input [(tags)]="patientForm.contraindications" tagClass="danger" placeholder="Add contraindication (e.g. Pregnancy) and press Enter"></app-tag-input>
+      <span class="hint-text">Press Enter or type comma to add</span>
     </div>
 
     <div class="form-group full-width">
       <label>Tags (VIP, High Value, etc.)</label>
-      <input type="text" name="tags" [ngModel]="joinArray(patientForm.tags)" (ngModelChange)="patientForm.tags = splitText($event)" placeholder="Comma-separated, e.g., VIP, Employee">
-      <span class="hint-text">Used for targeted offers and promotions</span>
+      <app-tag-input [(tags)]="patientForm.tags" tagClass="primary" placeholder="Add tag (e.g. VIP) and press Enter"></app-tag-input>
+      <span class="hint-text">Used for targeted offers and promotions. Press Enter or type comma to add</span>
     </div>
 
     <div class="form-group full-width">

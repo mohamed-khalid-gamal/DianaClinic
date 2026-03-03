@@ -5,7 +5,7 @@ import { vi, describe, it, expect, beforeEach } from 'vitest';
 // Mock marked
 vi.mock('marked', () => ({
   marked: {
-    Renderer: vi.fn().mockImplementation(() => ({})),
+    Renderer: class {},
     use: vi.fn(),
     parse: vi.fn().mockResolvedValue('<h1>Manual</h1>')
   }
