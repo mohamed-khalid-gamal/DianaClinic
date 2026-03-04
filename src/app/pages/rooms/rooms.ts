@@ -229,13 +229,17 @@ export class Rooms implements OnInit {
   saveRoomType(rt: RoomType) {
     const name = this.editingRoomTypeName.trim();
     if (!name) return;
-    const oldName = rt.name;
     const updated = { ...rt, name };
     this.dataService.updateRoomType(updated).subscribe({
       next: () => {
+        const oldName = rt.name;
         rt.name = name;
-        // Also update all in-memory rooms that had the old type name
-        this.rooms.forEach(r => { if (r.type === oldName) r.type = name; });
+
+        // Update local room list to reflect the cascaded rename
+        this.rooms.forEach(r => {
+          if (r.type === oldName) r.type = name as any;
+        });
+
         this.editingRoomTypeId = null;
         this.alertService.toast(`Room type updated`);
         this.cdr.markForCheck();
