@@ -229,10 +229,13 @@ export class Rooms implements OnInit {
   saveRoomType(rt: RoomType) {
     const name = this.editingRoomTypeName.trim();
     if (!name) return;
+    const oldName = rt.name;
     const updated = { ...rt, name };
     this.dataService.updateRoomType(updated).subscribe({
       next: () => {
         rt.name = name;
+        // Also update all in-memory rooms that had the old type name
+        this.rooms.forEach(r => { if (r.type === oldName) r.type = name; });
         this.editingRoomTypeId = null;
         this.alertService.toast(`Room type updated`);
         this.cdr.markForCheck();
