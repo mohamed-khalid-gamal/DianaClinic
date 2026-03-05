@@ -19,7 +19,7 @@ import { TagInputComponent } from '../../components/shared/tag-input.component';
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class Offers implements OnInit {
-  readonly customerAttributeOperators: Record<'default' | 'numeric' | 'gender', { value: NonNullable<OfferCondition['operator']>; label: string }[]> = {
+  readonly customerAttributeOperators: Record<'default' | 'numeric' | 'exact', { value: NonNullable<OfferCondition['operator']>; label: string }[]> = {
     default: [
       { value: 'equals', label: 'Equals' },
       { value: 'not_equals', label: 'Not Equals' },
@@ -31,9 +31,9 @@ export class Offers implements OnInit {
       { value: 'greater_than', label: 'Greater Than' },
       { value: 'less_than', label: 'Less Than' }
     ],
-    gender: [
-      { value: 'equals', label: 'Equals' },
-      { value: 'not_equals', label: 'Not Equals' }
+    exact: [
+      { value: 'equals', label: 'Is' },
+      { value: 'not_equals', label: 'Is Not' }
     ]
   };
 
@@ -417,8 +417,8 @@ export class Offers implements OnInit {
   }
 
   getCustomerAttributeOperators(attributeName?: string): { value: NonNullable<OfferCondition['operator']>; label: string }[] {
-    if (attributeName === 'gender') return this.customerAttributeOperators['gender'];
-    if (attributeName === 'age' || attributeName === 'visitCount' || attributeName === 'skinType') {
+    if (attributeName === 'gender' || attributeName === 'skinType') return this.customerAttributeOperators['exact'];
+    if (attributeName === 'age' || attributeName === 'visitCount') {
       return this.customerAttributeOperators['numeric'];
     }
     return this.customerAttributeOperators['default'];
