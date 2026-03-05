@@ -1006,7 +1006,7 @@ export class Appointments implements OnInit {
         }
       }
     }
-    
+
     this.cdr.markForCheck();
   }
 
@@ -1024,7 +1024,7 @@ export class Appointments implements OnInit {
     // Auto-select if only one option
     this.rescheduleDoctorId = slot.doctors.length === 1 ? slot.doctors[0].id : (this.rescheduleDoctorId || '');
     this.rescheduleRoomId = slot.rooms.length === 1 ? slot.rooms[0].id : (this.rescheduleRoomId || '');
-    
+
     this.cdr.markForCheck();
   }
 
