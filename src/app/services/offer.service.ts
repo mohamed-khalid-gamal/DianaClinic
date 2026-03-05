@@ -158,7 +158,7 @@ export class OfferService {
         return this.evaluateDayOfWeek(condition, evaluationDate);
 
       case 'customer_attribute':
-        return this.evaluateAttribute(condition, patient);
+        return this.evaluateAttribute(condition, patient, evaluationDate);
 
       case 'visit_count':
         // Now using real visit count from backend
@@ -195,7 +195,7 @@ export class OfferService {
       return condition.parameters.daysOfWeek.includes(day);
   }
 
-  private evaluateAttribute(condition: OfferCondition, patient: Patient): boolean {
+  private evaluateAttribute(condition: OfferCondition, patient: Patient, evaluationDate: Date): boolean {
       const attr = condition.parameters.attributeName;
       if (!attr) return true;
 
@@ -204,7 +204,13 @@ export class OfferService {
       // Handle derived or mapped attributes
       if (attr === 'age') {
           if (!patient.dateOfBirth) return false;
-          value = new Date().getFullYear() - new Date(patient.dateOfBirth).getFullYear();
+          const birthDate = new Date(patient.dateOfBirth);
+          let age = evaluationDate.getFullYear() - birthDate.getFullYear();
+          const m = evaluationDate.getMonth() - birthDate.getMonth();
+          if (m < 0 || (m === 0 && evaluationDate.getDate() < birthDate.getDate())) {
+              age--;
+          }
+          value = age;
       } else if (attr === 'visitCount') {
           value = patient.visitCount || 0;
       } else {
