@@ -381,7 +381,13 @@ export class Offers implements OnInit {
          case 'specific_patient': return `${(cond.parameters.patientIds || []).length} specific patient(s)`;
          case 'time_range': return `Time: ${cond.parameters.startTime} - ${cond.parameters.endTime}`;
          case 'day_of_week': return `Days: ${(cond.parameters.daysOfWeek || []).map(d => ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d]).join(', ')}`;
-         case 'customer_attribute': return `Patient ${cond.parameters.attributeName} ${cond.operator} ${cond.parameters.attributeValue}`;
+         case 'customer_attribute':
+           if (cond.parameters.attributeName === 'skinType') {
+             const skinLabels: { [key: number]: string } = { 1: 'Type I - Very Fair', 2: 'Type II - Fair', 3: 'Type III - Medium', 4: 'Type IV - Olive', 5: 'Type V - Brown', 6: 'Type VI - Dark' };
+             const label = skinLabels[Number(cond.parameters.attributeValue)] || cond.parameters.attributeValue;
+             return `Skin Type ${cond.operator} ${label}`;
+           }
+           return `Patient ${cond.parameters.attributeName} ${cond.operator} ${cond.parameters.attributeValue}`;
          case 'visit_count': return `Visits ${cond.operator} ${cond.parameters.attributeValue}`;
          case 'cart_property': return `Invoice ${cond.parameters.attributeName} ${cond.operator} ${cond.parameters.threshold}`;
          default: return cond.type;
