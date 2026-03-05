@@ -114,7 +114,7 @@ export class Offers implements OnInit {
 
   private normalizeConditions(conditions: OfferCondition[]) {
     for (const cond of conditions) {
-      if (cond.type === 'customer_attribute' && 
+      if (cond.type === 'customer_attribute' &&
           ['skinType', 'age', 'visitCount'].includes(cond.parameters.attributeName || '')) {
         cond.parameters.attributeValue = Number(cond.parameters.attributeValue);
       }
