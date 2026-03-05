@@ -19,7 +19,7 @@ import { TagInputComponent } from '../../components/shared/tag-input.component';
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class Offers implements OnInit {
-  readonly customerAttributeOperators: Record<'default' | 'numeric' | 'gender', { value: NonNullable<OfferCondition['operator']>; label: string }[]> = {
+  readonly customerAttributeOperators: Record<'default' | 'numeric' | 'gender' | 'skinType', { value: NonNullable<OfferCondition['operator']>; label: string }[]> = {
     default: [
       { value: 'equals', label: 'Equals' },
       { value: 'not_equals', label: 'Not Equals' },
@@ -34,6 +34,12 @@ export class Offers implements OnInit {
     gender: [
       { value: 'equals', label: 'Equals' },
       { value: 'not_equals', label: 'Not Equals' }
+    ],
+    skinType: [
+      { value: 'equals', label: 'Is' },
+      { value: 'not_equals', label: 'Is Not' },
+      { value: 'greater_than', label: 'Darker Than' },
+      { value: 'less_than', label: 'Lighter Than' }
     ]
   };
 
@@ -384,8 +390,10 @@ export class Offers implements OnInit {
          case 'customer_attribute':
            if (cond.parameters.attributeName === 'skinType') {
              const skinLabels: { [key: number]: string } = { 1: 'Type I - Very Fair', 2: 'Type II - Fair', 3: 'Type III - Medium', 4: 'Type IV - Olive', 5: 'Type V - Brown', 6: 'Type VI - Dark' };
+             const opLabels: { [key: string]: string } = { equals: 'is', not_equals: 'is not', greater_than: 'darker than', less_than: 'lighter than' };
              const label = skinLabels[Number(cond.parameters.attributeValue)] || cond.parameters.attributeValue;
-             return `Skin Type ${cond.operator} ${label}`;
+             const opLabel = opLabels[cond.operator || 'equals'] || cond.operator;
+             return `Skin Type ${opLabel} ${label}`;
            }
            return `Patient ${cond.parameters.attributeName} ${cond.operator} ${cond.parameters.attributeValue}`;
          case 'visit_count': return `Visits ${cond.operator} ${cond.parameters.attributeValue}`;
@@ -413,7 +421,8 @@ export class Offers implements OnInit {
 
   getCustomerAttributeOperators(attributeName?: string): { value: NonNullable<OfferCondition['operator']>; label: string }[] {
     if (attributeName === 'gender') return this.customerAttributeOperators['gender'];
-    if (attributeName === 'age' || attributeName === 'visitCount' || attributeName === 'skinType') {
+    if (attributeName === 'skinType') return this.customerAttributeOperators['skinType'];
+    if (attributeName === 'age' || attributeName === 'visitCount') {
       return this.customerAttributeOperators['numeric'];
     }
     return this.customerAttributeOperators['default'];
