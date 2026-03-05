@@ -67,6 +67,9 @@
                   <button class="action-btn no-show" title="No Show" (click)="updateStatus(apt, 'no-show')">
                     <i class="fa-solid fa-user-slash"></i>
                   </button>
+                  <button class="action-btn" title="Reschedule" (click)="openRescheduleModal(apt)">
+                    <i class="fa-solid fa-calendar-days"></i>
+                  </button>
                   <button class="action-btn cancel" title="Cancel" (click)="updateStatus(apt, 'cancelled')">
                     <i class="fa-solid fa-xmark"></i>
                   </button>

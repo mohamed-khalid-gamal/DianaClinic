@@ -953,8 +953,8 @@ export class Appointments implements OnInit {
         return d.assignedRooms.some(roomId => eligibleRooms.some(r => r.id === roomId));
     });
 
-    const startHour = 8;
-    const endHour = 20;
+    const startHour = 6;
+    const endHour = 23;
     const dateParts = this.rescheduleDate.split('-');
     const date = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]));
     const dayOfWeek = date.getDay();
@@ -967,7 +967,7 @@ export class Appointments implements OnInit {
         const slotEnd = new Date(slotStart);
         slotEnd.setMinutes(slotStart.getMinutes() + duration);
 
-        if (slotEnd.getHours() >= 20 && slotEnd.getMinutes() > 0) continue;
+        if (slotEnd.getHours() >= 23 && slotEnd.getMinutes() > 0) continue;
 
         // 4. Find Free Resources
         const freeRooms = eligibleRooms.filter(room => {
@@ -1006,11 +1006,14 @@ export class Appointments implements OnInit {
         }
       }
     }
+    
+    this.cdr.markForCheck();
   }
 
   onRescheduleDateChange() {
     this.rescheduleTime = '';
     this.generateRescheduleSlots();
+    this.cdr.markForCheck();
   }
 
   selectRescheduleSlot(slot: any) {
@@ -1021,6 +1024,8 @@ export class Appointments implements OnInit {
     // Auto-select if only one option
     this.rescheduleDoctorId = slot.doctors.length === 1 ? slot.doctors[0].id : (this.rescheduleDoctorId || '');
     this.rescheduleRoomId = slot.rooms.length === 1 ? slot.rooms[0].id : (this.rescheduleRoomId || '');
+    
+    this.cdr.markForCheck();
   }
 
   canConfirmReschedule(): boolean {
@@ -1057,19 +1062,30 @@ export class Appointments implements OnInit {
       scheduledStart,
       scheduledEnd,
       status: 'scheduled',
-      notes: apt.notes ? `(Rescheduled) ${apt.notes}` : 'Rescheduled from no-show',
+      notes: apt.notes ? `(Rescheduled) ${apt.notes}` : 'Rescheduled from previous appointment',
       offerId: apt.offerId,
       createdAt: new Date()
     };
 
-    this.dataService.addAppointment(newAppointment).subscribe({
-      next: () => {
-        this.alertService.success('Appointment Rescheduled', 'The new appointment has been created.');
-        this.closeRescheduleModal();
-        this.loadData();
-      },
-      error: () => this.alertService.error('Failed to reschedule appointment. Please try again.')
-    });
+    const submitReschedule = () => {
+      this.dataService.addAppointment(newAppointment).subscribe({
+        next: () => {
+          this.alertService.success('Appointment Rescheduled', 'The new appointment has been created.');
+          this.closeRescheduleModal();
+          this.loadData();
+        },
+        error: () => this.alertService.error('Failed to reschedule appointment. Please try again.')
+      });
+    };
+
+    if (apt.status === 'scheduled') {
+      this.dataService.updateAppointmentStatus(apt.id, 'cancelled').subscribe({
+        next: () => submitReschedule(),
+        error: () => this.alertService.error('Failed to cancel the original appointment.')
+      });
+    } else {
+      submitReschedule();
+    }
   }
 
   getReschedulePatientName(): string {
