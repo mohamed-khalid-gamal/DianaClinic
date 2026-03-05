@@ -128,6 +128,7 @@ export class OfferService {
 
         const patientTags = [
             ...(patient.tags || []),            // Real marketing tags
+            String(patient.skinType || ''),
             ...(patient.allergies || []),
             ...(patient.chronicConditions || []),
             ...(patient.contraindications || [])
@@ -206,11 +207,6 @@ export class OfferService {
           value = new Date().getFullYear() - new Date(patient.dateOfBirth).getFullYear();
       } else if (attr === 'visitCount') {
           value = patient.visitCount || 0;
-      } else if (attr === 'skinType') {
-          value = patient.skinType != null ? Number(patient.skinType) : null;
-          if (value === null) return false; // Patient has no skin type set
-          const target = Number(condition.parameters.attributeValue);
-          return this.compareValues(value, target, condition.operator);
       } else {
           // Fallback to direct property access
           value = (patient as any)[attr];
