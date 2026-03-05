@@ -500,6 +500,10 @@ export class Offers implements OnInit {
            }
          }
       }
+      // Ensure attributeValue is always sent as a string to match backend DTO (string? AttributeValue)
+      if (cond.type === 'customer_attribute' && cond.parameters.attributeValue != null) {
+        cond.parameters.attributeValue = String(cond.parameters.attributeValue);
+      }
       if (cond.type === 'group' && cond.children) {
         this.mapServiceSelectionsToIds(cond.children);
       }
