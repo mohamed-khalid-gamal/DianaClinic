@@ -190,15 +190,33 @@
       </div>
     </div>
 
-    <div class="detail-actions" *ngIf="selectedEvent.extendedProps.status === 'scheduled' || selectedEvent.extendedProps.status === 'checked-in'">
-      <button class="btn btn-primary" (click)="updateStatusFromCalendar('in-progress')">
-        <i class="fa-solid fa-play"></i> Start Session
-      </button>
-      <button class="btn btn-outline" [routerLink]="['/appointments']" [queryParams]="{date: selectedEvent!.start | date:'yyyy-MM-dd'}">
-        <i class="fa-solid fa-calendar"></i> View in Appointments
-      </button>
-    </div>
-    
+      <div class="detail-actions" *ngIf="selectedEvent.extendedProps.status === 'scheduled'">
+        <button class="btn btn-primary" (click)="updateStatusFromCalendar('checked-in')">
+          <i class="fa-solid fa-user-check"></i> Check In
+        </button>
+        <button class="btn btn-outline" (click)="updateStatusFromCalendar('no-show')">
+          <i class="fa-solid fa-user-slash"></i> No Show
+        </button>
+        <button class="btn btn-outline" (click)="updateStatusFromCalendar('cancelled')">
+          <i class="fa-solid fa-xmark"></i> Cancel
+        </button>
+        <button class="btn btn-outline" [routerLink]="['/appointments']" [queryParams]="{date: selectedEvent!.start | date:'yyyy-MM-dd'}">
+          <i class="fa-solid fa-calendar"></i> View in Appointments
+        </button>
+      </div>
+
+      <div class="detail-actions" *ngIf="selectedEvent.extendedProps.status === 'checked-in'">
+        <button class="btn btn-primary" (click)="updateStatusFromCalendar('in-progress')">
+          <i class="fa-solid fa-play"></i> Start Session
+        </button>
+        <button class="btn btn-outline" (click)="updateStatusFromCalendar('cancelled')">
+          <i class="fa-solid fa-xmark"></i> Cancel
+        </button>
+        <button class="btn btn-outline" [routerLink]="['/appointments']" [queryParams]="{date: selectedEvent!.start | date:'yyyy-MM-dd'}">
+          <i class="fa-solid fa-calendar"></i> View in Appointments
+        </button>
+      </div>
+
     <div class="detail-actions" *ngIf="selectedEvent.extendedProps.status === 'in-progress'">
       <button class="btn btn-primary" (click)="updateStatusFromCalendar('completed')">
         <i class="fa-solid fa-check-double"></i> Complete Treatment
