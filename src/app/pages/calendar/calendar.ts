@@ -212,39 +212,22 @@ export class CalendarPage implements OnInit {
   }
 
   // UX 3: Route to end session instead of just setting status to complete
-  async updateStatusFromCalendar(status: string) {
+  updateStatusFromCalendar(status: string) {
     if (!this.selectedEvent) return;
 
     if (status === 'completed') {
+      const appointmentId = this.selectedEvent.id;
       this.closeEventModal();
-      this.router.navigate(['/sessions'], { queryParams: { endSession: this.selectedEvent.id } });
-      return;
+      this.router.navigate(['/sessions'], { queryParams: { endSession: appointmentId } });
+    } else {
+      this.dataService.updateAppointmentStatus(this.selectedEvent.id, status as any).subscribe({
+        next: () => {
+          this.alertService.success('Status Updated');
+          this.loadData();
+          this.closeEventModal();
+        },
+        error: () => this.alertService.error('Failed to update status')
+      });
     }
-
-    if (status === 'cancelled') {
-      const confirmed = await this.alertService.confirm(
-        'Cancel Appointment?',
-        'Are you sure you want to cancel this appointment? This action cannot be undone.'
-      );
-      if (!confirmed) return;
-    }
-
-    if (status === 'no-show') {
-      const confirmed = await this.alertService.confirm(
-        'Mark as No-Show?',
-        'Are you sure you want to mark this appointment as No-Show?'
-      );
-      if (!confirmed) return;
-    }
-
-    this.dataService.updateAppointmentStatus(this.selectedEvent.id, status as any).subscribe({
-      next: () => {
-        this.alertService.success('Status Updated');
-        this.loadData();
-        this.closeEventModal();
-        this.cdr.markForCheck();
-      },
-      error: () => this.alertService.error('Failed to update status')
-    });
   }
 }
